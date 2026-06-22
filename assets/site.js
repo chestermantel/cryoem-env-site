@@ -4,7 +4,8 @@
     { id: 'index',    href: 'index.html',    label: 'Overview' },
     { id: 'rollouts', href: 'rollouts.html', label: 'Rollouts' },
     { id: 'grader',   href: 'grader.html',   label: 'Grader' },
-    { id: 'rfp',      href: 'rfp.html',      label: 'RFP spec' }
+    { id: 'rfp',      href: 'rfp.html',      label: 'RFP spec' },
+    { id: 'roadmap',  href: 'roadmap.html',  label: 'Roadmap' }
   ];
 
   function nav(active, prefix) {
