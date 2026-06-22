@@ -178,6 +178,26 @@ details.surface .surface-body p{margin:10px 0;}
 .report figcaption{color:var(--muted); font-size:12.5px; margin-top:5px;}
 .report tr.errrow td{background:var(--gap-bg);}
 .report .backlink{display:inline-block; margin-bottom:10px; font-size:13px; color:var(--accent); text-decoration:none;}
+/* result-at-a-glance card */
+.report .glance{border:1px solid var(--line-strong); border-radius:13px; background:var(--surface); padding:16px 20px; margin:0 0 26px;}
+.report .glance .statline{margin:12px 0 0;}
+.report .glance .verdict{font-size:15px; margin:12px 0 0; color:var(--ink);}
+/* report tables: deterministic columns so long file paths can't starve the code column */
+.report table.meta, .report table.dag, .report table.traj{display:table; table-layout:fixed; width:100%;}
+.report table.meta td, .report table.meta th,
+.report table.dag td, .report table.dag th,
+.report table.traj td, .report table.traj th{overflow-wrap:anywhere; word-break:break-word;}
+.report table.traj td, .report table.dag td{font-size:13px;}
+.report .dag-title, .report .dag-meta{color:var(--faint); font-size:12.5px;}
+/* the code cell: a horizontal-scroll box; pre (not pre-wrap) keeps indentation and never wraps per-character */
+.report table.traj td.code{padding:0;}
+.report .codecell{overflow:auto; max-width:100%; max-height:340px;}
+.report .codecell pre{white-space:pre; word-break:normal; overflow-wrap:normal; max-height:none;
+  margin:0; border:none; border-radius:0; background:none; padding:8px 10px; font-size:12.5px; line-height:1.5;}
+/* cap any expanded prose <pre> so one open can't flood the page */
+.report details pre{max-height:60vh; overflow:auto;}
+.report .trunc{display:inline-block; margin-top:4px; color:var(--faint); font-size:12px; font-style:italic;}
+.side a.toclink.sub{padding-left:18px; font-size:12.5px; color:var(--faint);}
 
 @media (max-width:880px){
   .wrap{grid-template-columns:1fr;}

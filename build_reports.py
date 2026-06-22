@@ -5,6 +5,11 @@ For each run it reads run_meta.json (+ trajectory.json + decisions.json) and the
 PNGs, copies the images into site/reports/<id>/, and emits site/reports/<id>.html rendered in
 the website style (shared assets/site.css + site.js). Linked from the Rollouts cards.
 
+Read-order is result-first: a 'Result at a glance' card, then run metadata, model inputs,
+action surface, and outputs (resolution + summary, DAG, the full trajectory, images). Tables use
+fixed column layout so long file paths can't starve the code column; the agent's code lives in
+exactly one place (the trajectory), in a horizontal-scroll code box.
+
 Run it after collecting/grading new rollouts:
     python3 site/build_reports.py
 Then `bin/publish-site` mirrors site/ (reports + images included) to the public Pages repo.
@@ -44,6 +49,58 @@ def _load(p):
         return None
 
 
+def recover_finish(m, dec):
+    """The agent's free-text summary sometimes leaked into finish.resolution_note as a raw tool-call
+    parameter block (the `summary` key ends up present-but-empty). Recover it for display: return
+    (clean_finish_dict, summary_text). No-op when the marker is absent."""
+    finish = dict(m.get("finish") or {})
+    summary = (m.get("summary") or "").strip() or ((dec.get("finish") or {}).get("summary") or "").strip()
+    note = finish.get("resolution_note") or ""
+    marker = '<parameter name="summary">'
+    if marker in note:
+        pre, post = note.split(marker, 1)
+        recovered = post.split("</parameter>")[0].strip()
+        if recovered:
+            summary = recovered
+        finish["resolution_note"] = pre.split("</parameter>")[0].strip()
+    return finish, summary
+
+
+def _first_sentence(text):
+    t = (text or "").strip()
+    if not t:
+        return ""
+    nl = t.find("\n")                      # stop at the first line break (avoids running into a numbered list)
+    if nl != -1:
+        t = t[:nl].strip()
+    s = t.split(". ")[0].strip()
+    return s if s.endswith((".", ":")) else s + "."
+
+
+def glance_card(m, summary, badge_cls, badge_txt):
+    res = m.get("resolution") or {}
+    loose = None
+    if res:
+        fin_uid = (m.get("finish") or {}).get("final_map_uid")
+        d = res.get(fin_uid) or next(iter(res.values()))
+        loose = (d or {}).get("radwn_loosemask_A")
+    u = m.get("usage") or {}
+    stats = []
+    if loose:
+        stats.append(("resolution", f"{loose:.2f} Å vs golden 3.15 Å"))
+    stats += [("jobs", m.get("n_jobs")), ("run_python blocks", m.get("n_code_blocks")),
+              ("turns", m.get("turns")), ("wall", f"{m.get('wall_min')} min")]
+    if m.get("usage_captured"):
+        stats.append(("tokens", f"{u.get('input_tokens', 0):,} in / {u.get('output_tokens', 0):,} out"))
+    stats.append(("images", m.get("images_sent")))
+    statline = "".join(f"<span>{esc(k)} <b>{v}</b></span>" for k, v in stats if v not in (None, ""))
+    verdict = _first_sentence(summary)
+    verdict_html = f'<p class="verdict">{esc(verdict)}</p>' if verdict else ""
+    return (f'<section class="glance" id="glance">'
+            f'<span class="badge {badge_cls}">{esc(badge_txt)}</span>'
+            f'<div class="statline">{statline}</div>{verdict_html}</section>')
+
+
 def meta_table(m):
     ip = m.get("input_prompt") or {}
     u = m.get("usage") or {}
@@ -73,7 +130,8 @@ def meta_table(m):
          + (f" = {ip.get('prompt_tokens'):,} input tokens" if ip.get("prompt_tokens") else "")),
     ]
     body = "".join(f"<tr><td><b>{esc(k)}</b></td><td>{v}</td></tr>" for k, v in rows)
-    return f"<table>{body}</table>"
+    return ('<table class="meta"><colgroup><col style="width:230px"><col></colgroup>'
+            + body + "</table>")
 
 
 def action_surface(asf):
@@ -92,45 +150,70 @@ def dag_table(dag):
     rows = []
     for r in dag or []:
         wiring = "; ".join(f"{g}←{su}.{og}" for g, su, og in r.get("inputs", [])) or "—"
-        params = esc(json.dumps(r.get("params", {})))
+        params = esc(json.dumps(r.get("params", {}), indent=2))     # pretty-print: one key per line
         rows.append(
             f"<tr><td><code>{esc(r.get('uid'))}</code></td>"
             f"<td><b>{esc(r.get('type'))}</b><br>"
-            f"<span style='color:var(--faint);font-size:12px'>{esc(r.get('title', ''))}</span></td>"
-            f"<td style='font-size:12px'>{esc(wiring)}</td>"
-            f"<td style='font-size:12px'>{esc(r.get('status'))}</td>"
+            f"<span class='dag-title'>{esc(r.get('title', ''))}</span></td>"
+            f"<td class='dag-meta'>{esc(wiring)}</td>"
+            f"<td class='dag-meta'>{esc(r.get('status'))}</td>"
             f"<td><details><summary>params</summary><pre>{params}</pre></details></td></tr>")
-    return ("<table><tr><th>uid</th><th>type / title</th><th>inputs (wiring)</th>"
+    return ('<table class="dag">'
+            '<colgroup><col style="width:64px"><col style="width:22%"><col style="width:30%">'
+            '<col style="width:90px"><col></colgroup>'
+            "<tr><th>uid</th><th>type / title</th><th>inputs (wiring)</th>"
             "<th>status</th><th>params</th></tr>" + "".join(rows) + "</table>")
-
-
-def code_blocks(cbs):
-    out = []
-    for i, c in enumerate(cbs or [], 1):
-        op = "open" if i <= 2 else ""
-        out.append(f"<details {op}><summary>run_python #{i} · {len(c):,} chars</summary>"
-                   f"<pre>{esc(c)}</pre></details>")
-    return "".join(out) or "<i>(no code blocks)</i>"
 
 
 def traj_table(traj):
     rows = []
     for r in traj or []:
         t = r.get("tool", "?")
+        turn = esc(r.get("turn"))
         if t == "_assistant":
-            rows.append(f"<tr><td>{esc(r.get('turn'))}</td><td><i>reasoning</i></td>"
-                        f"<td colspan=2>{esc(r.get('text', ''))[:1400]}</td></tr>")
-        else:
-            code = esc((r.get("input", {}) or {}).get("code", json.dumps(r.get("input", {}))))[:1200]
-            txt = esc(r.get("text", ""))[:800]
-            cls = " class='errrow'" if r.get("is_error") else ""
-            rows.append(f"<tr{cls}><td>{esc(r.get('turn'))}</td><td><b>{esc(t)}</b></td>"
-                        f"<td><pre style='font-size:11px;margin:0'>{code}</pre></td>"
-                        f"<td style='font-size:12px'>{txt}</td></tr>")
+            rows.append(f"<tr><td>{turn}</td><td><i>reasoning</i></td>"
+                        f"<td colspan=2>{esc(r.get('text', ''))}</td></tr>")
+            continue
+        code = (r.get("input", {}) or {}).get("code")
+        code = code if code is not None else json.dumps(r.get("input", {}))
+        txt = r.get("text", "") or ""
+        # raise the result slice; show a visible marker only when content was actually cut
+        shown = txt[:2000]
+        trunc = (f'<span class="trunc">…(truncated, {len(txt):,} chars)</span>'
+                 if len(txt) > 2000 else "")
+        cls = " class='errrow'" if r.get("is_error") else ""
+        rows.append(
+            f"<tr{cls}><td>{turn}</td><td><b>{esc(t)}</b></td>"
+            f"<td class='code'><div class='codecell'><pre>{esc(code)}</pre></div></td>"
+            f"<td class='result'>{esc(shown)}{trunc}</td></tr>")
     if not rows:
         return "<i>(no trajectory recorded)</i>"
-    return ("<table><tr><th>turn</th><th>tool</th><th>code / input</th><th>result</th></tr>"
+    return ('<table class="traj">'
+            '<colgroup><col style="width:44px"><col style="width:96px"><col style="width:46%"><col></colgroup>'
+            "<tr><th>turn</th><th>tool</th><th>code / input</th><th>result</th></tr>"
             + "".join(rows) + "</table>")
+
+
+def task_inputs_html(task_text):
+    """Split the (huge) task message into PI brief / API notes / verbatim tutorial on its stable
+    '## Supplementary material —' headings, each in its own height-capped <details>. The ~51 KB
+    verbatim tutorial is rendered last (most buried). Falls back to one capped block."""
+    marker = "## Supplementary material —"
+    idxs = [i for i in range(len(task_text)) if task_text.startswith(marker, i)]
+    chars = len(task_text)
+    if len(idxs) >= 2:
+        pi = task_text[:idxs[0]].strip()
+        tutorial = task_text[idxs[0]:idxs[1]].strip()
+        api = task_text[idxs[1]:].strip()
+        parts = [("PI brief", pi), ("cryosparc-tools API notes", api),
+                 ("Verbatim public tutorial", tutorial)]
+        inner = "".join(
+            f"<details><summary>{esc(name)} ({len(body):,} chars)</summary><pre>{esc(body)}</pre></details>"
+            for name, body in parts)
+        return (f"<details><summary><b>Task message</b> ({chars:,} chars — PI brief + tutorial + API notes)"
+                f"</summary>{inner}</details>")
+    return (f"<details><summary><b>Task message</b> ({chars:,} chars)</summary>"
+            f"<pre>{esc(task_text)}</pre></details>")
 
 
 def build_one(run):
@@ -142,13 +225,13 @@ def build_one(run):
         return None
     traj = _load(rdir / "trajectory.json") or []
     dec = _load(rdir / "decisions.json") or {}
+    finish, summary = recover_finish(m, dec)
 
     # copy observation images into site/reports/<id>/
     out_img_dir = REPORTS / rid
     if out_img_dir.exists():
         shutil.rmtree(out_img_dir)
     pngs = sorted(rdir.glob("*.png"))
-    img_html = ""
     if pngs:
         out_img_dir.mkdir(parents=True, exist_ok=True)
         for p in pngs:
@@ -161,14 +244,24 @@ def build_one(run):
 
     ip = m.get("input_prompt") or {}
     phase = m.get("phase")
-    summary = m.get("summary") or (dec.get("finish") or {}).get("summary") or ""
-    badge = ("reached a final map" if m.get("reached_map")
-             else ("build-only — nothing executed" if phase == "build" else "partial — no final map"))
+    if m.get("reached_map"):
+        badge_cls, badge_txt = "reached", "reached a final map"
+    elif phase == "build":
+        badge_cls, badge_txt = "build", "build-only — nothing executed"
+    else:
+        badge_cls, badge_txt = "partial", "partial — no final map"
 
     blurb = ("The agent drives the whole reconstruction by writing <code>cryosparc-tools</code> Python "
              "(<code>run_python</code>), given only a PI brief, the verbatim public tutorial, and public API "
-             f"notes. This is the full run record: what it was given, the tools it had, and everything it "
-             f"produced — its code, the DAG, the trajectory, and every observation image. ({esc(badge)}.)")
+             "notes. This is the full run record: what it was given, the tools it had, and everything it "
+             "produced — its code, the DAG, the trajectory, and every observation image.")
+
+    res = m.get("resolution") or {}
+    res_html = esc(json.dumps(res, indent=2)) if res else "—"
+
+    n_reason = sum(1 for r in traj if r.get("tool") == "_assistant")
+    n_tool = sum(1 for r in traj if r.get("tool") not in ("_assistant", None))
+    traj_summary = f"Trajectory — {len(traj)} rows ({n_tool} tool calls + {n_reason} reasoning)"
 
     sections = f"""
 <a class="backlink" href="../rollouts.html">← all rollouts</a>
@@ -179,6 +272,8 @@ def build_one(run):
   <span class="tag dot">{esc(m.get('date'))}</span>
 </div>
 
+{glance_card(m, summary, badge_cls, badge_txt)}
+
 <h2 id="metadata">1 · Run metadata</h2>
 {meta_table(m)}
 
@@ -188,8 +283,7 @@ and a <i>task</i> message (the PI brief + the verbatim public tutorial + cryospa
 <b>not</b> given the golden answer key or fitted thresholds; the inspection helpers are non-leaking.</p>
 <details><summary><b>System prompt</b> ({ip.get('system_chars', 0):,} chars)</summary>
 <pre>{esc(ip.get('system', ''))}</pre></details>
-<details><summary><b>Task message</b> ({ip.get('task_chars', 0):,} chars — PI brief + verbatim tutorial + API notes)</summary>
-<pre>{esc(ip.get('task_text', ''))}</pre></details>
+{task_inputs_html(ip.get('task_text', ''))}
 <details><summary><b>Dataset / acquisition</b></summary>
 <pre>{esc(json.dumps(m.get('dataset', {}), indent=2))}</pre></details>
 
@@ -200,20 +294,24 @@ stdout / the last expression / tracebacks / any images the inspection helpers em
 {action_surface(m.get('action_surface', []))}
 
 <h2 id="outputs">4 · Outputs</h2>
-<h3>Final-map resolution (GSFSC, Å){' / Guinier B-factor' if phase == 'execute' else ''}</h3>
-<pre class="outputs-res">{esc(json.dumps(m.get('resolution', {}), indent=2)) or '—'}</pre>
+<h3 id="resolution">Result, resolution &amp; summary</h3>
+<p><b>Final-map resolution (GSFSC, Å){' / Guinier B-factor' if phase == 'execute' else ''}</b></p>
+<pre class="outputs-res">{res_html}</pre>
 <p class="note">{esc(GOLDEN_NOTE)}</p>
-<h3>Agent summary</h3>
-<blockquote>{esc(summary) or '<i>(see finish payload)</i>'}</blockquote>
-<h3>Finish payload</h3>
-<pre>{esc(json.dumps(m.get('finish', {}), indent=2))}</pre>
-<h3>The DAG the agent authored ({esc(m.get('n_jobs'))} jobs · {esc(m.get('project'))} / {esc(m.get('workspace'))})</h3>
+<p><b>Agent summary</b></p>
+<blockquote>{esc(summary) or '<i>(no summary recorded)</i>'}</blockquote>
+<details><summary><b>Finish payload</b> (raw)</summary>
+<pre>{esc(json.dumps(finish, indent=2))}</pre></details>
+
+<h3 id="dag">The DAG the agent authored ({esc(m.get('n_jobs'))} jobs · {esc(m.get('project'))} / {esc(m.get('workspace'))})</h3>
 {dag_table(m.get('dag', []))}
-<h3>The agent's code — every <code>run_python</code> block</h3>
-{code_blocks(m.get('code_blocks', []))}
-<h3>Trajectory — every tool call + the model's reasoning</h3>
-{traj_table(traj)}
-<h3>Observation images returned to the model ({len(pngs)})</h3>
+
+<h3 id="trajectory">Trajectory — every tool call + the model's reasoning</h3>
+<p class="note">The agent's code lives here, in order, with each call's result. Code scrolls horizontally; long results are capped with a marker.</p>
+<details><summary>{esc(traj_summary)}</summary>
+{traj_table(traj)}</details>
+
+<h3 id="images">Observation images returned to the model ({len(pngs)})</h3>
 {img_html}
 """
 
@@ -229,10 +327,15 @@ stdout / the last expression / tracebacks / any images the inspection helpers em
 <div class="wrap">
   <aside class="side"><div class="brand">Report</div><div id="toc">
     <a class="toclink" href="../rollouts.html">← all rollouts</a>
+    <a class="toclink" href="#glance">0 · At a glance</a>
     <a class="toclink" href="#metadata">1 · Run metadata</a>
     <a class="toclink" href="#inputs">2 · Model inputs</a>
     <a class="toclink" href="#surface">3 · Action surface</a>
     <a class="toclink" href="#outputs">4 · Outputs</a>
+    <a class="toclink sub" href="#resolution">· result &amp; summary</a>
+    <a class="toclink sub" href="#dag">· DAG</a>
+    <a class="toclink sub" href="#trajectory">· trajectory</a>
+    <a class="toclink sub" href="#images">· images</a>
   </div></aside>
   <main><article class="report">{sections}</article></main>
 </div>

@@ -2,9 +2,9 @@
 (function (global) {
   var PAGES = [
     { id: 'index',    href: 'index.html',    label: 'Overview' },
-    { id: 'rfp',      href: 'rfp.html',      label: 'RFP spec' },
     { id: 'rollouts', href: 'rollouts.html', label: 'Rollouts' },
-    { id: 'grader',   href: 'grader.html',   label: 'Grader' }
+    { id: 'grader',   href: 'grader.html',   label: 'Grader' },
+    { id: 'rfp',      href: 'rfp.html',      label: 'RFP spec' }
   ];
 
   function nav(active, prefix) {

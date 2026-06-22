@@ -10,22 +10,29 @@
 <div class="wrap">
   <aside class="side"><div class="brand">Report</div><div id="toc">
     <a class="toclink" href="../rollouts.html">← all rollouts</a>
+    <a class="toclink" href="#glance">0 · At a glance</a>
     <a class="toclink" href="#metadata">1 · Run metadata</a>
     <a class="toclink" href="#inputs">2 · Model inputs</a>
     <a class="toclink" href="#surface">3 · Action surface</a>
     <a class="toclink" href="#outputs">4 · Outputs</a>
+    <a class="toclink sub" href="#resolution">· result &amp; summary</a>
+    <a class="toclink sub" href="#dag">· DAG</a>
+    <a class="toclink sub" href="#trajectory">· trajectory</a>
+    <a class="toclink sub" href="#images">· images</a>
   </div></aside>
   <main><article class="report">
 <a class="backlink" href="../rollouts.html">← all rollouts</a>
 <h1>realistic · build-only · v1</h1>
-<p class="subtitle">The agent drives the whole reconstruction by writing <code>cryosparc-tools</code> Python (<code>run_python</code>), given only a PI brief, the verbatim public tutorial, and public API notes. This is the full run record: what it was given, the tools it had, and everything it produced — its code, the DAG, the trajectory, and every observation image. (build-only — nothing executed.)</p>
+<p class="subtitle">The agent drives the whole reconstruction by writing <code>cryosparc-tools</code> Python (<code>run_python</code>), given only a PI brief, the verbatim public tutorial, and public API notes. This is the full run record: what it was given, the tools it had, and everything it produced — its code, the DAG, the trajectory, and every observation image.</p>
 <div class="docmeta">
   <span class="tag stage">raw cryosparc-tools · realistic</span>
   <span class="tag dot">2026-06-19 01:48Z</span>
 </div>
 
+<section class="glance" id="glance"><span class="badge build">build-only — nothing executed</span><div class="statline"><span>jobs <b>21</b></span><span>run_python blocks <b>37</b></span><span>turns <b>37</b></span><span>wall <b>3.4 min</b></span><span>tokens <b>1,149,956 in / 10,373 out</b></span><span>images <b>0</b></span></div><p class="verdict">Built and wired the complete T20S single-particle pipeline in workspace W5 (P5), following the cryoSPARC intro tutorial, entirely via cryosparc-tools.</p></section>
+
 <h2 id="metadata">1 · Run metadata</h2>
-<table><tr><td><b>Task / variant / phase</b></td><td><code>raw_tools</code> · <code>realistic</code> · <code>build</code> · run <code>v1</code></td></tr><tr><td><b>Run date</b></td><td>2026-06-19 01:48Z</td></tr><tr><td><b>cryoSPARC project / workspace</b></td><td>P5 / W5</td></tr><tr><td><b>Model</b></td><td><code>claude-opus-4-8</code> · max_tokens/turn 32,000</td></tr><tr><td><b>Stop reason</b></td><td>finished</td></tr><tr><td><b>Jobs</b></td><td>21</td></tr><tr><td><b>run_python blocks</b></td><td>37</td></tr><tr><td><b>Agent turns</b></td><td>37</td></tr><tr><td><b>Wall-clock</b></td><td>3.4 min</td></tr><tr><td><b>Observation images</b></td><td>0</td></tr><tr><td><b>Token usage</b></td><td>1,149,956 in · 10,373 out</td></tr><tr><td><b>Input-prompt size</b></td><td>system 1,451 + task 56,688 chars = 22,244 input tokens</td></tr></table>
+<table class="meta"><colgroup><col style="width:230px"><col></colgroup><tr><td><b>Task / variant / phase</b></td><td><code>raw_tools</code> · <code>realistic</code> · <code>build</code> · run <code>v1</code></td></tr><tr><td><b>Run date</b></td><td>2026-06-19 01:48Z</td></tr><tr><td><b>cryoSPARC project / workspace</b></td><td>P5 / W5</td></tr><tr><td><b>Model</b></td><td><code>claude-opus-4-8</code> · max_tokens/turn 32,000</td></tr><tr><td><b>Stop reason</b></td><td>finished</td></tr><tr><td><b>Jobs</b></td><td>21</td></tr><tr><td><b>run_python blocks</b></td><td>37</td></tr><tr><td><b>Agent turns</b></td><td>37</td></tr><tr><td><b>Wall-clock</b></td><td>3.4 min</td></tr><tr><td><b>Observation images</b></td><td>0</td></tr><tr><td><b>Token usage</b></td><td>1,149,956 in · 10,373 out</td></tr><tr><td><b>Input-prompt size</b></td><td>system 1,451 + task 56,688 chars = 22,244 input tokens</td></tr></table>
 
 <h2 id="inputs">2 · Model inputs</h2>
 <p>The model gets a static start prompt — a <i>system</i> prompt (role + how <code>run_python</code> works)
@@ -33,15 +40,58 @@ and a <i>task</i> message (the PI brief + the verbatim public tutorial + cryospa
 <b>not</b> given the golden answer key or fitted thresholds; the inspection helpers are non-leaking.</p>
 <details><summary><b>System prompt</b> (1,451 chars)</summary>
 <pre>You are a senior computational structural biologist working autonomously in a cryo-EM lab. Your PI has handed you a dataset and a goal and expects you to carry out the reconstruction end-to-end using your OWN scientific judgment — you choose the workflow, the jobs, every parameter, and every particle/class/mask curation decision yourself. You operate cryoSPARC entirely programmatically by writing Python with the cryosparc-tools API, through one tool, run_python, that executes your code in a persistent namespace on the workstation and returns stdout, the last expression&#x27;s value, and any traceback — so you work iteratively: write a little code, read the result or error, fix, continue. You are unattended: be decisive, never ask questions, debug from tracebacks yourself, and keep going until the goal is met. The cryoSPARC connection, the project, and a fresh empty workspace are already set up and pre-bound — do not reconnect or create a project/workspace; do all your work in the pre-bound workspace. Consult the materials your PI gave you (the introductory tutorial and the cryosparc-tools API notes) and the live system itself (e.g. query the available job types, introspect each job&#x27;s inputs/outputs/parameters) to work out how to proceed. There is no hand-holding beyond this: the tutorial conveys the intended approach in broad strokes, and the rest is your expertise. When you have produced and validated the final result, call finish.</pre></details>
-<details><summary><b>Task message</b> (56,688 chars — PI brief + verbatim tutorial + API notes)</summary>
-<pre>From: your PI
+<details><summary><b>Task message</b> (56,688 chars — PI brief + tutorial + API notes)</summary><details><summary>PI brief (1,504 chars)</summary><pre>From: your PI
 Subject: T20S proteasome reconstruction
 
 We have a raw cryo-EM movie dataset of the T20S proteasome — the standard EMPIAR-10025 introductory subset (20 movies), already on the workstation in DATA_DIR. I&#x27;d like you to for this first pass, just construct and wire the complete pipeline of jobs — don&#x27;t queue or run anything yet; I want to review the plan before we spend compute: run the full single-particle analysis pipeline from raw movies onward, the way the cryoSPARC introductory tutorial lays it out. Reproduce that workflow using your own judgment — I&#x27;m not going to spell out the individual jobs or their parameters; you know single-particle processing, and the tutorial describes the intended approach. Drive everything programmatically through cryosparc-tools (no GUI). Make all the parameter and particle/class/mask curation calls yourself, impose the molecule&#x27;s symmetry where appropriate, aim to get close to the published resolution (~2.9 Å), and validate the result with a gold-standard FSC. I&#x27;ve pasted the tutorial and the cryosparc-tools API notes below; you can also query the live cryoSPARC instance for whatever else you need. Work autonomously and just get it done; show me the assembled pipeline when it&#x27;s wired up.
 
-Acquisition facts for the dataset (you&#x27;ll need these to import): movies are the *.frames.tif files in DATA_DIR with the gain reference norm-amibox05-0.mrc; pixel size 0.6575 Å, 300.0 kV, Cs 2.7 mm, total dose 53.0 e/Å². The proteasome has D7 symmetry.
+Acquisition facts for the dataset (you&#x27;ll need these to import): movies are the *.frames.tif files in DATA_DIR with the gain reference norm-amibox05-0.mrc; pixel size 0.6575 Å, 300.0 kV, Cs 2.7 mm, total dose 53.0 e/Å². The proteasome has D7 symmetry.</pre></details><details><summary>cryosparc-tools API notes (4,026 chars)</summary><pre>## Supplementary material — cryosparc-tools API notes (public; tools.cryosparc.com)
+You operate cryoSPARC by writing Python with the `cryosparc-tools` package (public docs: tools.cryosparc.com).
+The connection and a project are already set up — see &quot;Your working environment&quot; below. Key API:
 
-## Supplementary material — the cryoSPARC T20S introductory tutorial (public)
+- DISCOVER the available job types: `cs.print_job_types()` prints every job type — its category, its builder
+  TYPE STRING (the string you pass to create_job), and its GUI title (the names the tutorial uses). You can
+  filter by category, e.g. `cs.print_job_types(&quot;particle_picking&quot;)`. This is how you map a tutorial step to
+  the right job-type string.
+- CREATE + wire a job:
+      job = cs.create_job(project_uid, workspace, &quot;&lt;type_string&gt;&quot;,
+                          connections={&quot;&lt;input_group&gt;&quot;: (source_job_uid, &quot;&lt;source_output_group&gt;&quot;), ...},
+                          params={&quot;&lt;param&gt;&quot;: value, ...}, title=&quot;...&quot;)
+  After `job.refresh()`, introspect the job to learn its exact input groups, output groups, and parameters
+  (names + current/default values) so you know what to wire and what to set:
+      spec = job.model.model_dump()[&quot;spec&quot;]
+      spec[&quot;inputs&quot;].keys()    # input-group names to wire INTO
+      spec[&quot;outputs&quot;].keys()   # output-group names to wire FROM (and to load)
+      spec[&quot;params&quot;]           # all parameters with their current values
+  You can also set a parameter after creation with `job.set_param(name, value)`. Build jobs in dependency order.
+- RUN a job: `job.queue(lane=...)` then `status = job.wait_for_done(timeout=..., error_on_incomplete=False)`
+  (returns the status string; if it times out the server keeps running it — poll again, don&#x27;t block unbounded).
+  Compute lanes are `LANE_CPU` and `LANE_GPU`; lightweight / interactive jobs run on the master node with
+  `lane=None`. Output row counts: `len(job.load_output(&quot;&lt;output_group&gt;&quot;))`.
+- INTERACTIVE jobs: some jobs pause in a `&quot;waiting&quot;` state when queued (they expect interactive input) rather
+  than completing. Drive such a job headlessly via `job.interact(action, body)` and then finalize it, or
+  achieve the equivalent curation programmatically from the relevant outputs — your choice. (A `&quot;waiting&quot;`
+  job is not `&quot;completed&quot;`; don&#x27;t `wait_for_done` on it expecting completion.)
+- RESULTS: a finished refinement/volume job carries its resolution + diagnostics in its model, at
+  `job.model.model_dump()[&quot;spec&quot;][&quot;outputs&quot;][&quot;&lt;group&gt;&quot;][&quot;latest_summary_stats&quot;]` (e.g. gold-standard FSC
+  resolutions in Å and the Guinier B-factor). You can also `load_output` any result and read MRC maps off disk.
+
+
+## Your working environment
+You write code through one tool, `run_python(code)`, which executes it in a PERSISTENT Python namespace on the
+lab workstation and returns stdout + the value of the last expression + any traceback — so you iterate like a
+real coder: write a small block, read the result/error, fix, continue. Pre-bound (do NOT reconnect or create a
+project/workspace): `cs` (a connected cryosparc-tools client), `project`, `project_uid`, `workspace` (a fresh
+EMPTY workspace — build everything here), `project_dir`, `DATA_DIR` (the raw-movie directory), `LANE_CPU` /
+`LANE_GPU`, plus `np`, `os`, `json`, `time`, and `find_job(uid)`.
+To inspect intermediate results, lab visualization utilities are available in the namespace and return images
+you can see: `show_class_montage(job)` (2D class averages, labelled by class index), `show_picks(job, cut=None)`
+(pick score distribution + picks drawn on micrographs; pass cut=(ncc,power_min,power_max) to colour kept vs
+rejected), `show_volume(job)` (map orthoslices), `show_mask_sweep(job)` (mask-threshold sweep on a low-passed
+map). You may also load any output and plot your own diagnostics. Use whatever you need to make your judgments.
+
+
+Proceed now: discover the job types you need, then create and wire the complete pipeline (introspecting each job&#x27;s inputs/outputs to wire the next). Do NOT queue or run anything. When the whole pipeline is built and wired, call finish.</pre></details><details><summary>Verbatim public tutorial (51,153 chars)</summary><pre>## Supplementary material — the cryoSPARC T20S introductory tutorial (public)
 &gt; For the complete documentation index, see [llms.txt](https://guide.cryosparc.com/llms.txt). Markdown versions of documentation pages are available by appending `.md` to page URLs; this page is available as [Markdown](https://guide.cryosparc.com/processing-data/get-started-with-cryosparc-introductory-tutorial.md).
 
 # Get Started with CryoSPARC: Introductory Tutorial (v4.0+)
@@ -555,56 +605,7 @@ GET https://guide.cryosparc.com/processing-data/get-started-with-cryosparc-intro
 The question should be specific, self-contained, and written in natural language.
 The response will contain a direct answer to the question and relevant excerpts and sources from the documentation.
 
-Use this mechanism when the answer is not explicitly present in the current page, you need clarification or additional context, or you want to retrieve related documentation sections.
-
-
-## Supplementary material — cryosparc-tools API notes (public; tools.cryosparc.com)
-You operate cryoSPARC by writing Python with the `cryosparc-tools` package (public docs: tools.cryosparc.com).
-The connection and a project are already set up — see &quot;Your working environment&quot; below. Key API:
-
-- DISCOVER the available job types: `cs.print_job_types()` prints every job type — its category, its builder
-  TYPE STRING (the string you pass to create_job), and its GUI title (the names the tutorial uses). You can
-  filter by category, e.g. `cs.print_job_types(&quot;particle_picking&quot;)`. This is how you map a tutorial step to
-  the right job-type string.
-- CREATE + wire a job:
-      job = cs.create_job(project_uid, workspace, &quot;&lt;type_string&gt;&quot;,
-                          connections={&quot;&lt;input_group&gt;&quot;: (source_job_uid, &quot;&lt;source_output_group&gt;&quot;), ...},
-                          params={&quot;&lt;param&gt;&quot;: value, ...}, title=&quot;...&quot;)
-  After `job.refresh()`, introspect the job to learn its exact input groups, output groups, and parameters
-  (names + current/default values) so you know what to wire and what to set:
-      spec = job.model.model_dump()[&quot;spec&quot;]
-      spec[&quot;inputs&quot;].keys()    # input-group names to wire INTO
-      spec[&quot;outputs&quot;].keys()   # output-group names to wire FROM (and to load)
-      spec[&quot;params&quot;]           # all parameters with their current values
-  You can also set a parameter after creation with `job.set_param(name, value)`. Build jobs in dependency order.
-- RUN a job: `job.queue(lane=...)` then `status = job.wait_for_done(timeout=..., error_on_incomplete=False)`
-  (returns the status string; if it times out the server keeps running it — poll again, don&#x27;t block unbounded).
-  Compute lanes are `LANE_CPU` and `LANE_GPU`; lightweight / interactive jobs run on the master node with
-  `lane=None`. Output row counts: `len(job.load_output(&quot;&lt;output_group&gt;&quot;))`.
-- INTERACTIVE jobs: some jobs pause in a `&quot;waiting&quot;` state when queued (they expect interactive input) rather
-  than completing. Drive such a job headlessly via `job.interact(action, body)` and then finalize it, or
-  achieve the equivalent curation programmatically from the relevant outputs — your choice. (A `&quot;waiting&quot;`
-  job is not `&quot;completed&quot;`; don&#x27;t `wait_for_done` on it expecting completion.)
-- RESULTS: a finished refinement/volume job carries its resolution + diagnostics in its model, at
-  `job.model.model_dump()[&quot;spec&quot;][&quot;outputs&quot;][&quot;&lt;group&gt;&quot;][&quot;latest_summary_stats&quot;]` (e.g. gold-standard FSC
-  resolutions in Å and the Guinier B-factor). You can also `load_output` any result and read MRC maps off disk.
-
-
-## Your working environment
-You write code through one tool, `run_python(code)`, which executes it in a PERSISTENT Python namespace on the
-lab workstation and returns stdout + the value of the last expression + any traceback — so you iterate like a
-real coder: write a small block, read the result/error, fix, continue. Pre-bound (do NOT reconnect or create a
-project/workspace): `cs` (a connected cryosparc-tools client), `project`, `project_uid`, `workspace` (a fresh
-EMPTY workspace — build everything here), `project_dir`, `DATA_DIR` (the raw-movie directory), `LANE_CPU` /
-`LANE_GPU`, plus `np`, `os`, `json`, `time`, and `find_job(uid)`.
-To inspect intermediate results, lab visualization utilities are available in the namespace and return images
-you can see: `show_class_montage(job)` (2D class averages, labelled by class index), `show_picks(job, cut=None)`
-(pick score distribution + picks drawn on micrographs; pass cut=(ncc,power_min,power_max) to colour kept vs
-rejected), `show_volume(job)` (map orthoslices), `show_mask_sweep(job)` (mask-threshold sweep on a low-passed
-map). You may also load any output and plot your own diagnostics. Use whatever you need to make your judgments.
-
-
-Proceed now: discover the job types you need, then create and wire the complete pipeline (introspecting each job&#x27;s inputs/outputs to wire the next). Do NOT queue or run anything. When the whole pipeline is built and wired, call finish.</pre></details>
+Use this mechanism when the answer is not explicitly present in the current page, you need clarification or additional context, or you want to retrieve related documentation sections.</pre></details></details>
 <details><summary><b>Dataset / acquisition</b></summary>
 <pre>{
   &quot;sample&quot;: &quot;T20S proteasome (EMPIAR-10025 tutorial subset, 20 movies)&quot;,
@@ -639,10 +640,11 @@ stdout / the last expression / tracebacks / any images the inspection helpers em
 <h3><code>run_python</code></h3><p>Execute Python in a PERSISTENT namespace on the cryoSPARC box and get back stdout + the value of the last expression + any traceback (write → run → read error → fix, like a real coder; variables and job handles persist across calls). PRE-BOUND in the namespace (do NOT reconnect or create a project — use these): `cs` (a connected cryosparc-tools CryoSPARC client), `project` (the target project controller) and `project_uid`, `workspace` (the fresh workspace uid to build everything in), `project_dir` (the project&#x27;s dir on disk), `DATA_DIR` (the raw-movie dir), `LANE_CPU` / `LANE_GPU` (queue lane names; interactive jobs queue to lane=None on the master node), plus `np`, `os`, `json`, `time`, and `find_job(uid)`. ALSO pre-bound: the inspection helpers show_class_montage(job), show_picks(job, cut=None), show_volume(job), show_mask_sweep(job) — each renders a NON-LEAKING observation image (passed back to you, multimodal) so you can SEE a 2D-class montage / picks on micrographs / a volume&#x27;s orthoslices / a mask-threshold sweep and make the interactive decisions. Write cryosparc-tools code (cs.create_job / job.queue / job.wait_for_done / job.interact / job.load_output / …) to build (then run) the pipeline; keep waits bounded (wait_for_done(timeout=…, error_on_incomplete=False) and poll).</p><ul><li><code>code</code> (string, required) — Python source to run in the namespace</li></ul><h3><code>finish</code></h3><p>Call when the task is complete: (BUILD phase) the entire DAG has been created and wired (nothing queued/run); (EXECUTE phase) the pipeline has RUN all the way to a final sharpened map. Report what you built/ran and the resolution you observed.</p><ul><li><code>summary</code> (string, required) — what you built (+ ran) and the key decisions made</li><li><code>final_map_uid</code> (string) — uid of the final sharpened-map job (execute)</li><li><code>resolution_note</code> (string) — the GSFSC resolution you observed (execute)</li></ul>
 
 <h2 id="outputs">4 · Outputs</h2>
-<h3>Final-map resolution (GSFSC, Å)</h3>
-<pre class="outputs-res">{}</pre>
+<h3 id="resolution">Result, resolution &amp; summary</h3>
+<p><b>Final-map resolution (GSFSC, Å)</b></p>
+<pre class="outputs-res">—</pre>
 <p class="note">Golden reference: W1 by-hand ≈ 3.15 Å loose-mask GSFSC on the same 20-movie subset (published full-dataset T20S ≈ 2.9 Å). Resolution alone does not rank runs — see the grader.</p>
-<h3>Agent summary</h3>
+<p><b>Agent summary</b></p>
 <blockquote>Built and wired the complete T20S single-particle pipeline in workspace W5 (P5), following the cryoSPARC intro tutorial, entirely via cryosparc-tools. Nothing was queued/run — all 21 jobs are in &#x27;building&#x27; state for PI review.
 
 DAG (job → key params/wiring):
@@ -669,300 +671,549 @@ DAG (job → key params/wiring):
 - J94 sharpen ← J89.volume, B-factor −77 (tutorial range −56.7…−96.7), generate new FSC mask.
 
 Symmetry (D7) imposed at refinement; ab-initio left at C1 as recommended. Resolution target ~2.9 Å will be assessed from J89 GSFSC and J93 validation when executed. The two interactive jobs (inspect picks, select 2D) are wired and would be driven headlessly/curated at execute time.</blockquote>
-<h3>Finish payload</h3>
+<details><summary><b>Finish payload</b> (raw)</summary>
 <pre>{
   &quot;summary&quot;: &quot;Built and wired the complete T20S single-particle pipeline in workspace W5 (P5), following the cryoSPARC intro tutorial, entirely via cryosparc-tools. Nothing was queued/run \u2014 all 21 jobs are in &#x27;building&#x27; state for PI review.\n\nDAG (job \u2192 key params/wiring):\n- J73 import_movies: *.frames.tif + gain norm-amibox05-0.mrc, psize 0.6575 \u00c5, 300 kV, Cs 2.7 mm, dose 53 e/\u00c5\u00b2.\n- J74 patch_motion_correction_multi \u2190 J73.imported_movies.\n- J75 patch_ctf_estimation_multi \u2190 J74.micrographs.\n- J76 denoise_train (Micrograph Denoiser) \u2190 J75.exposures, num_train_mics=20 (dataset has only 20 mics).\n- J77 blob_picker_gpu \u2190 J76.exposures, diameter 100\u2013200 \u00c5, use_denoised=True.\n- J78 junk_detector_v1 \u2190 J77 micrographs+particles (removes carbon/ice junk picks).\n- J79 inspect_picks_v2 \u2190 J78.particles_accepted + exposures (blob pick curation).\n- J80 extract_micrographs_multi \u2190 J79, box 440 px.\n- J81 class_2D_new \u2190 J80 (K=50).\n- J82 select_2D \u2190 J81 (pick top/side templates).\n- J83 template_picker_gpu \u2190 J82.templates_selected + J76 denoised mics, diameter 190 \u00c5, use_denoised=True.\n- J84 inspect_picks_v2 \u2190 J83.\n- J85 extract_micrographs_multi \u2190 J84, box 440 px.\n- J86 class_2D_new \u2190 J85.\n- J87 select_2D \u2190 J86 (keep all good classes).\n- J88 homo_abinit \u2190 J87.particles_selected (C1, K=1 \u2014 no symmetry, per tutorial).\n- J89 homo_refine_new \u2190 J88 particles_all_classes + volume_class_0, refine_symmetry=D7.\n- J90 volume_tools \u2190 J89.volume, lowpass 10 \u00c5 (smooth map for mask).\n- J91 volume_tools \u2190 J90.volume, output mask, threshold 0.5 (to be tuned via mask sweep at run time), dilation 4 px, soft pad 14 px.\n- J93 validation (FSC) \u2190 J89.volume + J91.mask, compute facility GPU (gold-standard FSC validation).\n- J94 sharpen \u2190 J89.volume, B-factor \u221277 (tutorial range \u221256.7\u2026\u221296.7), generate new FSC mask.\n\nSymmetry (D7) imposed at refinement; ab-initio left at C1 as recommended. Resolution target ~2.9 \u00c5 will be assessed from J89 GSFSC and J93 validation when executed. The two interactive jobs (inspect picks, select 2D) are wired and would be driven headlessly/curated at execute time.&quot;
-}</pre>
-<h3>The DAG the agent authored (21 jobs · P5 / W5)</h3>
-<table><tr><th>uid</th><th>type / title</th><th>inputs (wiring)</th><th>status</th><th>params</th></tr><tr><td><code>J73</code></td><td><b>import_movies</b><br><span style='color:var(--faint);font-size:12px'>Import Movies</span></td><td style='font-size:12px'>—</td><td style='font-size:12px'>building</td><td><details><summary>params</summary><pre>{&quot;blob_paths&quot;: &quot;/shared/data/empiar_10025_subset_v1/*.frames.tif&quot;, &quot;gainref_path&quot;: &quot;/shared/data/empiar_10025_subset_v1/norm-amibox05-0.mrc&quot;, &quot;defect_path&quot;: null, &quot;gainref_flip_x&quot;: false, &quot;gainref_flip_y&quot;: false, &quot;gainref_rotate_num&quot;: 0, &quot;psize_A&quot;: 0.6575, &quot;accel_kv&quot;: 300.0, &quot;cs_mm&quot;: 2.7, &quot;total_dose_e_per_A2&quot;: 53.0, &quot;negative_stain_data&quot;: false, &quot;phase_plate_data&quot;: false, &quot;override_exp_group_id&quot;: null, &quot;skip_header_check&quot;: true, &quot;output_constant_ctf&quot;: false, &quot;eer_num_fractions&quot;: 40, &quot;eer_upsamp_factor&quot;: 2.0, &quot;parse_xml_files&quot;: false, &quot;xml_paths&quot;: null, &quot;mov_cut_prefix_xml&quot;: null, &quot;mov_cut_suffix_xml&quot;: null, &quot;xml_cut_prefix_xml&quot;: null, &quot;xml_cut_suffix_xml&quot;: 4, &quot;compute_num_cpus&quot;: 4}</pre></details></td></tr><tr><td><code>J74</code></td><td><b>patch_motion_correction_multi</b><br><span style='color:var(--faint);font-size:12px'>Patch Motion Correction</span></td><td style='font-size:12px'>movies←J73.imported_movies</td><td style='font-size:12px'>building</td><td><details><summary>params</summary><pre>{&quot;do_plots&quot;: true, &quot;num_plots&quot;: 10, &quot;random_num&quot;: null, &quot;output_f16&quot;: false, &quot;output_half_mics&quot;: true, &quot;random_num_half_mics&quot;: 200, &quot;memoryfix&quot;: true, &quot;memoryfix2&quot;: false, &quot;res_max_align&quot;: 5.0, &quot;bfactor&quot;: 500.0, &quot;frame_start&quot;: 0, &quot;frame_end&quot;: null, &quot;output_fcrop_factor&quot;: 1.0, &quot;override_total_exp&quot;: null, &quot;variable_dose&quot;: false, &quot;smooth_lambda_cal&quot;: 0.5, &quot;override_K_Z&quot;: null, &quot;override_K_Y&quot;: null, &quot;override_K_X&quot;: null, &quot;num_std_hot&quot;: 10.0, &quot;random_seed&quot;: 604725073, &quot;random_seed_default&quot;: 604725073, &quot;compute_num_gpus&quot;: 1}</pre></details></td></tr><tr><td><code>J75</code></td><td><b>patch_ctf_estimation_multi</b><br><span style='color:var(--faint);font-size:12px'>Patch CTF Estimation</span></td><td style='font-size:12px'>exposures←J74.micrographs</td><td style='font-size:12px'>building</td><td><details><summary>params</summary><pre>{&quot;do_plots&quot;: true, &quot;num_plots&quot;: 10, &quot;random_num&quot;: null, &quot;classic_mode&quot;: false, &quot;amp_contrast&quot;: 0.1, &quot;res_min_align&quot;: 25, &quot;res_max_align&quot;: 4.0, &quot;df_search_min&quot;: 1000, &quot;df_search_max&quot;: 40000, &quot;phase_shift_min&quot;: 0, &quot;phase_shift_max&quot;: 3.141592653589793, &quot;do_phase_shift_refine_only&quot;: false, &quot;override_K_Y&quot;: null, &quot;override_K_X&quot;: null, &quot;compute_num_gpus&quot;: 1}</pre></details></td></tr><tr><td><code>J76</code></td><td><b>denoise_train</b><br><span style='color:var(--faint);font-size:12px'>Micrograph Denoiser</span></td><td style='font-size:12px'>exposures←J75.exposures</td><td style='font-size:12px'>building</td><td><details><summary>params</summary><pre>{&quot;use_pretrained&quot;: false, &quot;norm_recompute&quot;: false, &quot;norm_scale_factor&quot;: 1.0, &quot;overlap_frac&quot;: 0.1, &quot;num_train_mics&quot;: 20, &quot;train_from_scratch&quot;: true, &quot;train_num_epochs&quot;: 200, &quot;pre_crop&quot;: 10, &quot;pre_crop_frac&quot;: 0.01, &quot;net_lr&quot;: 0.0002, &quot;val_frac&quot;: 0.2, &quot;psize_des&quot;: 3.0, &quot;N_crop&quot;: 512, &quot;theta_min&quot;: 5, &quot;theta_max&quot;: 400, &quot;num_thetas&quot;: 30, &quot;theta_offset&quot;: 8, &quot;infilt_thetai&quot;: -1, &quot;val_do_rand_crops&quot;: false, &quot;train_do_rand_crops&quot;: true, &quot;train_do_rand_rotflip&quot;: true, &quot;net_model_name&quot;: &quot;FCN_v5&quot;, &quot;net_num_chan&quot;: 32, &quot;loss_type&quot;: &quot;L2&quot;, &quot;penalty_lam_l1&quot;: 0.1, &quot;penalty_lam_tv&quot;: 0.1, &quot;penalty_lam_tv_type&quot;: &quot;tvv&quot;, &quot;train_batch_size&quot;: 1, &quot;clip_min&quot;: -3.0, &quot;clip_max&quot;: 2.0, &quot;mic_norm&quot;: null, &quot;compute_num_cpus&quot;: 8}</pre></details></td></tr><tr><td><code>J77</code></td><td><b>blob_picker_gpu</b><br><span style='color:var(--faint);font-size:12px'>Blob Picker</span></td><td style='font-size:12px'>micrographs←J76.exposures</td><td style='font-size:12px'>building</td><td><details><summary>params</summary><pre>{&quot;diameter&quot;: 100.0, &quot;diameter_max&quot;: 200.0, &quot;use_circle&quot;: true, &quot;use_ellipse&quot;: false, &quot;ellipse_generation_mode&quot;: &quot;Stretch&quot;, &quot;use_ring&quot;: false, &quot;blob_size_spacing&quot;: null, &quot;use_denoised&quot;: true, &quot;lowpass_res_template&quot;: 20.0, &quot;lowpass_res&quot;: 20.0, &quot;angular_spacing_deg&quot;: 5.0, &quot;use_ctf&quot;: false, &quot;min_distance&quot;: 1.0, &quot;num_process&quot;: null, &quot;num_plot&quot;: 10, &quot;max_num_hits&quot;: 4000}</pre></details></td></tr><tr><td><code>J78</code></td><td><b>junk_detector_v1</b><br><span style='color:var(--faint);font-size:12px'>Micrograph Junk Detector</span></td><td style='font-size:12px'>exposures←J77.micrographs; particles←J77.particles</td><td style='font-size:12px'>building</td><td><details><summary>params</summary><pre>{&quot;min_dist&quot;: 150.0, &quot;enable_cat1&quot;: true, &quot;min_dist_cat1&quot;: null, &quot;enable_cat2&quot;: true, &quot;min_dist_cat2&quot;: null, &quot;enable_cat3&quot;: true, &quot;min_dist_cat3&quot;: null, &quot;min_label_area&quot;: 0.0}</pre></details></td></tr><tr><td><code>J79</code></td><td><b>inspect_picks_v2</b><br><span style='color:var(--faint);font-size:12px'>Inspect Picks (Blob)</span></td><td style='font-size:12px'>particles←J78.particles_accepted; micrographs←J78.exposures</td><td style='font-size:12px'>building</td><td><details><summary>params</summary><pre>{&quot;n_mic_to_plot&quot;: 10, &quot;checkpoint_freq&quot;: 10, &quot;calibrate_ncc&quot;: true, &quot;calibrate_pow&quot;: true, &quot;ncc_score_thresh&quot;: null, &quot;lpower_thresh_min&quot;: null, &quot;lpower_thresh_max&quot;: null, &quot;curv_thresh&quot;: null, &quot;sinu_thresh&quot;: null, &quot;do_auto_cluster&quot;: false, &quot;lpower_target&quot;: 50.0, &quot;dilation_bins&quot;: 1, &quot;keep_threshold&quot;: 0.3}</pre></details></td></tr><tr><td><code>J80</code></td><td><b>extract_micrographs_multi</b><br><span style='color:var(--faint);font-size:12px'>Extract From Micrographs (Blob)</span></td><td style='font-size:12px'>micrographs←J79.micrographs; particles←J79.particles</td><td style='font-size:12px'>building</td><td><details><summary>params</summary><pre>{&quot;compute_num_gpus&quot;: 1, &quot;box_size_pix&quot;: 440, &quot;bin_size_pix&quot;: null, &quot;output_f16&quot;: false, &quot;force_reextract_CTF&quot;: false, &quot;recenter_using_shifts&quot;: true, &quot;recenter_key&quot;: &quot;alignments3D&quot;, &quot;num_extract&quot;: null, &quot;flip_x&quot;: false, &quot;flip_y&quot;: false, &quot;scale_const_override&quot;: null, &quot;overall_normalizer_override&quot;: null, &quot;update_alignments2D&quot;: false, &quot;update_alignments3D&quot;: false, &quot;do_recenter&quot;: false}</pre></details></td></tr><tr><td><code>J81</code></td><td><b>class_2D_new</b><br><span style='color:var(--faint);font-size:12px'>2D Classification (Blob)</span></td><td style='font-size:12px'>particles←J80.particles</td><td style='font-size:12px'>building</td><td><details><summary>params</summary><pre>{&quot;prepare_window_dataset&quot;: true, &quot;prepare_window_inner_radius&quot;: 0.85, &quot;prepare_window_outer_radius&quot;: 0.99, &quot;class2D_K&quot;: 50, &quot;class2D_max_res&quot;: 6.0, &quot;class2D_max_res_align&quot;: null, &quot;class2D_sigma_init_factor&quot;: 2.0, &quot;class2D_window&quot;: true, &quot;class2D_window_inner_A&quot;: null, &quot;class2D_window_outer_A&quot;: null, &quot;class2D_recenter&quot;: true, &quot;class2D_recenter_thresh&quot;: 0.2, &quot;class2D_recenter_binary&quot;: false, &quot;class2D_estimate_in_plane_pose&quot;: false, &quot;class2D_output_filaments&quot;: false, &quot;class2D_remove_duplicate_particles&quot;: true, &quot;class2D_min_dist_A&quot;: 20.0, &quot;class2D_mic_psize_A&quot;: null, &quot;class2D_clamp&quot;: false, &quot;class2D_do_ctf&quot;: true, &quot;class2D_min_res_align&quot;: null, &quot;class2D_sort_classes_by_size&quot;: true, &quot;class2D_sort_method&quot;: &quot;similarity&quot;, &quot;class2D_similarity_allow_shift&quot;: false, &quot;class2D_hard_class_last_iter&quot;: false, &quot;class2D_do_alignment&quot;: true, &quot;class2D_force_max&quot;: true, &quot;class2D_ctf_phase_flip_only&quot;: false, &quot;class2D_random_perturb_rs&quot;: null, &quot;class2D_num_full_iter&quot;: 1, &quot;class2D_num_full_iter_batch&quot;: 20, &quot;class2D_num_full_iter_batchsize_per_class&quot;: 100, &quot;class2D_init_scale&quot;: 1.0, &quot;class2D_zp_factor&quot;: 2.0, &quot;class2D_ignore_dc&quot;: true, &quot;class2D_min_over_scale&quot;: false, &quot;class2D_nonneg&quot;: false, &quot;class2D_use_frc_reg&quot;: true, &quot;class2D_use_frc_reg_full&quot;: true, &quot;class2D_sigma_init_iter&quot;: 2, &quot;class2D_sigma_num_anneal_iters&quot;: 15, &quot;class2D_sigma_use_white&quot;: false, &quot;intermediate_plots&quot;: true, &quot;class2D_scale_bars&quot;: true, &quot;random_seed&quot;: 311538945, &quot;random_seed_default&quot;: 311538945, &quot;compute_use_ssd&quot;: true, &quot;compute_num_gpus&quot;: 1, &quot;generate_intermediate_results&quot;: false}</pre></details></td></tr><tr><td><code>J82</code></td><td><b>select_2D</b><br><span style='color:var(--faint);font-size:12px'>Select 2D Classes (Templates)</span></td><td style='font-size:12px'>particles←J81.particles; templates←J81.class_averages</td><td style='font-size:12px'>building</td><td><details><summary>params</summary><pre>{&quot;transpose_templates&quot;: false, &quot;selected_templates&quot;: null, &quot;resolution_better_than&quot;: null, &quot;particle_count_above&quot;: null}</pre></details></td></tr><tr><td><code>J83</code></td><td><b>template_picker_gpu</b><br><span style='color:var(--faint);font-size:12px'>Template Picker</span></td><td style='font-size:12px'>templates←J82.templates_selected; micrographs←J76.exposures</td><td style='font-size:12px'>building</td><td><details><summary>params</summary><pre>{&quot;diameter&quot;: 190.0, &quot;use_denoised&quot;: true, &quot;lowpass_res_template&quot;: 20.0, &quot;lowpass_res&quot;: 20.0, &quot;angular_spacing_deg&quot;: 5.0, &quot;use_ctf&quot;: false, &quot;min_distance&quot;: 0.5, &quot;recenter_templates&quot;: true, &quot;num_process&quot;: null, &quot;num_plot&quot;: 10, &quot;max_num_hits&quot;: 4000}</pre></details></td></tr><tr><td><code>J84</code></td><td><b>inspect_picks_v2</b><br><span style='color:var(--faint);font-size:12px'>Inspect Picks (Template)</span></td><td style='font-size:12px'>particles←J83.particles; micrographs←J83.micrographs</td><td style='font-size:12px'>building</td><td><details><summary>params</summary><pre>{&quot;n_mic_to_plot&quot;: 10, &quot;checkpoint_freq&quot;: 10, &quot;calibrate_ncc&quot;: true, &quot;calibrate_pow&quot;: true, &quot;ncc_score_thresh&quot;: null, &quot;lpower_thresh_min&quot;: null, &quot;lpower_thresh_max&quot;: null, &quot;curv_thresh&quot;: null, &quot;sinu_thresh&quot;: null, &quot;do_auto_cluster&quot;: false, &quot;lpower_target&quot;: 50.0, &quot;dilation_bins&quot;: 1, &quot;keep_threshold&quot;: 0.3}</pre></details></td></tr><tr><td><code>J85</code></td><td><b>extract_micrographs_multi</b><br><span style='color:var(--faint);font-size:12px'>Extract From Micrographs (Template)</span></td><td style='font-size:12px'>micrographs←J84.micrographs; particles←J84.particles</td><td style='font-size:12px'>building</td><td><details><summary>params</summary><pre>{&quot;compute_num_gpus&quot;: 1, &quot;box_size_pix&quot;: 440, &quot;bin_size_pix&quot;: null, &quot;output_f16&quot;: false, &quot;force_reextract_CTF&quot;: false, &quot;recenter_using_shifts&quot;: true, &quot;recenter_key&quot;: &quot;alignments3D&quot;, &quot;num_extract&quot;: null, &quot;flip_x&quot;: false, &quot;flip_y&quot;: false, &quot;scale_const_override&quot;: null, &quot;overall_normalizer_override&quot;: null, &quot;update_alignments2D&quot;: false, &quot;update_alignments3D&quot;: false, &quot;do_recenter&quot;: false}</pre></details></td></tr><tr><td><code>J86</code></td><td><b>class_2D_new</b><br><span style='color:var(--faint);font-size:12px'>2D Classification (Template)</span></td><td style='font-size:12px'>particles←J85.particles</td><td style='font-size:12px'>building</td><td><details><summary>params</summary><pre>{&quot;prepare_window_dataset&quot;: true, &quot;prepare_window_inner_radius&quot;: 0.85, &quot;prepare_window_outer_radius&quot;: 0.99, &quot;class2D_K&quot;: 50, &quot;class2D_max_res&quot;: 6.0, &quot;class2D_max_res_align&quot;: null, &quot;class2D_sigma_init_factor&quot;: 2.0, &quot;class2D_window&quot;: true, &quot;class2D_window_inner_A&quot;: null, &quot;class2D_window_outer_A&quot;: null, &quot;class2D_recenter&quot;: true, &quot;class2D_recenter_thresh&quot;: 0.2, &quot;class2D_recenter_binary&quot;: false, &quot;class2D_estimate_in_plane_pose&quot;: false, &quot;class2D_output_filaments&quot;: false, &quot;class2D_remove_duplicate_particles&quot;: true, &quot;class2D_min_dist_A&quot;: 20.0, &quot;class2D_mic_psize_A&quot;: null, &quot;class2D_clamp&quot;: false, &quot;class2D_do_ctf&quot;: true, &quot;class2D_min_res_align&quot;: null, &quot;class2D_sort_classes_by_size&quot;: true, &quot;class2D_sort_method&quot;: &quot;similarity&quot;, &quot;class2D_similarity_allow_shift&quot;: false, &quot;class2D_hard_class_last_iter&quot;: false, &quot;class2D_do_alignment&quot;: true, &quot;class2D_force_max&quot;: true, &quot;class2D_ctf_phase_flip_only&quot;: false, &quot;class2D_random_perturb_rs&quot;: null, &quot;class2D_num_full_iter&quot;: 1, &quot;class2D_num_full_iter_batch&quot;: 20, &quot;class2D_num_full_iter_batchsize_per_class&quot;: 100, &quot;class2D_init_scale&quot;: 1.0, &quot;class2D_zp_factor&quot;: 2.0, &quot;class2D_ignore_dc&quot;: true, &quot;class2D_min_over_scale&quot;: false, &quot;class2D_nonneg&quot;: false, &quot;class2D_use_frc_reg&quot;: true, &quot;class2D_use_frc_reg_full&quot;: true, &quot;class2D_sigma_init_iter&quot;: 2, &quot;class2D_sigma_num_anneal_iters&quot;: 15, &quot;class2D_sigma_use_white&quot;: false, &quot;intermediate_plots&quot;: true, &quot;class2D_scale_bars&quot;: true, &quot;random_seed&quot;: 1652051200, &quot;random_seed_default&quot;: 1652051200, &quot;compute_use_ssd&quot;: true, &quot;compute_num_gpus&quot;: 1, &quot;generate_intermediate_results&quot;: false}</pre></details></td></tr><tr><td><code>J87</code></td><td><b>select_2D</b><br><span style='color:var(--faint);font-size:12px'>Select 2D Classes (Final)</span></td><td style='font-size:12px'>particles←J86.particles; templates←J86.class_averages</td><td style='font-size:12px'>building</td><td><details><summary>params</summary><pre>{&quot;transpose_templates&quot;: false, &quot;selected_templates&quot;: null, &quot;resolution_better_than&quot;: null, &quot;particle_count_above&quot;: null}</pre></details></td></tr><tr><td><code>J88</code></td><td><b>homo_abinit</b><br><span style='color:var(--faint);font-size:12px'>Ab-Initio Reconstruction</span></td><td style='font-size:12px'>particles←J87.particles_selected</td><td style='font-size:12px'>building</td><td><details><summary>params</summary><pre>{&quot;prepare_window_dataset&quot;: true, &quot;prepare_window_inner_radius&quot;: 0.85, &quot;prepare_window_outer_radius&quot;: 0.99, &quot;abinit_K&quot;: 1, &quot;abinit_num_particles&quot;: null, &quot;abinit_max_res&quot;: 12.0, &quot;abinit_min_res&quot;: null, &quot;abinit_init_res&quot;: 35.0, &quot;abinit_num_init_iters&quot;: 200, &quot;abinit_num_final_iters&quot;: 300, &quot;abinit_radwn_step&quot;: 0.04, &quot;abinit_window&quot;: true, &quot;abinit_window_mode&quot;: &quot;spherical&quot;, &quot;abinit_window_inner&quot;: null, &quot;abinit_window_outer&quot;: null, &quot;abinit_center&quot;: true, &quot;abinit_scale_mg_correct&quot;: false, &quot;abinit_scale_compute&quot;: false, &quot;abinit_mom&quot;: 0.0, &quot;abinit_sparsity&quot;: 0, &quot;abinit_minisize_init&quot;: 90, &quot;abinit_minisize&quot;: 300, &quot;abinit_minisize_epsilon&quot;: 0.05, &quot;abinit_minisize_minp&quot;: 0.01, &quot;abinit_minisize_num_init_iters&quot;: 300, &quot;abinit_noise_model&quot;: &quot;symmetric&quot;, &quot;abinit_noise_priorw&quot;: 50, &quot;abinit_noise_initw&quot;: 5000, &quot;abinit_noise_init_sigmascale&quot;: null, &quot;abinit_class_anneal_beta&quot;: 0.1, &quot;abinit_class_anneal_start&quot;: 300, &quot;abinit_class_anneal_end&quot;: 350, &quot;abinit_target_initial_ess_fraction&quot;: 0.011, &quot;abinit_symmetry&quot;: &quot;C1&quot;, &quot;abinit_r_grid&quot;: 25, &quot;abinit_high_lr_duration&quot;: 100, &quot;abinit_high_lr&quot;: 0.4, &quot;abinit_nonneg&quot;: true, &quot;abinit_ignore_dc&quot;: true, &quot;abinit_seed_init&quot;: null, &quot;abinit_init_radwn_cutoff&quot;: 7, &quot;abinit_search_start_iter&quot;: 200, &quot;abinit_use_engine&quot;: true, &quot;intermediate_plots&quot;: true, &quot;random_seed&quot;: 2134516414, &quot;random_seed_default&quot;: 2134516414, &quot;compute_use_ssd&quot;: true, &quot;generate_intermediate_results&quot;: false}</pre></details></td></tr><tr><td><code>J89</code></td><td><b>homo_refine_new</b><br><span style='color:var(--faint);font-size:12px'>Homogeneous Refinement (D7)</span></td><td style='font-size:12px'>particles←J88.particles_all_classes; volume←J88.volume_class_0</td><td style='font-size:12px'>building</td><td><details><summary>params</summary><pre>{&quot;prepare_window_dataset&quot;: true, &quot;prepare_window_inner_radius&quot;: 0.85, &quot;prepare_window_outer_radius&quot;: 0.99, &quot;refine_N_cmp&quot;: null, &quot;refine_N_p_zp&quot;: null, &quot;refine_N_p_bp&quot;: null, &quot;refine_N_v&quot;: null, &quot;refine_N_v_zp_factor&quot;: 1.0, &quot;refine_interp_kernel&quot;: &quot;linear10&quot;, &quot;refine_scale_min&quot;: true, &quot;refine_scale_reset&quot;: true, &quot;refine_scale_start_iter&quot;: 0.0, &quot;refine_symmetry&quot;: &quot;D7&quot;, &quot;refine_relax_symmetry&quot;: &quot;none&quot;, &quot;refine_symmetry_do_align&quot;: true, &quot;refine_do_init_scale_est&quot;: true, &quot;refine_num_final_iterations&quot;: 0, &quot;refine_res_align_max&quot;: null, &quot;refine_res_init&quot;: 30.0, &quot;refine_res_gsfsc_split&quot;: 20.0, &quot;refine_gs_resplit&quot;: false, &quot;refine_highpass_res&quot;: null, &quot;refine_do_marg&quot;: false, &quot;refine_marg_num_rs&quot;: 5, &quot;refine_marg_num_ss&quot;: 5, &quot;refine_marg_extent_deg&quot;: 2.0, &quot;refine_marg_extent_A&quot;: 2.0, &quot;refine_nu_enable&quot;: false, &quot;refine_nu_filtertype&quot;: &quot;butterworth&quot;, &quot;refine_nu_order&quot;: 8, &quot;refine_nu_awf&quot;: 3.0, &quot;refine_nu_res_limit&quot;: null, &quot;refine_FSC_weight&quot;: &quot;fsc_resmask&quot;, &quot;refine_bnb_params&quot;: &quot;3D&quot;, &quot;refine_clip&quot;: false, &quot;refine_window&quot;: true, &quot;refine_skip_premult&quot;: true, &quot;refine_ignore_dc&quot;: true, &quot;refine_ignore_tilt&quot;: false, &quot;refine_ignore_trefoil&quot;: false, &quot;refine_ignore_tetra&quot;: false, &quot;refine_ignore_anisomag&quot;: false, &quot;refine_batch_random&quot;: true, &quot;refine_batchsize_init&quot;: 0, &quot;refine_batchsize_no_auto&quot;: false, &quot;refine_batchsize_epsilon&quot;: 0.001, &quot;refine_batchsize_snrfactor&quot;: 50.0, &quot;refine_noise_model&quot;: &quot;symmetric&quot;, &quot;refine_noise_priorw&quot;: 50, &quot;refine_noise_initw&quot;: 200, &quot;refine_noise_init_sigmascale&quot;: 3.0, &quot;refine_noise_init_from_imgs&quot;: false, &quot;refine_mask&quot;: &quot;dynamic&quot;, &quot;do_dynamic_mask&quot;: true, &quot;refine_dynamic_mask_thresh_factor&quot;: 0.2, &quot;refine_dynamic_mask_near_ang&quot;: 6.0, &quot;refine_dynamic_mask_far_ang&quot;: 14.0, &quot;refine_dynamic_mask_near_multiplier&quot;: 2.0, &quot;refine_dynamic_mask_far_multiplier&quot;: 5.0, &quot;refine_dynamic_mask_start_res&quot;: 12.0, &quot;refine_dynamic_mask_use_abs&quot;: false, &quot;intermediate_plots&quot;: true, &quot;refine_compute_batch_size&quot;: null, &quot;refine_defocus_refine&quot;: false, &quot;crl_min_res_A&quot;: 20.0, &quot;crl_num_plots&quot;: 10, &quot;crl_df_range&quot;: 2000.0, &quot;crl_compute_batch_size&quot;: null, &quot;refine_ctf_global_refine&quot;: false, &quot;crg_min_res_A&quot;: 10.0, &quot;crg_num_plots&quot;: 10, &quot;crg_plot_binfactor&quot;: 1, &quot;crg_do_tilt&quot;: true, &quot;crg_do_trefoil&quot;: true, &quot;crg_do_spherical&quot;: false, &quot;crg_do_tetrafoil&quot;: false, &quot;crg_do_anisomag&quot;: false, &quot;crg_compute_batch_size&quot;: null, &quot;refine_do_ews_correct&quot;: false, &quot;refine_do_ews_correct_align&quot;: false, &quot;refine_ews_zsign&quot;: -1, &quot;refine_ews_simple&quot;: 1, &quot;random_seed&quot;: 87929967, &quot;random_seed_default&quot;: 87929967, &quot;compute_use_ssd&quot;: true}</pre></details></td></tr><tr><td><code>J90</code></td><td><b>volume_tools</b><br><span style='color:var(--faint);font-size:12px'>Volume Tools (Lowpass 10A)</span></td><td style='font-size:12px'>volume←J89.volume</td><td style='font-size:12px'>building</td><td><details><summary>params</summary><pre>{&quot;vol_resample_N&quot;: null, &quot;vol_crop_N&quot;: null, &quot;vol_lpf_A&quot;: 10.0, &quot;vol_lpf_type&quot;: &quot;butterworth&quot;, &quot;vol_lpf_order&quot;: 8, &quot;vol_flip&quot;: false, &quot;volume_in_type&quot;: &quot;map&quot;, &quot;volume_out_type&quot;: &quot;map&quot;, &quot;invert&quot;: false, &quot;threshold&quot;: null, &quot;fill_holes&quot;: true, &quot;dilator&quot;: 0.0, &quot;pad&quot;: 12.0, &quot;z_clip_frac&quot;: 1.0, &quot;output_fname&quot;: null}</pre></details></td></tr><tr><td><code>J91</code></td><td><b>volume_tools</b><br><span style='color:var(--faint);font-size:12px'>Volume Tools (Mask)</span></td><td style='font-size:12px'>volume←J90.volume</td><td style='font-size:12px'>building</td><td><details><summary>params</summary><pre>{&quot;vol_resample_N&quot;: null, &quot;vol_crop_N&quot;: null, &quot;vol_lpf_A&quot;: null, &quot;vol_lpf_type&quot;: &quot;butterworth&quot;, &quot;vol_lpf_order&quot;: 8, &quot;vol_flip&quot;: false, &quot;volume_in_type&quot;: &quot;map&quot;, &quot;volume_out_type&quot;: &quot;mask&quot;, &quot;invert&quot;: false, &quot;threshold&quot;: 0.5, &quot;fill_holes&quot;: true, &quot;dilator&quot;: 4.0, &quot;pad&quot;: 14.0, &quot;z_clip_frac&quot;: 1.0, &quot;output_fname&quot;: null}</pre></details></td></tr><tr><td><code>J93</code></td><td><b>validation</b><br><span style='color:var(--faint);font-size:12px'>Validation (FSC)</span></td><td style='font-size:12px'>volume←J89.volume; mask←J91.mask</td><td style='font-size:12px'>building</td><td><details><summary>params</summary><pre>{&quot;validate_generate_new_mask&quot;: false, &quot;validate_mask_thresh_rel&quot;: true, &quot;validate_mask_thresh&quot;: 0.5, &quot;validate_mask_near_multiplier&quot;: 2.0, &quot;validate_mask_far_multiplier&quot;: 5.0, &quot;validate_mask_near_A&quot;: 6.0, &quot;validate_mask_far_A&quot;: 12.0, &quot;validate_do_noisesub&quot;: false, &quot;validate_optimize_fsc_mask&quot;: false, &quot;validate_override_psize_A&quot;: null, &quot;validate_compute_facility&quot;: &quot;GPU&quot;}</pre></details></td></tr><tr><td><code>J94</code></td><td><b>sharpen</b><br><span style='color:var(--faint);font-size:12px'>Sharpening Tools</span></td><td style='font-size:12px'>volume←J89.volume</td><td style='font-size:12px'>building</td><td><details><summary>params</summary><pre>{&quot;sharp_bfactor&quot;: -77.0, &quot;sharp_use_FSC_full&quot;: true, &quot;sharp_which_FSC&quot;: &quot;full&quot;, &quot;sharp_falloff_order&quot;: 8, &quot;sharp_falloff_corner_res&quot;: null, &quot;sharp_falloff_offset&quot;: 0.0, &quot;sharp_generate_new_mask&quot;: true, &quot;sharp_mask_thresh&quot;: 0.5, &quot;sharp_mask_near_A&quot;: 6.0, &quot;sharp_mask_far_A&quot;: 12.0, &quot;sharp_do_spherical_mask&quot;: true, &quot;sharp_do_expand_mask&quot;: false, &quot;sharp_bfactor_use_mask&quot;: true, &quot;sharp_fsc_weighting&quot;: false}</pre></details></td></tr></table>
-<h3>The agent's code — every <code>run_python</code> block</h3>
-<details open><summary>run_python #1 · 193 chars</summary><pre>print(project_uid, workspace)
+}</pre></details>
+
+<h3 id="dag">The DAG the agent authored (21 jobs · P5 / W5)</h3>
+<table class="dag"><colgroup><col style="width:64px"><col style="width:22%"><col style="width:30%"><col style="width:90px"><col></colgroup><tr><th>uid</th><th>type / title</th><th>inputs (wiring)</th><th>status</th><th>params</th></tr><tr><td><code>J73</code></td><td><b>import_movies</b><br><span class='dag-title'>Import Movies</span></td><td class='dag-meta'>—</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;blob_paths&quot;: &quot;/shared/data/empiar_10025_subset_v1/*.frames.tif&quot;,
+  &quot;gainref_path&quot;: &quot;/shared/data/empiar_10025_subset_v1/norm-amibox05-0.mrc&quot;,
+  &quot;defect_path&quot;: null,
+  &quot;gainref_flip_x&quot;: false,
+  &quot;gainref_flip_y&quot;: false,
+  &quot;gainref_rotate_num&quot;: 0,
+  &quot;psize_A&quot;: 0.6575,
+  &quot;accel_kv&quot;: 300.0,
+  &quot;cs_mm&quot;: 2.7,
+  &quot;total_dose_e_per_A2&quot;: 53.0,
+  &quot;negative_stain_data&quot;: false,
+  &quot;phase_plate_data&quot;: false,
+  &quot;override_exp_group_id&quot;: null,
+  &quot;skip_header_check&quot;: true,
+  &quot;output_constant_ctf&quot;: false,
+  &quot;eer_num_fractions&quot;: 40,
+  &quot;eer_upsamp_factor&quot;: 2.0,
+  &quot;parse_xml_files&quot;: false,
+  &quot;xml_paths&quot;: null,
+  &quot;mov_cut_prefix_xml&quot;: null,
+  &quot;mov_cut_suffix_xml&quot;: null,
+  &quot;xml_cut_prefix_xml&quot;: null,
+  &quot;xml_cut_suffix_xml&quot;: 4,
+  &quot;compute_num_cpus&quot;: 4
+}</pre></details></td></tr><tr><td><code>J74</code></td><td><b>patch_motion_correction_multi</b><br><span class='dag-title'>Patch Motion Correction</span></td><td class='dag-meta'>movies←J73.imported_movies</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;do_plots&quot;: true,
+  &quot;num_plots&quot;: 10,
+  &quot;random_num&quot;: null,
+  &quot;output_f16&quot;: false,
+  &quot;output_half_mics&quot;: true,
+  &quot;random_num_half_mics&quot;: 200,
+  &quot;memoryfix&quot;: true,
+  &quot;memoryfix2&quot;: false,
+  &quot;res_max_align&quot;: 5.0,
+  &quot;bfactor&quot;: 500.0,
+  &quot;frame_start&quot;: 0,
+  &quot;frame_end&quot;: null,
+  &quot;output_fcrop_factor&quot;: 1.0,
+  &quot;override_total_exp&quot;: null,
+  &quot;variable_dose&quot;: false,
+  &quot;smooth_lambda_cal&quot;: 0.5,
+  &quot;override_K_Z&quot;: null,
+  &quot;override_K_Y&quot;: null,
+  &quot;override_K_X&quot;: null,
+  &quot;num_std_hot&quot;: 10.0,
+  &quot;random_seed&quot;: 604725073,
+  &quot;random_seed_default&quot;: 604725073,
+  &quot;compute_num_gpus&quot;: 1
+}</pre></details></td></tr><tr><td><code>J75</code></td><td><b>patch_ctf_estimation_multi</b><br><span class='dag-title'>Patch CTF Estimation</span></td><td class='dag-meta'>exposures←J74.micrographs</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;do_plots&quot;: true,
+  &quot;num_plots&quot;: 10,
+  &quot;random_num&quot;: null,
+  &quot;classic_mode&quot;: false,
+  &quot;amp_contrast&quot;: 0.1,
+  &quot;res_min_align&quot;: 25,
+  &quot;res_max_align&quot;: 4.0,
+  &quot;df_search_min&quot;: 1000,
+  &quot;df_search_max&quot;: 40000,
+  &quot;phase_shift_min&quot;: 0,
+  &quot;phase_shift_max&quot;: 3.141592653589793,
+  &quot;do_phase_shift_refine_only&quot;: false,
+  &quot;override_K_Y&quot;: null,
+  &quot;override_K_X&quot;: null,
+  &quot;compute_num_gpus&quot;: 1
+}</pre></details></td></tr><tr><td><code>J76</code></td><td><b>denoise_train</b><br><span class='dag-title'>Micrograph Denoiser</span></td><td class='dag-meta'>exposures←J75.exposures</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;use_pretrained&quot;: false,
+  &quot;norm_recompute&quot;: false,
+  &quot;norm_scale_factor&quot;: 1.0,
+  &quot;overlap_frac&quot;: 0.1,
+  &quot;num_train_mics&quot;: 20,
+  &quot;train_from_scratch&quot;: true,
+  &quot;train_num_epochs&quot;: 200,
+  &quot;pre_crop&quot;: 10,
+  &quot;pre_crop_frac&quot;: 0.01,
+  &quot;net_lr&quot;: 0.0002,
+  &quot;val_frac&quot;: 0.2,
+  &quot;psize_des&quot;: 3.0,
+  &quot;N_crop&quot;: 512,
+  &quot;theta_min&quot;: 5,
+  &quot;theta_max&quot;: 400,
+  &quot;num_thetas&quot;: 30,
+  &quot;theta_offset&quot;: 8,
+  &quot;infilt_thetai&quot;: -1,
+  &quot;val_do_rand_crops&quot;: false,
+  &quot;train_do_rand_crops&quot;: true,
+  &quot;train_do_rand_rotflip&quot;: true,
+  &quot;net_model_name&quot;: &quot;FCN_v5&quot;,
+  &quot;net_num_chan&quot;: 32,
+  &quot;loss_type&quot;: &quot;L2&quot;,
+  &quot;penalty_lam_l1&quot;: 0.1,
+  &quot;penalty_lam_tv&quot;: 0.1,
+  &quot;penalty_lam_tv_type&quot;: &quot;tvv&quot;,
+  &quot;train_batch_size&quot;: 1,
+  &quot;clip_min&quot;: -3.0,
+  &quot;clip_max&quot;: 2.0,
+  &quot;mic_norm&quot;: null,
+  &quot;compute_num_cpus&quot;: 8
+}</pre></details></td></tr><tr><td><code>J77</code></td><td><b>blob_picker_gpu</b><br><span class='dag-title'>Blob Picker</span></td><td class='dag-meta'>micrographs←J76.exposures</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;diameter&quot;: 100.0,
+  &quot;diameter_max&quot;: 200.0,
+  &quot;use_circle&quot;: true,
+  &quot;use_ellipse&quot;: false,
+  &quot;ellipse_generation_mode&quot;: &quot;Stretch&quot;,
+  &quot;use_ring&quot;: false,
+  &quot;blob_size_spacing&quot;: null,
+  &quot;use_denoised&quot;: true,
+  &quot;lowpass_res_template&quot;: 20.0,
+  &quot;lowpass_res&quot;: 20.0,
+  &quot;angular_spacing_deg&quot;: 5.0,
+  &quot;use_ctf&quot;: false,
+  &quot;min_distance&quot;: 1.0,
+  &quot;num_process&quot;: null,
+  &quot;num_plot&quot;: 10,
+  &quot;max_num_hits&quot;: 4000
+}</pre></details></td></tr><tr><td><code>J78</code></td><td><b>junk_detector_v1</b><br><span class='dag-title'>Micrograph Junk Detector</span></td><td class='dag-meta'>exposures←J77.micrographs; particles←J77.particles</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;min_dist&quot;: 150.0,
+  &quot;enable_cat1&quot;: true,
+  &quot;min_dist_cat1&quot;: null,
+  &quot;enable_cat2&quot;: true,
+  &quot;min_dist_cat2&quot;: null,
+  &quot;enable_cat3&quot;: true,
+  &quot;min_dist_cat3&quot;: null,
+  &quot;min_label_area&quot;: 0.0
+}</pre></details></td></tr><tr><td><code>J79</code></td><td><b>inspect_picks_v2</b><br><span class='dag-title'>Inspect Picks (Blob)</span></td><td class='dag-meta'>particles←J78.particles_accepted; micrographs←J78.exposures</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;n_mic_to_plot&quot;: 10,
+  &quot;checkpoint_freq&quot;: 10,
+  &quot;calibrate_ncc&quot;: true,
+  &quot;calibrate_pow&quot;: true,
+  &quot;ncc_score_thresh&quot;: null,
+  &quot;lpower_thresh_min&quot;: null,
+  &quot;lpower_thresh_max&quot;: null,
+  &quot;curv_thresh&quot;: null,
+  &quot;sinu_thresh&quot;: null,
+  &quot;do_auto_cluster&quot;: false,
+  &quot;lpower_target&quot;: 50.0,
+  &quot;dilation_bins&quot;: 1,
+  &quot;keep_threshold&quot;: 0.3
+}</pre></details></td></tr><tr><td><code>J80</code></td><td><b>extract_micrographs_multi</b><br><span class='dag-title'>Extract From Micrographs (Blob)</span></td><td class='dag-meta'>micrographs←J79.micrographs; particles←J79.particles</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;compute_num_gpus&quot;: 1,
+  &quot;box_size_pix&quot;: 440,
+  &quot;bin_size_pix&quot;: null,
+  &quot;output_f16&quot;: false,
+  &quot;force_reextract_CTF&quot;: false,
+  &quot;recenter_using_shifts&quot;: true,
+  &quot;recenter_key&quot;: &quot;alignments3D&quot;,
+  &quot;num_extract&quot;: null,
+  &quot;flip_x&quot;: false,
+  &quot;flip_y&quot;: false,
+  &quot;scale_const_override&quot;: null,
+  &quot;overall_normalizer_override&quot;: null,
+  &quot;update_alignments2D&quot;: false,
+  &quot;update_alignments3D&quot;: false,
+  &quot;do_recenter&quot;: false
+}</pre></details></td></tr><tr><td><code>J81</code></td><td><b>class_2D_new</b><br><span class='dag-title'>2D Classification (Blob)</span></td><td class='dag-meta'>particles←J80.particles</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;prepare_window_dataset&quot;: true,
+  &quot;prepare_window_inner_radius&quot;: 0.85,
+  &quot;prepare_window_outer_radius&quot;: 0.99,
+  &quot;class2D_K&quot;: 50,
+  &quot;class2D_max_res&quot;: 6.0,
+  &quot;class2D_max_res_align&quot;: null,
+  &quot;class2D_sigma_init_factor&quot;: 2.0,
+  &quot;class2D_window&quot;: true,
+  &quot;class2D_window_inner_A&quot;: null,
+  &quot;class2D_window_outer_A&quot;: null,
+  &quot;class2D_recenter&quot;: true,
+  &quot;class2D_recenter_thresh&quot;: 0.2,
+  &quot;class2D_recenter_binary&quot;: false,
+  &quot;class2D_estimate_in_plane_pose&quot;: false,
+  &quot;class2D_output_filaments&quot;: false,
+  &quot;class2D_remove_duplicate_particles&quot;: true,
+  &quot;class2D_min_dist_A&quot;: 20.0,
+  &quot;class2D_mic_psize_A&quot;: null,
+  &quot;class2D_clamp&quot;: false,
+  &quot;class2D_do_ctf&quot;: true,
+  &quot;class2D_min_res_align&quot;: null,
+  &quot;class2D_sort_classes_by_size&quot;: true,
+  &quot;class2D_sort_method&quot;: &quot;similarity&quot;,
+  &quot;class2D_similarity_allow_shift&quot;: false,
+  &quot;class2D_hard_class_last_iter&quot;: false,
+  &quot;class2D_do_alignment&quot;: true,
+  &quot;class2D_force_max&quot;: true,
+  &quot;class2D_ctf_phase_flip_only&quot;: false,
+  &quot;class2D_random_perturb_rs&quot;: null,
+  &quot;class2D_num_full_iter&quot;: 1,
+  &quot;class2D_num_full_iter_batch&quot;: 20,
+  &quot;class2D_num_full_iter_batchsize_per_class&quot;: 100,
+  &quot;class2D_init_scale&quot;: 1.0,
+  &quot;class2D_zp_factor&quot;: 2.0,
+  &quot;class2D_ignore_dc&quot;: true,
+  &quot;class2D_min_over_scale&quot;: false,
+  &quot;class2D_nonneg&quot;: false,
+  &quot;class2D_use_frc_reg&quot;: true,
+  &quot;class2D_use_frc_reg_full&quot;: true,
+  &quot;class2D_sigma_init_iter&quot;: 2,
+  &quot;class2D_sigma_num_anneal_iters&quot;: 15,
+  &quot;class2D_sigma_use_white&quot;: false,
+  &quot;intermediate_plots&quot;: true,
+  &quot;class2D_scale_bars&quot;: true,
+  &quot;random_seed&quot;: 311538945,
+  &quot;random_seed_default&quot;: 311538945,
+  &quot;compute_use_ssd&quot;: true,
+  &quot;compute_num_gpus&quot;: 1,
+  &quot;generate_intermediate_results&quot;: false
+}</pre></details></td></tr><tr><td><code>J82</code></td><td><b>select_2D</b><br><span class='dag-title'>Select 2D Classes (Templates)</span></td><td class='dag-meta'>particles←J81.particles; templates←J81.class_averages</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;transpose_templates&quot;: false,
+  &quot;selected_templates&quot;: null,
+  &quot;resolution_better_than&quot;: null,
+  &quot;particle_count_above&quot;: null
+}</pre></details></td></tr><tr><td><code>J83</code></td><td><b>template_picker_gpu</b><br><span class='dag-title'>Template Picker</span></td><td class='dag-meta'>templates←J82.templates_selected; micrographs←J76.exposures</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;diameter&quot;: 190.0,
+  &quot;use_denoised&quot;: true,
+  &quot;lowpass_res_template&quot;: 20.0,
+  &quot;lowpass_res&quot;: 20.0,
+  &quot;angular_spacing_deg&quot;: 5.0,
+  &quot;use_ctf&quot;: false,
+  &quot;min_distance&quot;: 0.5,
+  &quot;recenter_templates&quot;: true,
+  &quot;num_process&quot;: null,
+  &quot;num_plot&quot;: 10,
+  &quot;max_num_hits&quot;: 4000
+}</pre></details></td></tr><tr><td><code>J84</code></td><td><b>inspect_picks_v2</b><br><span class='dag-title'>Inspect Picks (Template)</span></td><td class='dag-meta'>particles←J83.particles; micrographs←J83.micrographs</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;n_mic_to_plot&quot;: 10,
+  &quot;checkpoint_freq&quot;: 10,
+  &quot;calibrate_ncc&quot;: true,
+  &quot;calibrate_pow&quot;: true,
+  &quot;ncc_score_thresh&quot;: null,
+  &quot;lpower_thresh_min&quot;: null,
+  &quot;lpower_thresh_max&quot;: null,
+  &quot;curv_thresh&quot;: null,
+  &quot;sinu_thresh&quot;: null,
+  &quot;do_auto_cluster&quot;: false,
+  &quot;lpower_target&quot;: 50.0,
+  &quot;dilation_bins&quot;: 1,
+  &quot;keep_threshold&quot;: 0.3
+}</pre></details></td></tr><tr><td><code>J85</code></td><td><b>extract_micrographs_multi</b><br><span class='dag-title'>Extract From Micrographs (Template)</span></td><td class='dag-meta'>micrographs←J84.micrographs; particles←J84.particles</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;compute_num_gpus&quot;: 1,
+  &quot;box_size_pix&quot;: 440,
+  &quot;bin_size_pix&quot;: null,
+  &quot;output_f16&quot;: false,
+  &quot;force_reextract_CTF&quot;: false,
+  &quot;recenter_using_shifts&quot;: true,
+  &quot;recenter_key&quot;: &quot;alignments3D&quot;,
+  &quot;num_extract&quot;: null,
+  &quot;flip_x&quot;: false,
+  &quot;flip_y&quot;: false,
+  &quot;scale_const_override&quot;: null,
+  &quot;overall_normalizer_override&quot;: null,
+  &quot;update_alignments2D&quot;: false,
+  &quot;update_alignments3D&quot;: false,
+  &quot;do_recenter&quot;: false
+}</pre></details></td></tr><tr><td><code>J86</code></td><td><b>class_2D_new</b><br><span class='dag-title'>2D Classification (Template)</span></td><td class='dag-meta'>particles←J85.particles</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;prepare_window_dataset&quot;: true,
+  &quot;prepare_window_inner_radius&quot;: 0.85,
+  &quot;prepare_window_outer_radius&quot;: 0.99,
+  &quot;class2D_K&quot;: 50,
+  &quot;class2D_max_res&quot;: 6.0,
+  &quot;class2D_max_res_align&quot;: null,
+  &quot;class2D_sigma_init_factor&quot;: 2.0,
+  &quot;class2D_window&quot;: true,
+  &quot;class2D_window_inner_A&quot;: null,
+  &quot;class2D_window_outer_A&quot;: null,
+  &quot;class2D_recenter&quot;: true,
+  &quot;class2D_recenter_thresh&quot;: 0.2,
+  &quot;class2D_recenter_binary&quot;: false,
+  &quot;class2D_estimate_in_plane_pose&quot;: false,
+  &quot;class2D_output_filaments&quot;: false,
+  &quot;class2D_remove_duplicate_particles&quot;: true,
+  &quot;class2D_min_dist_A&quot;: 20.0,
+  &quot;class2D_mic_psize_A&quot;: null,
+  &quot;class2D_clamp&quot;: false,
+  &quot;class2D_do_ctf&quot;: true,
+  &quot;class2D_min_res_align&quot;: null,
+  &quot;class2D_sort_classes_by_size&quot;: true,
+  &quot;class2D_sort_method&quot;: &quot;similarity&quot;,
+  &quot;class2D_similarity_allow_shift&quot;: false,
+  &quot;class2D_hard_class_last_iter&quot;: false,
+  &quot;class2D_do_alignment&quot;: true,
+  &quot;class2D_force_max&quot;: true,
+  &quot;class2D_ctf_phase_flip_only&quot;: false,
+  &quot;class2D_random_perturb_rs&quot;: null,
+  &quot;class2D_num_full_iter&quot;: 1,
+  &quot;class2D_num_full_iter_batch&quot;: 20,
+  &quot;class2D_num_full_iter_batchsize_per_class&quot;: 100,
+  &quot;class2D_init_scale&quot;: 1.0,
+  &quot;class2D_zp_factor&quot;: 2.0,
+  &quot;class2D_ignore_dc&quot;: true,
+  &quot;class2D_min_over_scale&quot;: false,
+  &quot;class2D_nonneg&quot;: false,
+  &quot;class2D_use_frc_reg&quot;: true,
+  &quot;class2D_use_frc_reg_full&quot;: true,
+  &quot;class2D_sigma_init_iter&quot;: 2,
+  &quot;class2D_sigma_num_anneal_iters&quot;: 15,
+  &quot;class2D_sigma_use_white&quot;: false,
+  &quot;intermediate_plots&quot;: true,
+  &quot;class2D_scale_bars&quot;: true,
+  &quot;random_seed&quot;: 1652051200,
+  &quot;random_seed_default&quot;: 1652051200,
+  &quot;compute_use_ssd&quot;: true,
+  &quot;compute_num_gpus&quot;: 1,
+  &quot;generate_intermediate_results&quot;: false
+}</pre></details></td></tr><tr><td><code>J87</code></td><td><b>select_2D</b><br><span class='dag-title'>Select 2D Classes (Final)</span></td><td class='dag-meta'>particles←J86.particles; templates←J86.class_averages</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;transpose_templates&quot;: false,
+  &quot;selected_templates&quot;: null,
+  &quot;resolution_better_than&quot;: null,
+  &quot;particle_count_above&quot;: null
+}</pre></details></td></tr><tr><td><code>J88</code></td><td><b>homo_abinit</b><br><span class='dag-title'>Ab-Initio Reconstruction</span></td><td class='dag-meta'>particles←J87.particles_selected</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;prepare_window_dataset&quot;: true,
+  &quot;prepare_window_inner_radius&quot;: 0.85,
+  &quot;prepare_window_outer_radius&quot;: 0.99,
+  &quot;abinit_K&quot;: 1,
+  &quot;abinit_num_particles&quot;: null,
+  &quot;abinit_max_res&quot;: 12.0,
+  &quot;abinit_min_res&quot;: null,
+  &quot;abinit_init_res&quot;: 35.0,
+  &quot;abinit_num_init_iters&quot;: 200,
+  &quot;abinit_num_final_iters&quot;: 300,
+  &quot;abinit_radwn_step&quot;: 0.04,
+  &quot;abinit_window&quot;: true,
+  &quot;abinit_window_mode&quot;: &quot;spherical&quot;,
+  &quot;abinit_window_inner&quot;: null,
+  &quot;abinit_window_outer&quot;: null,
+  &quot;abinit_center&quot;: true,
+  &quot;abinit_scale_mg_correct&quot;: false,
+  &quot;abinit_scale_compute&quot;: false,
+  &quot;abinit_mom&quot;: 0.0,
+  &quot;abinit_sparsity&quot;: 0,
+  &quot;abinit_minisize_init&quot;: 90,
+  &quot;abinit_minisize&quot;: 300,
+  &quot;abinit_minisize_epsilon&quot;: 0.05,
+  &quot;abinit_minisize_minp&quot;: 0.01,
+  &quot;abinit_minisize_num_init_iters&quot;: 300,
+  &quot;abinit_noise_model&quot;: &quot;symmetric&quot;,
+  &quot;abinit_noise_priorw&quot;: 50,
+  &quot;abinit_noise_initw&quot;: 5000,
+  &quot;abinit_noise_init_sigmascale&quot;: null,
+  &quot;abinit_class_anneal_beta&quot;: 0.1,
+  &quot;abinit_class_anneal_start&quot;: 300,
+  &quot;abinit_class_anneal_end&quot;: 350,
+  &quot;abinit_target_initial_ess_fraction&quot;: 0.011,
+  &quot;abinit_symmetry&quot;: &quot;C1&quot;,
+  &quot;abinit_r_grid&quot;: 25,
+  &quot;abinit_high_lr_duration&quot;: 100,
+  &quot;abinit_high_lr&quot;: 0.4,
+  &quot;abinit_nonneg&quot;: true,
+  &quot;abinit_ignore_dc&quot;: true,
+  &quot;abinit_seed_init&quot;: null,
+  &quot;abinit_init_radwn_cutoff&quot;: 7,
+  &quot;abinit_search_start_iter&quot;: 200,
+  &quot;abinit_use_engine&quot;: true,
+  &quot;intermediate_plots&quot;: true,
+  &quot;random_seed&quot;: 2134516414,
+  &quot;random_seed_default&quot;: 2134516414,
+  &quot;compute_use_ssd&quot;: true,
+  &quot;generate_intermediate_results&quot;: false
+}</pre></details></td></tr><tr><td><code>J89</code></td><td><b>homo_refine_new</b><br><span class='dag-title'>Homogeneous Refinement (D7)</span></td><td class='dag-meta'>particles←J88.particles_all_classes; volume←J88.volume_class_0</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;prepare_window_dataset&quot;: true,
+  &quot;prepare_window_inner_radius&quot;: 0.85,
+  &quot;prepare_window_outer_radius&quot;: 0.99,
+  &quot;refine_N_cmp&quot;: null,
+  &quot;refine_N_p_zp&quot;: null,
+  &quot;refine_N_p_bp&quot;: null,
+  &quot;refine_N_v&quot;: null,
+  &quot;refine_N_v_zp_factor&quot;: 1.0,
+  &quot;refine_interp_kernel&quot;: &quot;linear10&quot;,
+  &quot;refine_scale_min&quot;: true,
+  &quot;refine_scale_reset&quot;: true,
+  &quot;refine_scale_start_iter&quot;: 0.0,
+  &quot;refine_symmetry&quot;: &quot;D7&quot;,
+  &quot;refine_relax_symmetry&quot;: &quot;none&quot;,
+  &quot;refine_symmetry_do_align&quot;: true,
+  &quot;refine_do_init_scale_est&quot;: true,
+  &quot;refine_num_final_iterations&quot;: 0,
+  &quot;refine_res_align_max&quot;: null,
+  &quot;refine_res_init&quot;: 30.0,
+  &quot;refine_res_gsfsc_split&quot;: 20.0,
+  &quot;refine_gs_resplit&quot;: false,
+  &quot;refine_highpass_res&quot;: null,
+  &quot;refine_do_marg&quot;: false,
+  &quot;refine_marg_num_rs&quot;: 5,
+  &quot;refine_marg_num_ss&quot;: 5,
+  &quot;refine_marg_extent_deg&quot;: 2.0,
+  &quot;refine_marg_extent_A&quot;: 2.0,
+  &quot;refine_nu_enable&quot;: false,
+  &quot;refine_nu_filtertype&quot;: &quot;butterworth&quot;,
+  &quot;refine_nu_order&quot;: 8,
+  &quot;refine_nu_awf&quot;: 3.0,
+  &quot;refine_nu_res_limit&quot;: null,
+  &quot;refine_FSC_weight&quot;: &quot;fsc_resmask&quot;,
+  &quot;refine_bnb_params&quot;: &quot;3D&quot;,
+  &quot;refine_clip&quot;: false,
+  &quot;refine_window&quot;: true,
+  &quot;refine_skip_premult&quot;: true,
+  &quot;refine_ignore_dc&quot;: true,
+  &quot;refine_ignore_tilt&quot;: false,
+  &quot;refine_ignore_trefoil&quot;: false,
+  &quot;refine_ignore_tetra&quot;: false,
+  &quot;refine_ignore_anisomag&quot;: false,
+  &quot;refine_batch_random&quot;: true,
+  &quot;refine_batchsize_init&quot;: 0,
+  &quot;refine_batchsize_no_auto&quot;: false,
+  &quot;refine_batchsize_epsilon&quot;: 0.001,
+  &quot;refine_batchsize_snrfactor&quot;: 50.0,
+  &quot;refine_noise_model&quot;: &quot;symmetric&quot;,
+  &quot;refine_noise_priorw&quot;: 50,
+  &quot;refine_noise_initw&quot;: 200,
+  &quot;refine_noise_init_sigmascale&quot;: 3.0,
+  &quot;refine_noise_init_from_imgs&quot;: false,
+  &quot;refine_mask&quot;: &quot;dynamic&quot;,
+  &quot;do_dynamic_mask&quot;: true,
+  &quot;refine_dynamic_mask_thresh_factor&quot;: 0.2,
+  &quot;refine_dynamic_mask_near_ang&quot;: 6.0,
+  &quot;refine_dynamic_mask_far_ang&quot;: 14.0,
+  &quot;refine_dynamic_mask_near_multiplier&quot;: 2.0,
+  &quot;refine_dynamic_mask_far_multiplier&quot;: 5.0,
+  &quot;refine_dynamic_mask_start_res&quot;: 12.0,
+  &quot;refine_dynamic_mask_use_abs&quot;: false,
+  &quot;intermediate_plots&quot;: true,
+  &quot;refine_compute_batch_size&quot;: null,
+  &quot;refine_defocus_refine&quot;: false,
+  &quot;crl_min_res_A&quot;: 20.0,
+  &quot;crl_num_plots&quot;: 10,
+  &quot;crl_df_range&quot;: 2000.0,
+  &quot;crl_compute_batch_size&quot;: null,
+  &quot;refine_ctf_global_refine&quot;: false,
+  &quot;crg_min_res_A&quot;: 10.0,
+  &quot;crg_num_plots&quot;: 10,
+  &quot;crg_plot_binfactor&quot;: 1,
+  &quot;crg_do_tilt&quot;: true,
+  &quot;crg_do_trefoil&quot;: true,
+  &quot;crg_do_spherical&quot;: false,
+  &quot;crg_do_tetrafoil&quot;: false,
+  &quot;crg_do_anisomag&quot;: false,
+  &quot;crg_compute_batch_size&quot;: null,
+  &quot;refine_do_ews_correct&quot;: false,
+  &quot;refine_do_ews_correct_align&quot;: false,
+  &quot;refine_ews_zsign&quot;: -1,
+  &quot;refine_ews_simple&quot;: 1,
+  &quot;random_seed&quot;: 87929967,
+  &quot;random_seed_default&quot;: 87929967,
+  &quot;compute_use_ssd&quot;: true
+}</pre></details></td></tr><tr><td><code>J90</code></td><td><b>volume_tools</b><br><span class='dag-title'>Volume Tools (Lowpass 10A)</span></td><td class='dag-meta'>volume←J89.volume</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;vol_resample_N&quot;: null,
+  &quot;vol_crop_N&quot;: null,
+  &quot;vol_lpf_A&quot;: 10.0,
+  &quot;vol_lpf_type&quot;: &quot;butterworth&quot;,
+  &quot;vol_lpf_order&quot;: 8,
+  &quot;vol_flip&quot;: false,
+  &quot;volume_in_type&quot;: &quot;map&quot;,
+  &quot;volume_out_type&quot;: &quot;map&quot;,
+  &quot;invert&quot;: false,
+  &quot;threshold&quot;: null,
+  &quot;fill_holes&quot;: true,
+  &quot;dilator&quot;: 0.0,
+  &quot;pad&quot;: 12.0,
+  &quot;z_clip_frac&quot;: 1.0,
+  &quot;output_fname&quot;: null
+}</pre></details></td></tr><tr><td><code>J91</code></td><td><b>volume_tools</b><br><span class='dag-title'>Volume Tools (Mask)</span></td><td class='dag-meta'>volume←J90.volume</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;vol_resample_N&quot;: null,
+  &quot;vol_crop_N&quot;: null,
+  &quot;vol_lpf_A&quot;: null,
+  &quot;vol_lpf_type&quot;: &quot;butterworth&quot;,
+  &quot;vol_lpf_order&quot;: 8,
+  &quot;vol_flip&quot;: false,
+  &quot;volume_in_type&quot;: &quot;map&quot;,
+  &quot;volume_out_type&quot;: &quot;mask&quot;,
+  &quot;invert&quot;: false,
+  &quot;threshold&quot;: 0.5,
+  &quot;fill_holes&quot;: true,
+  &quot;dilator&quot;: 4.0,
+  &quot;pad&quot;: 14.0,
+  &quot;z_clip_frac&quot;: 1.0,
+  &quot;output_fname&quot;: null
+}</pre></details></td></tr><tr><td><code>J93</code></td><td><b>validation</b><br><span class='dag-title'>Validation (FSC)</span></td><td class='dag-meta'>volume←J89.volume; mask←J91.mask</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;validate_generate_new_mask&quot;: false,
+  &quot;validate_mask_thresh_rel&quot;: true,
+  &quot;validate_mask_thresh&quot;: 0.5,
+  &quot;validate_mask_near_multiplier&quot;: 2.0,
+  &quot;validate_mask_far_multiplier&quot;: 5.0,
+  &quot;validate_mask_near_A&quot;: 6.0,
+  &quot;validate_mask_far_A&quot;: 12.0,
+  &quot;validate_do_noisesub&quot;: false,
+  &quot;validate_optimize_fsc_mask&quot;: false,
+  &quot;validate_override_psize_A&quot;: null,
+  &quot;validate_compute_facility&quot;: &quot;GPU&quot;
+}</pre></details></td></tr><tr><td><code>J94</code></td><td><b>sharpen</b><br><span class='dag-title'>Sharpening Tools</span></td><td class='dag-meta'>volume←J89.volume</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;sharp_bfactor&quot;: -77.0,
+  &quot;sharp_use_FSC_full&quot;: true,
+  &quot;sharp_which_FSC&quot;: &quot;full&quot;,
+  &quot;sharp_falloff_order&quot;: 8,
+  &quot;sharp_falloff_corner_res&quot;: null,
+  &quot;sharp_falloff_offset&quot;: 0.0,
+  &quot;sharp_generate_new_mask&quot;: true,
+  &quot;sharp_mask_thresh&quot;: 0.5,
+  &quot;sharp_mask_near_A&quot;: 6.0,
+  &quot;sharp_mask_far_A&quot;: 12.0,
+  &quot;sharp_do_spherical_mask&quot;: true,
+  &quot;sharp_do_expand_mask&quot;: false,
+  &quot;sharp_bfactor_use_mask&quot;: true,
+  &quot;sharp_fsc_weighting&quot;: false
+}</pre></details></td></tr></table>
+
+<h3 id="trajectory">Trajectory — every tool call + the model's reasoning</h3>
+<p class="note">The agent's code lives here, in order, with each call's result. Code scrolls horizontally; long results are capped with a marker.</p>
+<details><summary>Trajectory — 58 rows (38 tool calls + 20 reasoning)</summary>
+<table class="traj"><colgroup><col style="width:44px"><col style="width:96px"><col style="width:46%"><col></colgroup><tr><th>turn</th><th>tool</th><th>code / input</th><th>result</th></tr><tr><td>1</td><td><i>reasoning</i></td><td colspan=2>I&#x27;ll start by exploring the environment and the available job types.</td></tr><tr><td>1</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>print(project_uid, workspace)
 print(DATA_DIR)
 print(LANE_CPU, LANE_GPU)
 import glob
 print(len(glob.glob(os.path.join(DATA_DIR, &quot;*.tif&quot;))))
 print(glob.glob(os.path.join(DATA_DIR, &quot;*.mrc&quot;))[:3])
-</pre></details><details open><summary>run_python #2 · 20 chars</summary><pre>cs.print_job_types()</pre></details><details ><summary>run_python #3 · 95 chars</summary><pre>cs.print_job_types(&quot;postprocessing&quot;)
-print(&quot;====UTILITIES====&quot;)
-cs.print_job_types(&quot;utilities&quot;)</pre></details><details ><summary>run_python #4 · 500 chars</summary><pre>imp = cs.create_job(project_uid, workspace, &quot;import_movies&quot;,
-    params={
-        &quot;blob_paths&quot;: os.path.join(DATA_DIR, &quot;*.frames.tif&quot;),
-        &quot;gainref_path&quot;: os.path.join(DATA_DIR, &quot;norm-amibox05-0.mrc&quot;),
-        &quot;psize_A&quot;: 0.6575,
-        &quot;accel_kv&quot;: 300.0,
-        &quot;cs_mm&quot;: 2.7,
-        &quot;total_dose_e_per_A2&quot;: 53.0,
-    },
-    title=&quot;Import Movies&quot;)
-imp.refresh()
-spec = imp.model.model_dump()[&quot;spec&quot;]
-print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
-print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
-</pre></details><details ><summary>run_python #5 · 327 chars</summary><pre>motion = cs.create_job(project_uid, workspace, &quot;patch_motion_correction_multi&quot;,
-    connections={&quot;movies&quot;: (imp.uid, &quot;imported_movies&quot;)},
-    title=&quot;Patch Motion Correction&quot;)
-motion.refresh()
-spec = motion.model.model_dump()[&quot;spec&quot;]
-print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
-print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
-</pre></details><details ><summary>run_python #6 · 314 chars</summary><pre>ctf = cs.create_job(project_uid, workspace, &quot;patch_ctf_estimation_multi&quot;,
-    connections={&quot;exposures&quot;: (motion.uid, &quot;micrographs&quot;)},
-    title=&quot;Patch CTF Estimation&quot;)
-ctf.refresh()
-spec = ctf.model.model_dump()[&quot;spec&quot;]
-print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
-print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
-</pre></details><details ><summary>run_python #7 · 457 chars</summary><pre>denoise = cs.create_job(project_uid, workspace, &quot;denoise_train&quot;,
-    connections={&quot;exposures&quot;: (ctf.uid, &quot;exposures&quot;)},
-    title=&quot;Micrograph Denoiser&quot;)
-denoise.refresh()
-spec = denoise.model.model_dump()[&quot;spec&quot;]
-print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
-print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
-# find training param
-for k,v in spec[&quot;params&quot;].items():
-    if &quot;train&quot; in k.lower() or &quot;num&quot; in k.lower() or &quot;mic&quot; in k.lower():
-        print(k, v)
-</pre></details><details ><summary>run_python #8 · 109 chars</summary><pre>denoise.set_param(&quot;num_train_mics&quot;, 20)
-print(denoise.model.model_dump()[&quot;spec&quot;][&quot;params&quot;][&quot;num_train_mics&quot;])</pre></details><details ><summary>run_python #9 · 410 chars</summary><pre>blob = cs.create_job(project_uid, workspace, &quot;blob_picker_gpu&quot;,
-    connections={&quot;micrographs&quot;: (denoise.uid, &quot;exposures&quot;)},
-    title=&quot;Blob Picker&quot;)
-blob.refresh()
-spec = blob.model.model_dump()[&quot;spec&quot;]
-print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
-print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
-for k,v in spec[&quot;params&quot;].items():
-    if &quot;diameter&quot; in k.lower() or &quot;denois&quot; in k.lower():
-        print(k, v)
-</pre></details><details ><summary>run_python #10 · 209 chars</summary><pre>blob.set_param(&quot;diameter&quot;, 100)
-blob.set_param(&quot;diameter_max&quot;, 200)
-blob.set_param(&quot;use_denoised&quot;, True)
-p = blob.model.model_dump()[&quot;spec&quot;][&quot;params&quot;]
-print(p[&quot;diameter&quot;], p[&quot;diameter_max&quot;], p[&quot;use_denoised&quot;])</pre></details><details ><summary>run_python #11 · 364 chars</summary><pre>junk = cs.create_job(project_uid, workspace, &quot;junk_detector_v1&quot;,
-    connections={&quot;exposures&quot;: (blob.uid, &quot;micrographs&quot;),
-                 &quot;particles&quot;: (blob.uid, &quot;particles&quot;)},
-    title=&quot;Micrograph Junk Detector&quot;)
-junk.refresh()
-spec = junk.model.model_dump()[&quot;spec&quot;]
-print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
-print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
-</pre></details><details ><summary>run_python #12 · 381 chars</summary><pre>inspect1 = cs.create_job(project_uid, workspace, &quot;inspect_picks_v2&quot;,
-    connections={&quot;particles&quot;: (junk.uid, &quot;particles_accepted&quot;),
-                 &quot;micrographs&quot;: (junk.uid, &quot;exposures&quot;)},
-    title=&quot;Inspect Picks (Blob)&quot;)
-inspect1.refresh()
-spec = inspect1.model.model_dump()[&quot;spec&quot;]
-print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
-print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
-</pre></details><details ><summary>run_python #13 · 484 chars</summary><pre>extract1 = cs.create_job(project_uid, workspace, &quot;extract_micrographs_multi&quot;,
-    connections={&quot;micrographs&quot;: (inspect1.uid, &quot;micrographs&quot;),
-                 &quot;particles&quot;: (inspect1.uid, &quot;particles&quot;)},
-    title=&quot;Extract From Micrographs (Blob)&quot;)
-extract1.refresh()
-spec = extract1.model.model_dump()[&quot;spec&quot;]
-print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
-print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
-for k,v in spec[&quot;params&quot;].items():
-    if &quot;box&quot; in k.lower():
-        print(k, v)
-</pre></details><details ><summary>run_python #14 · 108 chars</summary><pre>extract1.set_param(&quot;box_size_pix&quot;, 440)
-print(extract1.model.model_dump()[&quot;spec&quot;][&quot;params&quot;][&quot;box_size_pix&quot;])</pre></details><details ><summary>run_python #15 · 429 chars</summary><pre>class2d_1 = cs.create_job(project_uid, workspace, &quot;class_2D_new&quot;,
-    connections={&quot;particles&quot;: (extract1.uid, &quot;particles&quot;)},
-    title=&quot;2D Classification (Blob)&quot;)
-class2d_1.refresh()
-spec = class2d_1.model.model_dump()[&quot;spec&quot;]
-print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
-print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
-for k,v in spec[&quot;params&quot;].items():
-    if &quot;class&quot; in k.lower() and &quot;num&quot; in k.lower():
-        print(k, v)
-</pre></details><details ><summary>run_python #16 · 145 chars</summary><pre>for k,v in class2d_1.model.model_dump()[&quot;spec&quot;][&quot;params&quot;].items():
-    if &quot;K&quot; == k or &quot;num_K&quot; in k or &quot;classes&quot; in k.lower():
-        print(k, v)</pre></details><details ><summary>run_python #17 · 82 chars</summary><pre>for k,v in class2d_1.model.model_dump()[&quot;spec&quot;][&quot;params&quot;].items():
-    print(k, v)</pre></details><details ><summary>run_python #18 · 384 chars</summary><pre>select1 = cs.create_job(project_uid, workspace, &quot;select_2D&quot;,
-    connections={&quot;particles&quot;: (class2d_1.uid, &quot;particles&quot;),
-                 &quot;templates&quot;: (class2d_1.uid, &quot;class_averages&quot;)},
-    title=&quot;Select 2D Classes (Templates)&quot;)
-select1.refresh()
-spec = select1.model.model_dump()[&quot;spec&quot;]
-print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
-print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
-</pre></details><details ><summary>run_python #19 · 488 chars</summary><pre>tpick = cs.create_job(project_uid, workspace, &quot;template_picker_gpu&quot;,
-    connections={&quot;templates&quot;: (select1.uid, &quot;templates_selected&quot;),
-                 &quot;micrographs&quot;: (denoise.uid, &quot;exposures&quot;)},
-    title=&quot;Template Picker&quot;)
-tpick.refresh()
-spec = tpick.model.model_dump()[&quot;spec&quot;]
-print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
-print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
-for k,v in spec[&quot;params&quot;].items():
-    if &quot;diameter&quot; in k.lower() or &quot;denois&quot; in k.lower():
-        print(k, v)
-</pre></details><details ><summary>run_python #20 · 157 chars</summary><pre>tpick.set_param(&quot;diameter&quot;, 190)
-tpick.set_param(&quot;use_denoised&quot;, True)
-p = tpick.model.model_dump()[&quot;spec&quot;][&quot;params&quot;]
-print(p[&quot;diameter&quot;], p[&quot;use_denoised&quot;])</pre></details><details ><summary>run_python #21 · 380 chars</summary><pre>inspect2 = cs.create_job(project_uid, workspace, &quot;inspect_picks_v2&quot;,
-    connections={&quot;particles&quot;: (tpick.uid, &quot;particles&quot;),
-                 &quot;micrographs&quot;: (tpick.uid, &quot;micrographs&quot;)},
-    title=&quot;Inspect Picks (Template)&quot;)
-inspect2.refresh()
-spec = inspect2.model.model_dump()[&quot;spec&quot;]
-print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
-print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
-</pre></details><details ><summary>run_python #22 · 868 chars</summary><pre>extract2 = cs.create_job(project_uid, workspace, &quot;extract_micrographs_multi&quot;,
-    connections={&quot;micrographs&quot;: (inspect2.uid, &quot;micrographs&quot;),
-                 &quot;particles&quot;: (inspect2.uid, &quot;particles&quot;)},
-    params={&quot;box_size_pix&quot;: 440},
-    title=&quot;Extract From Micrographs (Template)&quot;)
-extract2.refresh()
-class2d_2 = cs.create_job(project_uid, workspace, &quot;class_2D_new&quot;,
-    connections={&quot;particles&quot;: (extract2.uid, &quot;particles&quot;)},
-    title=&quot;2D Classification (Template)&quot;)
-class2d_2.refresh()
-select2 = cs.create_job(project_uid, workspace, &quot;select_2D&quot;,
-    connections={&quot;particles&quot;: (class2d_2.uid, &quot;particles&quot;),
-                 &quot;templates&quot;: (class2d_2.uid, &quot;class_averages&quot;)},
-    title=&quot;Select 2D Classes (Final)&quot;)
-select2.refresh()
-print(&quot;extract2 box:&quot;, extract2.model.model_dump()[&quot;spec&quot;][&quot;params&quot;][&quot;box_size_pix&quot;])
-print(extract2.uid, class2d_2.uid, select2.uid)</pre></details><details ><summary>run_python #23 · 449 chars</summary><pre>abinit = cs.create_job(project_uid, workspace, &quot;homo_abinit&quot;,
-    connections={&quot;particles&quot;: (select2.uid, &quot;particles_selected&quot;)},
-    title=&quot;Ab-Initio Reconstruction&quot;)
-abinit.refresh()
-spec = abinit.model.model_dump()[&quot;spec&quot;]
-print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
-print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
-for k,v in spec[&quot;params&quot;].items():
-    if &quot;sym&quot; in k.lower() or &quot;num_classes&quot; in k.lower() or k==&quot;abinit_K&quot;:
-        print(k, v)
-</pre></details><details ><summary>run_python #24 · 479 chars</summary><pre>refine = cs.create_job(project_uid, workspace, &quot;homo_refine_new&quot;,
-    connections={&quot;particles&quot;: (abinit.uid, &quot;particles_all_classes&quot;),
-                 &quot;volume&quot;: (abinit.uid, &quot;volume_class_0&quot;)},
-    params={&quot;refine_symmetry&quot;: &quot;D7&quot;},
-    title=&quot;Homogeneous Refinement (D7)&quot;)
-refine.refresh()
-spec = refine.model.model_dump()[&quot;spec&quot;]
-print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
-print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
-print(&quot;sym:&quot;, spec[&quot;params&quot;].get(&quot;refine_symmetry&quot;))
-</pre></details><details ><summary>run_python #25 · 355 chars</summary><pre>vt_lp = cs.create_job(project_uid, workspace, &quot;volume_tools&quot;,
-    connections={&quot;volume&quot;: (refine.uid, &quot;volume&quot;)},
-    title=&quot;Volume Tools (Lowpass 10A)&quot;)
-vt_lp.refresh()
-spec = vt_lp.model.model_dump()[&quot;spec&quot;]
-print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
-print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
-for k,v in spec[&quot;params&quot;].items():
-    print(k, v)
-</pre></details><details ><summary>run_python #26 · 544 chars</summary><pre>vt_lp.set_param(&quot;vol_lpf_A&quot;, 10.0)
-# Second volume tools: mask generation
-vt_mask = cs.create_job(project_uid, workspace, &quot;volume_tools&quot;,
-    connections={&quot;volume&quot;: (vt_lp.uid, &quot;volume&quot;)},
-    params={&quot;volume_out_type&quot;: &quot;mask&quot;, &quot;threshold&quot;: 0.5, &quot;dilator&quot;: 4.0, &quot;pad&quot;: 14.0},
-    title=&quot;Volume Tools (Mask)&quot;)
-vt_mask.refresh()
-spec = vt_mask.model.model_dump()[&quot;spec&quot;][&quot;params&quot;]
-print(&quot;lp:&quot;, vt_lp.model.model_dump()[&quot;spec&quot;][&quot;params&quot;][&quot;vol_lpf_A&quot;])
-print(&quot;mask params:&quot;, spec[&quot;volume_out_type&quot;], spec[&quot;threshold&quot;], spec[&quot;dilator&quot;], spec[&quot;pad&quot;])</pre></details><details ><summary>run_python #27 · 468 chars</summary><pre>val = cs.create_job(project_uid, workspace, &quot;validation&quot;,
-    connections={&quot;volume&quot;: (refine.uid, &quot;volume&quot;),
-                 &quot;mask&quot;: (vt_mask.uid, &quot;volume&quot;)},
-    title=&quot;Validation (FSC)&quot;)
-val.refresh()
-spec = val.model.model_dump()[&quot;spec&quot;]
-print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
-print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
-for k,v in spec[&quot;params&quot;].items():
-    if &quot;facil&quot; in k.lower() or &quot;gpu&quot; in k.lower() or &quot;compute&quot; in k.lower():
-        print(k, v)
-</pre></details><details ><summary>run_python #28 · 284 chars</summary><pre>print(&quot;vt_mask uid:&quot;, vt_mask.uid)
-print(&quot;vt_mask outputs:&quot;, list(vt_mask.model.model_dump()[&quot;spec&quot;][&quot;outputs&quot;].keys()))
-# the created J92 maybe partially exists; check validation input names
-try:
-    find_job(&quot;J92&quot;)
-    print(&quot;J92 exists&quot;)
-except Exception as e:
-    print(&quot;J92:&quot;, e)</pre></details><details ><summary>run_python #29 · 477 chars</summary><pre>cs.delete_job(project_uid, &quot;J92&quot;)
-val = cs.create_job(project_uid, workspace, &quot;validation&quot;,
-    connections={&quot;volume&quot;: (refine.uid, &quot;volume&quot;),
-                 &quot;mask&quot;: (vt_mask.uid, &quot;mask&quot;)},
-    title=&quot;Validation (FSC)&quot;)
-val.refresh()
-spec = val.model.model_dump()[&quot;spec&quot;]
-print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
-print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
-for k,v in spec[&quot;params&quot;].items():
-    if &quot;facil&quot; in k.lower() or &quot;use_gpu&quot; in k.lower():
-        print(k, v)</pre></details><details ><summary>run_python #30 · 136 chars</summary><pre>print([m for m in dir(cs) if &quot;delete&quot; in m.lower() or &quot;job&quot; in m.lower()])
-print([m for m in dir(cs.api.jobs) if &quot;delete&quot; in m.lower()])</pre></details><details ><summary>run_python #31 · 482 chars</summary><pre>cs.api.jobs.delete(project_uid, &quot;J92&quot;)
-val = cs.create_job(project_uid, workspace, &quot;validation&quot;,
-    connections={&quot;volume&quot;: (refine.uid, &quot;volume&quot;),
-                 &quot;mask&quot;: (vt_mask.uid, &quot;mask&quot;)},
-    title=&quot;Validation (FSC)&quot;)
-val.refresh()
-spec = val.model.model_dump()[&quot;spec&quot;]
-print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
-print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
-for k,v in spec[&quot;params&quot;].items():
-    if &quot;facil&quot; in k.lower() or &quot;use_gpu&quot; in k.lower():
-        print(k, v)</pre></details><details ><summary>run_python #32 · 425 chars</summary><pre>sharpen = cs.create_job(project_uid, workspace, &quot;sharpen&quot;,
-    connections={&quot;volume&quot;: (refine.uid, &quot;volume&quot;)},
-    title=&quot;Sharpening Tools&quot;)
-sharpen.refresh()
-spec = sharpen.model.model_dump()[&quot;spec&quot;]
-print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
-print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
-for k,v in spec[&quot;params&quot;].items():
-    if &quot;bfactor&quot; in k.lower() or &quot;fsc&quot; in k.lower() or &quot;mask&quot; in k.lower():
-        print(k, v)</pre></details><details ><summary>run_python #33 · 271 chars</summary><pre>sharpen.set_param(&quot;sharp_generate_new_mask&quot;, True)
-# B-factor: typical T20S ~ -77; tutorial range -56.7 to -96.7. Use ~ -77.
-sharpen.set_param(&quot;sharp_bfactor&quot;, -77.0)
-p = sharpen.model.model_dump()[&quot;spec&quot;][&quot;params&quot;]
-print(p[&quot;sharp_generate_new_mask&quot;], p[&quot;sharp_bfactor&quot;])</pre></details><details ><summary>run_python #34 · 564 chars</summary><pre>jobs = [imp, motion, ctf, denoise, blob, junk, inspect1, extract1, class2d_1, select1,
-        tpick, inspect2, extract2, class2d_2, select2, abinit, refine, vt_lp, vt_mask, val, sharpen]
-for j in jobs:
-    j.refresh()
-    spec = j.model.model_dump()[&quot;spec&quot;]
-    conns = {}
-    for gname, g in spec[&quot;inputs&quot;].items():
-        srcs = []
-        for c in g.get(&quot;connections&quot;, []):
-            srcs.append(f&quot;{c.get(&#x27;source_job_uid&#x27;)}.{c.get(&#x27;source_output_name&#x27;)}&quot;)
-        if srcs:
-            conns[gname] = srcs
-    print(f&quot;{j.uid:5} {spec[&#x27;type&#x27;]:28} &lt;- {conns}&quot;)</pre></details><details ><summary>run_python #35 · 111 chars</summary><pre>g = refine.model.model_dump()[&quot;spec&quot;][&quot;inputs&quot;][&quot;particles&quot;]
-print(json.dumps(g, indent=1, default=str)[:1500])</pre></details><details ><summary>run_python #36 · 298 chars</summary><pre>for j in jobs:
-    spec = j.model.model_dump()[&quot;spec&quot;]
-    conns = {}
-    for gname, g in spec[&quot;inputs&quot;].items():
-        srcs = [f&quot;{c[&#x27;job_uid&#x27;]}.{c[&#x27;output&#x27;]}&quot; for c in g.get(&quot;connections&quot;, [])]
-        if srcs:
-            conns[gname] = srcs
-    print(f&quot;{j.uid:5} {spec[&#x27;type&#x27;]:28} &lt;- {conns}&quot;)</pre></details><details ><summary>run_python #37 · 243 chars</summary><pre>ip = imp.model.model_dump()[&quot;spec&quot;][&quot;params&quot;]
-print(&quot;Import:&quot;, ip[&quot;psize_A&quot;], ip[&quot;accel_kv&quot;], ip[&quot;cs_mm&quot;], ip[&quot;total_dose_e_per_A2&quot;])
-print(&quot;Import blob_paths:&quot;, ip[&quot;blob_paths&quot;])
-for j in jobs:
-    print(j.uid, j.model.model_dump()[&quot;status&quot;])</pre></details>
-<h3>Trajectory — every tool call + the model's reasoning</h3>
-<table><tr><th>turn</th><th>tool</th><th>code / input</th><th>result</th></tr><tr><td>1</td><td><i>reasoning</i></td><td colspan=2>I&#x27;ll start by exploring the environment and the available job types.</td></tr><tr><td>1</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>print(project_uid, workspace)
-print(DATA_DIR)
-print(LANE_CPU, LANE_GPU)
-import glob
-print(len(glob.glob(os.path.join(DATA_DIR, &quot;*.tif&quot;))))
-print(glob.glob(os.path.join(DATA_DIR, &quot;*.mrc&quot;))[:3])
-</pre></td><td style='font-size:12px'>P5 W5
+</pre></div></td><td class='result'>P5 W5
 /shared/data/empiar_10025_subset_v1/
 cpu-queue single-gpu-queue
 20
-[&#x27;/shared/data/empiar_10025_subset_v1/batch_0_restacked.mrc&#x27;, &#x27;/shared/data/empiar_10025_subset_v1/templates.mrc&#x27;, &#x27;/shared/data/empiar_10025_subset_v1/abinitio_volume.mrc&#x27;]</td></tr><tr><td>1</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>cs.print_job_types()</pre></td><td style='font-size:12px'>Category          | Job                              | Title                             | Stability
+[&#x27;/shared/data/empiar_10025_subset_v1/batch_0_restacked.mrc&#x27;, &#x27;/shared/data/empiar_10025_subset_v1/templates.mrc&#x27;, &#x27;/shared/data/empiar_10025_subset_v1/abinitio_volume.mrc&#x27;]</td></tr><tr><td>1</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>cs.print_job_types()</pre></div></td><td class='result'>Category          | Job                              | Title                             | Stability
 ====================================================================================================
 import            | import_movies                    | Import Movies                     | stable   
                   | import_micrographs               | Import Micrographs                | stable   
                   | import_particles                 | Import Particle Stack             | stable   
                   | import_volumes                   | Import 3D Volumes                 | stable   
                   | import_templates                 | Import Templates                  | stable   
-                  | import_result_group              | Import Result Groups              | st</td></tr><tr><td>2</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>cs.print_job_types(&quot;postprocessing&quot;)
+                  | import_result_group              | Import Result Groups              | stable   
+                  | import_beam_shift                | Import Beam Shift                 | stable   
+motion_correction | patch_motion_correction_multi    | Patch Motion Correction           | stable   
+                  | rigid_motion_correction_multi    | Full-frame Motion Correction      | stable   
+                  | rigid_motion_correction          | Full-frame Motion Correction      | develop  
+                  | local_motion_correction          | Local Motion Correction           | stable   
+                  | local_motion_correction_multi    | Local Motion Correction           | stable   
+                  | motion_correction_motioncor2     | MotionCor2                        | stable   
+                  | reference_motion_correction      | Reference Based Motion Correction | stable   
+                  | local_applytraj                  | Apply Trajectories                | stable   
+                  | patch_to_local                   | Patch Motion to Local Motion      | develop  
+                  | recenter_trajectories            | Recenter Trajectories             | develop  
+ctf_estimation    | patch_ctf_estimation_multi       | Patch CTF Estimation      <span class="trunc">…(truncated, 7,039 chars)</span></td></tr><tr><td>2</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>cs.print_job_types(&quot;postprocessing&quot;)
 print(&quot;====UTILITIES====&quot;)
-cs.print_job_types(&quot;utilities&quot;)</pre></td><td style='font-size:12px'>Category       | Job                     | Title                       | Stability
+cs.print_job_types(&quot;utilities&quot;)</pre></div></td><td class='result'>Category       | Job                     | Title                       | Stability
 ==================================================================================
 postprocessing | sharpen                 | Sharpening Tools            | stable   
                | deepemhancer            | DeepEMhancer                | stable   
@@ -972,7 +1223,21 @@ postprocessing | sharpen                 | Sharpening Tools            | stable
                | local_filter            | Local Filtering             | stable   
                | reslog                  | ResLog Analysis             | stable   
 ====UTILITIES====
-Category  | Job                    </td></tr><tr><td>3</td><td><i>reasoning</i></td><td colspan=2>I have all the job types. Now let me build the pipeline in dependency order. Let me start with import movies and introspect its inputs/outputs as I go.</td></tr><tr><td>3</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>imp = cs.create_job(project_uid, workspace, &quot;import_movies&quot;,
+Category  | Job                        | Title                             | Stability
+======================================================================================
+utilities | exposure_sets              | Exposure Sets Tool                | stable   
+          | exposure_tools             | Exposure Tools                    | stable   
+          | generate_thumbs            | Generate Micrograph Thumbnails    | stable   
+          | cache_particles            | Cache Particles on SSD            | stable   
+          | check_corrupt_particles    | Check For Corrupt Particles       | stable   
+          | check_corrupt_micrographs  | Check For Corrupt Micrographs     | stable   
+          | particle_sets              | Particle Sets Tool                | stable   
+          | reassign_particles_mics    | Reassign Particles to Micrographs | stable   
+          | remove_duplicate_particles | Remove Duplicate Particles        | stable   
+          | select_volume              | Select Volume                     | stable   
+          | sym_expand                 | Symmetry Expansion                | stable   
+          | volume_tools               | Volume Tools                      | stable   
+          | volum<span class="trunc">…(truncated, 2,240 chars)</span></td></tr><tr><td>3</td><td><i>reasoning</i></td><td colspan=2>I have all the job types. Now let me build the pipeline in dependency order. Let me start with import movies and introspect its inputs/outputs as I go.</td></tr><tr><td>3</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>imp = cs.create_job(project_uid, workspace, &quot;import_movies&quot;,
     params={
         &quot;blob_paths&quot;: os.path.join(DATA_DIR, &quot;*.frames.tif&quot;),
         &quot;gainref_path&quot;: os.path.join(DATA_DIR, &quot;norm-amibox05-0.mrc&quot;),
@@ -986,24 +1251,24 @@ imp.refresh()
 spec = imp.model.model_dump()[&quot;spec&quot;]
 print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
 print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
-</pre></td><td style='font-size:12px'>inputs: []
-outputs: [&#x27;imported_movies&#x27;, &#x27;failed_movies&#x27;]</td></tr><tr><td>4</td><td><i>reasoning</i></td><td colspan=2>The import movies job is set up. Now Patch Motion Correction.</td></tr><tr><td>4</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>motion = cs.create_job(project_uid, workspace, &quot;patch_motion_correction_multi&quot;,
+</pre></div></td><td class='result'>inputs: []
+outputs: [&#x27;imported_movies&#x27;, &#x27;failed_movies&#x27;]</td></tr><tr><td>4</td><td><i>reasoning</i></td><td colspan=2>The import movies job is set up. Now Patch Motion Correction.</td></tr><tr><td>4</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>motion = cs.create_job(project_uid, workspace, &quot;patch_motion_correction_multi&quot;,
     connections={&quot;movies&quot;: (imp.uid, &quot;imported_movies&quot;)},
     title=&quot;Patch Motion Correction&quot;)
 motion.refresh()
 spec = motion.model.model_dump()[&quot;spec&quot;]
 print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
 print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
-</pre></td><td style='font-size:12px'>inputs: [&#x27;movies&#x27;, &#x27;doseweights&#x27;]
-outputs: [&#x27;micrographs&#x27;, &#x27;micrographs_incomplete&#x27;]</td></tr><tr><td>5</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>ctf = cs.create_job(project_uid, workspace, &quot;patch_ctf_estimation_multi&quot;,
+</pre></div></td><td class='result'>inputs: [&#x27;movies&#x27;, &#x27;doseweights&#x27;]
+outputs: [&#x27;micrographs&#x27;, &#x27;micrographs_incomplete&#x27;]</td></tr><tr><td>5</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>ctf = cs.create_job(project_uid, workspace, &quot;patch_ctf_estimation_multi&quot;,
     connections={&quot;exposures&quot;: (motion.uid, &quot;micrographs&quot;)},
     title=&quot;Patch CTF Estimation&quot;)
 ctf.refresh()
 spec = ctf.model.model_dump()[&quot;spec&quot;]
 print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
 print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
-</pre></td><td style='font-size:12px'>inputs: [&#x27;exposures&#x27;]
-outputs: [&#x27;exposures&#x27;, &#x27;exposures_incomplete&#x27;]</td></tr><tr><td>6</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>denoise = cs.create_job(project_uid, workspace, &quot;denoise_train&quot;,
+</pre></div></td><td class='result'>inputs: [&#x27;exposures&#x27;]
+outputs: [&#x27;exposures&#x27;, &#x27;exposures_incomplete&#x27;]</td></tr><tr><td>6</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>denoise = cs.create_job(project_uid, workspace, &quot;denoise_train&quot;,
     connections={&quot;exposures&quot;: (ctf.uid, &quot;exposures&quot;)},
     title=&quot;Micrograph Denoiser&quot;)
 denoise.refresh()
@@ -1014,7 +1279,7 @@ print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
 for k,v in spec[&quot;params&quot;].items():
     if &quot;train&quot; in k.lower() or &quot;num&quot; in k.lower() or &quot;mic&quot; in k.lower():
         print(k, v)
-</pre></td><td style='font-size:12px'>inputs: [&#x27;exposures&#x27;, &#x27;denoise_model&#x27;]
+</pre></div></td><td class='result'>inputs: [&#x27;exposures&#x27;, &#x27;denoise_model&#x27;]
 outputs: [&#x27;exposures&#x27;, &#x27;denoise_model&#x27;]
 use_pretrained False
 num_train_mics 100
@@ -1026,8 +1291,8 @@ train_do_rand_rotflip True
 net_num_chan 32
 train_batch_size 1
 mic_norm None
-compute_num_cpus 8</td></tr><tr><td>7</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>denoise.set_param(&quot;num_train_mics&quot;, 20)
-print(denoise.model.model_dump()[&quot;spec&quot;][&quot;params&quot;][&quot;num_train_mics&quot;])</pre></td><td style='font-size:12px'>20</td></tr><tr><td>8</td><td><i>reasoning</i></td><td colspan=2>Now the Blob Picker on denoised micrographs.</td></tr><tr><td>8</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>blob = cs.create_job(project_uid, workspace, &quot;blob_picker_gpu&quot;,
+compute_num_cpus 8</td></tr><tr><td>7</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>denoise.set_param(&quot;num_train_mics&quot;, 20)
+print(denoise.model.model_dump()[&quot;spec&quot;][&quot;params&quot;][&quot;num_train_mics&quot;])</pre></div></td><td class='result'>20</td></tr><tr><td>8</td><td><i>reasoning</i></td><td colspan=2>Now the Blob Picker on denoised micrographs.</td></tr><tr><td>8</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>blob = cs.create_job(project_uid, workspace, &quot;blob_picker_gpu&quot;,
     connections={&quot;micrographs&quot;: (denoise.uid, &quot;exposures&quot;)},
     title=&quot;Blob Picker&quot;)
 blob.refresh()
@@ -1037,15 +1302,15 @@ print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
 for k,v in spec[&quot;params&quot;].items():
     if &quot;diameter&quot; in k.lower() or &quot;denois&quot; in k.lower():
         print(k, v)
-</pre></td><td style='font-size:12px'>inputs: [&#x27;micrographs&#x27;]
+</pre></div></td><td class='result'>inputs: [&#x27;micrographs&#x27;]
 outputs: [&#x27;particles&#x27;, &#x27;micrographs&#x27;, &#x27;templates&#x27;]
 diameter None
 diameter_max None
-use_denoised False</td></tr><tr><td>9</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>blob.set_param(&quot;diameter&quot;, 100)
+use_denoised False</td></tr><tr><td>9</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>blob.set_param(&quot;diameter&quot;, 100)
 blob.set_param(&quot;diameter_max&quot;, 200)
 blob.set_param(&quot;use_denoised&quot;, True)
 p = blob.model.model_dump()[&quot;spec&quot;][&quot;params&quot;]
-print(p[&quot;diameter&quot;], p[&quot;diameter_max&quot;], p[&quot;use_denoised&quot;])</pre></td><td style='font-size:12px'>100.0 200.0 True</td></tr><tr><td>10</td><td><i>reasoning</i></td><td colspan=2>Now the Micrograph Junk Detector.</td></tr><tr><td>10</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>junk = cs.create_job(project_uid, workspace, &quot;junk_detector_v1&quot;,
+print(p[&quot;diameter&quot;], p[&quot;diameter_max&quot;], p[&quot;use_denoised&quot;])</pre></div></td><td class='result'>100.0 200.0 True</td></tr><tr><td>10</td><td><i>reasoning</i></td><td colspan=2>Now the Micrograph Junk Detector.</td></tr><tr><td>10</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>junk = cs.create_job(project_uid, workspace, &quot;junk_detector_v1&quot;,
     connections={&quot;exposures&quot;: (blob.uid, &quot;micrographs&quot;),
                  &quot;particles&quot;: (blob.uid, &quot;particles&quot;)},
     title=&quot;Micrograph Junk Detector&quot;)
@@ -1053,8 +1318,8 @@ junk.refresh()
 spec = junk.model.model_dump()[&quot;spec&quot;]
 print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
 print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
-</pre></td><td style='font-size:12px'>inputs: [&#x27;exposures&#x27;, &#x27;particles&#x27;]
-outputs: [&#x27;exposures&#x27;, &#x27;particles_accepted&#x27;, &#x27;particles_rejected&#x27;]</td></tr><tr><td>11</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>inspect1 = cs.create_job(project_uid, workspace, &quot;inspect_picks_v2&quot;,
+</pre></div></td><td class='result'>inputs: [&#x27;exposures&#x27;, &#x27;particles&#x27;]
+outputs: [&#x27;exposures&#x27;, &#x27;particles_accepted&#x27;, &#x27;particles_rejected&#x27;]</td></tr><tr><td>11</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>inspect1 = cs.create_job(project_uid, workspace, &quot;inspect_picks_v2&quot;,
     connections={&quot;particles&quot;: (junk.uid, &quot;particles_accepted&quot;),
                  &quot;micrographs&quot;: (junk.uid, &quot;exposures&quot;)},
     title=&quot;Inspect Picks (Blob)&quot;)
@@ -1062,8 +1327,8 @@ inspect1.refresh()
 spec = inspect1.model.model_dump()[&quot;spec&quot;]
 print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
 print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
-</pre></td><td style='font-size:12px'>inputs: [&#x27;particles&#x27;, &#x27;micrographs&#x27;]
-outputs: [&#x27;micrographs&#x27;, &#x27;particles&#x27;]</td></tr><tr><td>12</td><td><i>reasoning</i></td><td colspan=2>Now Extract from Micrographs (blob picks), box size 440.</td></tr><tr><td>12</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>extract1 = cs.create_job(project_uid, workspace, &quot;extract_micrographs_multi&quot;,
+</pre></div></td><td class='result'>inputs: [&#x27;particles&#x27;, &#x27;micrographs&#x27;]
+outputs: [&#x27;micrographs&#x27;, &#x27;particles&#x27;]</td></tr><tr><td>12</td><td><i>reasoning</i></td><td colspan=2>Now Extract from Micrographs (blob picks), box size 440.</td></tr><tr><td>12</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>extract1 = cs.create_job(project_uid, workspace, &quot;extract_micrographs_multi&quot;,
     connections={&quot;micrographs&quot;: (inspect1.uid, &quot;micrographs&quot;),
                  &quot;particles&quot;: (inspect1.uid, &quot;particles&quot;)},
     title=&quot;Extract From Micrographs (Blob)&quot;)
@@ -1074,10 +1339,10 @@ print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
 for k,v in spec[&quot;params&quot;].items():
     if &quot;box&quot; in k.lower():
         print(k, v)
-</pre></td><td style='font-size:12px'>inputs: [&#x27;micrographs&#x27;, &#x27;particles&#x27;]
+</pre></div></td><td class='result'>inputs: [&#x27;micrographs&#x27;, &#x27;particles&#x27;]
 outputs: [&#x27;micrographs&#x27;, &#x27;micrographs_incomplete&#x27;, &#x27;particles&#x27;]
-box_size_pix 256</td></tr><tr><td>13</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>extract1.set_param(&quot;box_size_pix&quot;, 440)
-print(extract1.model.model_dump()[&quot;spec&quot;][&quot;params&quot;][&quot;box_size_pix&quot;])</pre></td><td style='font-size:12px'>440</td></tr><tr><td>14</td><td><i>reasoning</i></td><td colspan=2>Now 2D Classification on blob picks.</td></tr><tr><td>14</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>class2d_1 = cs.create_job(project_uid, workspace, &quot;class_2D_new&quot;,
+box_size_pix 256</td></tr><tr><td>13</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>extract1.set_param(&quot;box_size_pix&quot;, 440)
+print(extract1.model.model_dump()[&quot;spec&quot;][&quot;params&quot;][&quot;box_size_pix&quot;])</pre></div></td><td class='result'>440</td></tr><tr><td>14</td><td><i>reasoning</i></td><td colspan=2>Now 2D Classification on blob picks.</td></tr><tr><td>14</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>class2d_1 = cs.create_job(project_uid, workspace, &quot;class_2D_new&quot;,
     connections={&quot;particles&quot;: (extract1.uid, &quot;particles&quot;)},
     title=&quot;2D Classification (Blob)&quot;)
 class2d_1.refresh()
@@ -1087,15 +1352,15 @@ print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
 for k,v in spec[&quot;params&quot;].items():
     if &quot;class&quot; in k.lower() and &quot;num&quot; in k.lower():
         print(k, v)
-</pre></td><td style='font-size:12px'>inputs: [&#x27;particles&#x27;]
+</pre></div></td><td class='result'>inputs: [&#x27;particles&#x27;]
 outputs: [&#x27;particles&#x27;, &#x27;particles_rejected&#x27;, &#x27;class_averages&#x27;]
 class2D_num_full_iter 1
 class2D_num_full_iter_batch 20
 class2D_num_full_iter_batchsize_per_class 100
-class2D_sigma_num_anneal_iters 15</td></tr><tr><td>15</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>for k,v in class2d_1.model.model_dump()[&quot;spec&quot;][&quot;params&quot;].items():
+class2D_sigma_num_anneal_iters 15</td></tr><tr><td>15</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>for k,v in class2d_1.model.model_dump()[&quot;spec&quot;][&quot;params&quot;].items():
     if &quot;K&quot; == k or &quot;num_K&quot; in k or &quot;classes&quot; in k.lower():
-        print(k, v)</pre></td><td style='font-size:12px'>class2D_sort_classes_by_size True</td></tr><tr><td>16</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>for k,v in class2d_1.model.model_dump()[&quot;spec&quot;][&quot;params&quot;].items():
-    print(k, v)</pre></td><td style='font-size:12px'>prepare_window_dataset True
+        print(k, v)</pre></div></td><td class='result'>class2D_sort_classes_by_size True</td></tr><tr><td>16</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>for k,v in class2d_1.model.model_dump()[&quot;spec&quot;][&quot;params&quot;].items():
+    print(k, v)</pre></div></td><td class='result'>prepare_window_dataset True
 prepare_window_inner_radius 0.85
 prepare_window_outer_radius 0.99
 class2D_K 50
@@ -1123,7 +1388,27 @@ class2D_hard_class_last_iter False
 class2D_do_alignment True
 class2D_force_max True
 class2D_ctf_phase_flip_only False
-class2D_random_p</td></tr><tr><td>17</td><td><i>reasoning</i></td><td colspan=2>50 classes default is fine. Now Select 2D Classes (for templates).</td></tr><tr><td>17</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>select1 = cs.create_job(project_uid, workspace, &quot;select_2D&quot;,
+class2D_random_perturb_rs None
+class2D_num_full_iter 1
+class2D_num_full_iter_batch 20
+class2D_num_full_iter_batchsize_per_class 100
+class2D_init_scale 1.0
+class2D_zp_factor 2.0
+class2D_ignore_dc True
+class2D_min_over_scale False
+class2D_nonneg False
+class2D_use_frc_reg True
+class2D_use_frc_reg_full True
+class2D_sigma_init_iter 2
+class2D_sigma_num_anneal_iters 15
+class2D_sigma_use_white False
+intermediate_plots True
+class2D_scale_bars True
+random_seed 311538945
+random_seed_default 311538945
+compute_use_ssd True
+compute_num_gpus 1
+generate_intermediate_results False</td></tr><tr><td>17</td><td><i>reasoning</i></td><td colspan=2>50 classes default is fine. Now Select 2D Classes (for templates).</td></tr><tr><td>17</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>select1 = cs.create_job(project_uid, workspace, &quot;select_2D&quot;,
     connections={&quot;particles&quot;: (class2d_1.uid, &quot;particles&quot;),
                  &quot;templates&quot;: (class2d_1.uid, &quot;class_averages&quot;)},
     title=&quot;Select 2D Classes (Templates)&quot;)
@@ -1131,8 +1416,8 @@ select1.refresh()
 spec = select1.model.model_dump()[&quot;spec&quot;]
 print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
 print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
-</pre></td><td style='font-size:12px'>inputs: [&#x27;particles&#x27;, &#x27;templates&#x27;]
-outputs: [&#x27;templates_selected&#x27;, &#x27;templates_excluded&#x27;, &#x27;particles_excluded&#x27;, &#x27;particles_selected&#x27;]</td></tr><tr><td>18</td><td><i>reasoning</i></td><td colspan=2>Now Template Picker — templates from select1, micrographs from CTF (denoised recommended, but tutorial wires from Patch CTF; I&#x27;ll use denoised mics with use_denoised on). Let me check params.</td></tr><tr><td>18</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>tpick = cs.create_job(project_uid, workspace, &quot;template_picker_gpu&quot;,
+</pre></div></td><td class='result'>inputs: [&#x27;particles&#x27;, &#x27;templates&#x27;]
+outputs: [&#x27;templates_selected&#x27;, &#x27;templates_excluded&#x27;, &#x27;particles_excluded&#x27;, &#x27;particles_selected&#x27;]</td></tr><tr><td>18</td><td><i>reasoning</i></td><td colspan=2>Now Template Picker — templates from select1, micrographs from CTF (denoised recommended, but tutorial wires from Patch CTF; I&#x27;ll use denoised mics with use_denoised on). Let me check params.</td></tr><tr><td>18</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>tpick = cs.create_job(project_uid, workspace, &quot;template_picker_gpu&quot;,
     connections={&quot;templates&quot;: (select1.uid, &quot;templates_selected&quot;),
                  &quot;micrographs&quot;: (denoise.uid, &quot;exposures&quot;)},
     title=&quot;Template Picker&quot;)
@@ -1143,13 +1428,13 @@ print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
 for k,v in spec[&quot;params&quot;].items():
     if &quot;diameter&quot; in k.lower() or &quot;denois&quot; in k.lower():
         print(k, v)
-</pre></td><td style='font-size:12px'>inputs: [&#x27;templates&#x27;, &#x27;micrographs&#x27;]
+</pre></div></td><td class='result'>inputs: [&#x27;templates&#x27;, &#x27;micrographs&#x27;]
 outputs: [&#x27;particles&#x27;, &#x27;micrographs&#x27;]
 diameter None
-use_denoised False</td></tr><tr><td>19</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>tpick.set_param(&quot;diameter&quot;, 190)
+use_denoised False</td></tr><tr><td>19</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>tpick.set_param(&quot;diameter&quot;, 190)
 tpick.set_param(&quot;use_denoised&quot;, True)
 p = tpick.model.model_dump()[&quot;spec&quot;][&quot;params&quot;]
-print(p[&quot;diameter&quot;], p[&quot;use_denoised&quot;])</pre></td><td style='font-size:12px'>190.0 True</td></tr><tr><td>20</td><td><i>reasoning</i></td><td colspan=2>Now Inspect Picks (template picks).</td></tr><tr><td>20</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>inspect2 = cs.create_job(project_uid, workspace, &quot;inspect_picks_v2&quot;,
+print(p[&quot;diameter&quot;], p[&quot;use_denoised&quot;])</pre></div></td><td class='result'>190.0 True</td></tr><tr><td>20</td><td><i>reasoning</i></td><td colspan=2>Now Inspect Picks (template picks).</td></tr><tr><td>20</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>inspect2 = cs.create_job(project_uid, workspace, &quot;inspect_picks_v2&quot;,
     connections={&quot;particles&quot;: (tpick.uid, &quot;particles&quot;),
                  &quot;micrographs&quot;: (tpick.uid, &quot;micrographs&quot;)},
     title=&quot;Inspect Picks (Template)&quot;)
@@ -1157,8 +1442,8 @@ inspect2.refresh()
 spec = inspect2.model.model_dump()[&quot;spec&quot;]
 print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
 print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
-</pre></td><td style='font-size:12px'>inputs: [&#x27;particles&#x27;, &#x27;micrographs&#x27;]
-outputs: [&#x27;micrographs&#x27;, &#x27;particles&#x27;]</td></tr><tr><td>21</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>extract2 = cs.create_job(project_uid, workspace, &quot;extract_micrographs_multi&quot;,
+</pre></div></td><td class='result'>inputs: [&#x27;particles&#x27;, &#x27;micrographs&#x27;]
+outputs: [&#x27;micrographs&#x27;, &#x27;particles&#x27;]</td></tr><tr><td>21</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>extract2 = cs.create_job(project_uid, workspace, &quot;extract_micrographs_multi&quot;,
     connections={&quot;micrographs&quot;: (inspect2.uid, &quot;micrographs&quot;),
                  &quot;particles&quot;: (inspect2.uid, &quot;particles&quot;)},
     params={&quot;box_size_pix&quot;: 440},
@@ -1174,8 +1459,8 @@ select2 = cs.create_job(project_uid, workspace, &quot;select_2D&quot;,
     title=&quot;Select 2D Classes (Final)&quot;)
 select2.refresh()
 print(&quot;extract2 box:&quot;, extract2.model.model_dump()[&quot;spec&quot;][&quot;params&quot;][&quot;box_size_pix&quot;])
-print(extract2.uid, class2d_2.uid, select2.uid)</pre></td><td style='font-size:12px'>extract2 box: 440
-J85 J86 J87</td></tr><tr><td>22</td><td><i>reasoning</i></td><td colspan=2>Now Ab-initio Reconstruction (no symmetry).</td></tr><tr><td>22</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>abinit = cs.create_job(project_uid, workspace, &quot;homo_abinit&quot;,
+print(extract2.uid, class2d_2.uid, select2.uid)</pre></div></td><td class='result'>extract2 box: 440
+J85 J86 J87</td></tr><tr><td>22</td><td><i>reasoning</i></td><td colspan=2>Now Ab-initio Reconstruction (no symmetry).</td></tr><tr><td>22</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>abinit = cs.create_job(project_uid, workspace, &quot;homo_abinit&quot;,
     connections={&quot;particles&quot;: (select2.uid, &quot;particles_selected&quot;)},
     title=&quot;Ab-Initio Reconstruction&quot;)
 abinit.refresh()
@@ -1185,10 +1470,10 @@ print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
 for k,v in spec[&quot;params&quot;].items():
     if &quot;sym&quot; in k.lower() or &quot;num_classes&quot; in k.lower() or k==&quot;abinit_K&quot;:
         print(k, v)
-</pre></td><td style='font-size:12px'>inputs: [&#x27;particles&#x27;]
+</pre></div></td><td class='result'>inputs: [&#x27;particles&#x27;]
 outputs: [&#x27;particles_all_classes&#x27;, &#x27;volumes_all_classes&#x27;, &#x27;particles_class_0&#x27;, &#x27;volume_class_0&#x27;, &#x27;particles_unused&#x27;]
 abinit_K 1
-abinit_symmetry C1</td></tr><tr><td>23</td><td><i>reasoning</i></td><td colspan=2>Ab-initio uses C1, K=1 by default — correct. Now Homogeneous Refinement with D7.</td></tr><tr><td>23</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>refine = cs.create_job(project_uid, workspace, &quot;homo_refine_new&quot;,
+abinit_symmetry C1</td></tr><tr><td>23</td><td><i>reasoning</i></td><td colspan=2>Ab-initio uses C1, K=1 by default — correct. Now Homogeneous Refinement with D7.</td></tr><tr><td>23</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>refine = cs.create_job(project_uid, workspace, &quot;homo_refine_new&quot;,
     connections={&quot;particles&quot;: (abinit.uid, &quot;particles_all_classes&quot;),
                  &quot;volume&quot;: (abinit.uid, &quot;volume_class_0&quot;)},
     params={&quot;refine_symmetry&quot;: &quot;D7&quot;},
@@ -1198,9 +1483,9 @@ spec = refine.model.model_dump()[&quot;spec&quot;]
 print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
 print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
 print(&quot;sym:&quot;, spec[&quot;params&quot;].get(&quot;refine_symmetry&quot;))
-</pre></td><td style='font-size:12px'>inputs: [&#x27;particles&#x27;, &#x27;volume&#x27;, &#x27;mask&#x27;]
+</pre></div></td><td class='result'>inputs: [&#x27;particles&#x27;, &#x27;volume&#x27;, &#x27;mask&#x27;]
 outputs: [&#x27;particles&#x27;, &#x27;particles_rejected&#x27;, &#x27;volume&#x27;, &#x27;mask&#x27;, &#x27;mask_fsc&#x27;, &#x27;mask_fsc_auto&#x27;]
-sym: D7</td></tr><tr><td>24</td><td><i>reasoning</i></td><td colspan=2>Refinement wired with D7. Now the mask generation chain: Volume Tools lowpass.</td></tr><tr><td>24</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>vt_lp = cs.create_job(project_uid, workspace, &quot;volume_tools&quot;,
+sym: D7</td></tr><tr><td>24</td><td><i>reasoning</i></td><td colspan=2>Refinement wired with D7. Now the mask generation chain: Volume Tools lowpass.</td></tr><tr><td>24</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>vt_lp = cs.create_job(project_uid, workspace, &quot;volume_tools&quot;,
     connections={&quot;volume&quot;: (refine.uid, &quot;volume&quot;)},
     title=&quot;Volume Tools (Lowpass 10A)&quot;)
 vt_lp.refresh()
@@ -1209,7 +1494,7 @@ print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
 print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
 for k,v in spec[&quot;params&quot;].items():
     print(k, v)
-</pre></td><td style='font-size:12px'>inputs: [&#x27;volume&#x27;, &#x27;mask&#x27;]
+</pre></div></td><td class='result'>inputs: [&#x27;volume&#x27;, &#x27;mask&#x27;]
 outputs: [&#x27;volume&#x27;]
 vol_resample_N None
 vol_crop_N None
@@ -1225,7 +1510,7 @@ fill_holes True
 dilator 0.0
 pad 12.0
 z_clip_frac 1.0
-output_fname None</td></tr><tr><td>25</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>vt_lp.set_param(&quot;vol_lpf_A&quot;, 10.0)
+output_fname None</td></tr><tr><td>25</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>vt_lp.set_param(&quot;vol_lpf_A&quot;, 10.0)
 # Second volume tools: mask generation
 vt_mask = cs.create_job(project_uid, workspace, &quot;volume_tools&quot;,
     connections={&quot;volume&quot;: (vt_lp.uid, &quot;volume&quot;)},
@@ -1234,8 +1519,8 @@ vt_mask = cs.create_job(project_uid, workspace, &quot;volume_tools&quot;,
 vt_mask.refresh()
 spec = vt_mask.model.model_dump()[&quot;spec&quot;][&quot;params&quot;]
 print(&quot;lp:&quot;, vt_lp.model.model_dump()[&quot;spec&quot;][&quot;params&quot;][&quot;vol_lpf_A&quot;])
-print(&quot;mask params:&quot;, spec[&quot;volume_out_type&quot;], spec[&quot;threshold&quot;], spec[&quot;dilator&quot;], spec[&quot;pad&quot;])</pre></td><td style='font-size:12px'>lp: 10.0
-mask params: mask 0.5 4.0 14.0</td></tr><tr><td>26</td><td><i>reasoning</i></td><td colspan=2>Now Validation (FSC).</td></tr><tr class='errrow'><td>26</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>val = cs.create_job(project_uid, workspace, &quot;validation&quot;,
+print(&quot;mask params:&quot;, spec[&quot;volume_out_type&quot;], spec[&quot;threshold&quot;], spec[&quot;dilator&quot;], spec[&quot;pad&quot;])</pre></div></td><td class='result'>lp: 10.0
+mask params: mask 0.5 4.0 14.0</td></tr><tr><td>26</td><td><i>reasoning</i></td><td colspan=2>Now Validation (FSC).</td></tr><tr class='errrow'><td>26</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>val = cs.create_job(project_uid, workspace, &quot;validation&quot;,
     connections={&quot;volume&quot;: (refine.uid, &quot;volume&quot;),
                  &quot;mask&quot;: (vt_mask.uid, &quot;volume&quot;)},
     title=&quot;Validation (FSC)&quot;)
@@ -1246,7 +1531,7 @@ print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
 for k,v in spec[&quot;params&quot;].items():
     if &quot;facil&quot; in k.lower() or &quot;gpu&quot; in k.lower() or &quot;compute&quot; in k.lower():
         print(k, v)
-</pre></td><td style='font-size:12px'>Traceback (your code raised):
+</pre></div></td><td class='result'>Traceback (your code raised):
 Traceback (most recent call last):
   File &quot;/home/ec2-user/recon-venv/lib64/python3.9/site-packages/cryosparc/api.py&quot;, line 230, in _call
     return self._handle_response(_schema, res)
@@ -1255,16 +1540,33 @@ Traceback (most recent call last):
   File &quot;/home/ec2-user/recon-venv/lib64/python3.9/site-packages/httpx/_models.py&quot;, line 829, in raise_for_status
     raise HTTPStatusError(message, request=request, response=self)
 httpx.HTTPStatusError: Client error &#x27;404 Not Found&#x27; for url &#x27;http://localhost:45000/api/cmd/projects/P5/jobs/J92/inputs/mask?source_output_name=volume&amp;source_job_uid=J91&#x27;
-For more information check: https://devel</td></tr><tr><td>27</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>print(&quot;vt_mask uid:&quot;, vt_mask.uid)
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File &quot;&lt;agent_code&gt;&quot;, line 1, in &lt;module&gt;
+  File &quot;/home/ec2-user/recon-venv/lib64/python3.9/site-packages/cryosparc/tools.py&quot;, line 575, in create_job
+    job = self.api.jobs.connect(
+  File &quot;/home/ec2-user/recon-venv/lib64/python3.9/site-packages/cryosparc/api.py&quot;, line 316, in endpoint
+    return namespace._call(method, path, schema, *args, **kwargs)
+  File &quot;/home/ec2-user/recon-venv/lib64/python3.9/site-packages/cryosparc/api.py&quot;, line 232, in _call
+    raise APIError(&quot;received error response&quot;, res=err.response) from err
+cryosparc.errors.APIError: *** [API] (POST http://localhost:45000/api/cmd/projects/P5/jobs/J92/inputs/mask?source_output_name=volume&amp;source_job_uid=J91, code 404) received error response
+Response data:
+{
+    &quot;detail&quot;: &quot;Unknown Job P5-J91 (Volume Tools) output \&quot;volume\&quot;&quot;
+}
+</td></tr><tr><td>27</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>print(&quot;vt_mask uid:&quot;, vt_mask.uid)
 print(&quot;vt_mask outputs:&quot;, list(vt_mask.model.model_dump()[&quot;spec&quot;][&quot;outputs&quot;].keys()))
 # the created J92 maybe partially exists; check validation input names
 try:
     find_job(&quot;J92&quot;)
     print(&quot;J92 exists&quot;)
 except Exception as e:
-    print(&quot;J92:&quot;, e)</pre></td><td style='font-size:12px'>vt_mask uid: J91
+    print(&quot;J92:&quot;, e)</pre></div></td><td class='result'>vt_mask uid: J91
 vt_mask outputs: [&#x27;mask&#x27;]
-J92 exists</td></tr><tr class='errrow'><td>28</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>cs.delete_job(project_uid, &quot;J92&quot;)
+J92 exists</td></tr><tr class='errrow'><td>28</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>cs.delete_job(project_uid, &quot;J92&quot;)
 val = cs.create_job(project_uid, workspace, &quot;validation&quot;,
     connections={&quot;volume&quot;: (refine.uid, &quot;volume&quot;),
                  &quot;mask&quot;: (vt_mask.uid, &quot;mask&quot;)},
@@ -1275,13 +1577,13 @@ print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
 print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
 for k,v in spec[&quot;params&quot;].items():
     if &quot;facil&quot; in k.lower() or &quot;use_gpu&quot; in k.lower():
-        print(k, v)</pre></td><td style='font-size:12px'>Traceback (your code raised):
+        print(k, v)</pre></div></td><td class='result'>Traceback (your code raised):
 Traceback (most recent call last):
   File &quot;&lt;agent_code&gt;&quot;, line 1, in &lt;module&gt;
 AttributeError: &#x27;CryoSPARC&#x27; object has no attribute &#x27;delete_job&#x27;
-</td></tr><tr><td>29</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>print([m for m in dir(cs) if &quot;delete&quot; in m.lower() or &quot;job&quot; in m.lower()])
-print([m for m in dir(cs.api.jobs) if &quot;delete&quot; in m.lower()])</pre></td><td style='font-size:12px'>[&#x27;create_external_job&#x27;, &#x27;create_job&#x27;, &#x27;find_external_job&#x27;, &#x27;find_job&#x27;, &#x27;find_jobs&#x27;, &#x27;get_job_sections&#x27;, &#x27;job_register&#x27;, &#x27;print_job_types&#x27;]
-[&#x27;delete&#x27;, &#x27;delete_many&#x27;, &#x27;delete_output_result_files&#x27;]</td></tr><tr><td>30</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>cs.api.jobs.delete(project_uid, &quot;J92&quot;)
+</td></tr><tr><td>29</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>print([m for m in dir(cs) if &quot;delete&quot; in m.lower() or &quot;job&quot; in m.lower()])
+print([m for m in dir(cs.api.jobs) if &quot;delete&quot; in m.lower()])</pre></div></td><td class='result'>[&#x27;create_external_job&#x27;, &#x27;create_job&#x27;, &#x27;find_external_job&#x27;, &#x27;find_job&#x27;, &#x27;find_jobs&#x27;, &#x27;get_job_sections&#x27;, &#x27;job_register&#x27;, &#x27;print_job_types&#x27;]
+[&#x27;delete&#x27;, &#x27;delete_many&#x27;, &#x27;delete_output_result_files&#x27;]</td></tr><tr><td>30</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>cs.api.jobs.delete(project_uid, &quot;J92&quot;)
 val = cs.create_job(project_uid, workspace, &quot;validation&quot;,
     connections={&quot;volume&quot;: (refine.uid, &quot;volume&quot;),
                  &quot;mask&quot;: (vt_mask.uid, &quot;mask&quot;)},
@@ -1292,9 +1594,9 @@ print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
 print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
 for k,v in spec[&quot;params&quot;].items():
     if &quot;facil&quot; in k.lower() or &quot;use_gpu&quot; in k.lower():
-        print(k, v)</pre></td><td style='font-size:12px'>inputs: [&#x27;volume&#x27;, &#x27;mask&#x27;]
+        print(k, v)</pre></div></td><td class='result'>inputs: [&#x27;volume&#x27;, &#x27;mask&#x27;]
 outputs: [&#x27;volume&#x27;, &#x27;mask&#x27;]
-validate_compute_facility GPU</td></tr><tr><td>31</td><td><i>reasoning</i></td><td colspan=2>Validation set to GPU by default. Now the final Sharpening Tools job.</td></tr><tr><td>31</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>sharpen = cs.create_job(project_uid, workspace, &quot;sharpen&quot;,
+validate_compute_facility GPU</td></tr><tr><td>31</td><td><i>reasoning</i></td><td colspan=2>Validation set to GPU by default. Now the final Sharpening Tools job.</td></tr><tr><td>31</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>sharpen = cs.create_job(project_uid, workspace, &quot;sharpen&quot;,
     connections={&quot;volume&quot;: (refine.uid, &quot;volume&quot;)},
     title=&quot;Sharpening Tools&quot;)
 sharpen.refresh()
@@ -1303,7 +1605,7 @@ print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
 print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
 for k,v in spec[&quot;params&quot;].items():
     if &quot;bfactor&quot; in k.lower() or &quot;fsc&quot; in k.lower() or &quot;mask&quot; in k.lower():
-        print(k, v)</pre></td><td style='font-size:12px'>inputs: [&#x27;volume&#x27;, &#x27;mask&#x27;]
+        print(k, v)</pre></div></td><td class='result'>inputs: [&#x27;volume&#x27;, &#x27;mask&#x27;]
 outputs: [&#x27;volume&#x27;, &#x27;mask&#x27;]
 sharp_bfactor None
 sharp_use_FSC_full True
@@ -1315,11 +1617,11 @@ sharp_mask_far_A 12.0
 sharp_do_spherical_mask True
 sharp_do_expand_mask False
 sharp_bfactor_use_mask True
-sharp_fsc_weighting False</td></tr><tr><td>32</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>sharpen.set_param(&quot;sharp_generate_new_mask&quot;, True)
+sharp_fsc_weighting False</td></tr><tr><td>32</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>sharpen.set_param(&quot;sharp_generate_new_mask&quot;, True)
 # B-factor: typical T20S ~ -77; tutorial range -56.7 to -96.7. Use ~ -77.
 sharpen.set_param(&quot;sharp_bfactor&quot;, -77.0)
 p = sharpen.model.model_dump()[&quot;spec&quot;][&quot;params&quot;]
-print(p[&quot;sharp_generate_new_mask&quot;], p[&quot;sharp_bfactor&quot;])</pre></td><td style='font-size:12px'>True -77.0</td></tr><tr><td>33</td><td><i>reasoning</i></td><td colspan=2>Now let me verify the entire wired pipeline by listing all jobs in the workspace and their connections.</td></tr><tr><td>33</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>jobs = [imp, motion, ctf, denoise, blob, junk, inspect1, extract1, class2d_1, select1,
+print(p[&quot;sharp_generate_new_mask&quot;], p[&quot;sharp_bfactor&quot;])</pre></div></td><td class='result'>True -77.0</td></tr><tr><td>33</td><td><i>reasoning</i></td><td colspan=2>Now let me verify the entire wired pipeline by listing all jobs in the workspace and their connections.</td></tr><tr><td>33</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>jobs = [imp, motion, ctf, denoise, blob, junk, inspect1, extract1, class2d_1, select1,
         tpick, inspect2, extract2, class2d_2, select2, abinit, refine, vt_lp, vt_mask, val, sharpen]
 for j in jobs:
     j.refresh()
@@ -1331,15 +1633,28 @@ for j in jobs:
             srcs.append(f&quot;{c.get(&#x27;source_job_uid&#x27;)}.{c.get(&#x27;source_output_name&#x27;)}&quot;)
         if srcs:
             conns[gname] = srcs
-    print(f&quot;{j.uid:5} {spec[&#x27;type&#x27;]:28} &lt;- {conns}&quot;)</pre></td><td style='font-size:12px'>J73   import_movies                &lt;- {}
+    print(f&quot;{j.uid:5} {spec[&#x27;type&#x27;]:28} &lt;- {conns}&quot;)</pre></div></td><td class='result'>J73   import_movies                &lt;- {}
 J74   patch_motion_correction_multi &lt;- {&#x27;movies&#x27;: [&#x27;None.None&#x27;]}
 J75   patch_ctf_estimation_multi   &lt;- {&#x27;exposures&#x27;: [&#x27;None.None&#x27;]}
 J76   denoise_train                &lt;- {&#x27;exposures&#x27;: [&#x27;None.None&#x27;]}
 J77   blob_picker_gpu              &lt;- {&#x27;micrographs&#x27;: [&#x27;None.None&#x27;]}
 J78   junk_detector_v1             &lt;- {&#x27;exposures&#x27;: [&#x27;None.None&#x27;], &#x27;particles&#x27;: [&#x27;None.None&#x27;]}
 J79   inspect_picks_v2             &lt;- {&#x27;particles&#x27;: [&#x27;None.None&#x27;], &#x27;micrographs&#x27;: [&#x27;None.None&#x27;]}
-J80   extract_micrographs_multi    &lt;- {&#x27;micrographs&#x27;: [&#x27;None.None&#x27;], &#x27;particles&#x27;: [&#</td></tr><tr><td>34</td><td><i>reasoning</i></td><td colspan=2>Connections exist but the source fields parse differently. Let me inspect the actual connection structure.</td></tr><tr><td>34</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>g = refine.model.model_dump()[&quot;spec&quot;][&quot;inputs&quot;][&quot;particles&quot;]
-print(json.dumps(g, indent=1, default=str)[:1500])</pre></td><td style='font-size:12px'>{
+J80   extract_micrographs_multi    &lt;- {&#x27;micrographs&#x27;: [&#x27;None.None&#x27;], &#x27;particles&#x27;: [&#x27;None.None&#x27;]}
+J81   class_2D_new                 &lt;- {&#x27;particles&#x27;: [&#x27;None.None&#x27;]}
+J82   select_2D                    &lt;- {&#x27;particles&#x27;: [&#x27;None.None&#x27;], &#x27;templates&#x27;: [&#x27;None.None&#x27;]}
+J83   template_picker_gpu          &lt;- {&#x27;templates&#x27;: [&#x27;None.None&#x27;], &#x27;micrographs&#x27;: [&#x27;None.None&#x27;]}
+J84   inspect_picks_v2             &lt;- {&#x27;particles&#x27;: [&#x27;None.None&#x27;], &#x27;micrographs&#x27;: [&#x27;None.None&#x27;]}
+J85   extract_micrographs_multi    &lt;- {&#x27;micrographs&#x27;: [&#x27;None.None&#x27;], &#x27;particles&#x27;: [&#x27;None.None&#x27;]}
+J86   class_2D_new                 &lt;- {&#x27;particles&#x27;: [&#x27;None.None&#x27;]}
+J87   select_2D                    &lt;- {&#x27;particles&#x27;: [&#x27;None.None&#x27;], &#x27;templates&#x27;: [&#x27;None.None&#x27;]}
+J88   homo_abinit                  &lt;- {&#x27;particles&#x27;: [&#x27;None.None&#x27;]}
+J89   homo_refine_new              &lt;- {&#x27;particles&#x27;: [&#x27;None.None&#x27;], &#x27;volume&#x27;: [&#x27;None.None&#x27;]}
+J90   volume_tools                 &lt;- {&#x27;volume&#x27;: [&#x27;None.None&#x27;]}
+J91   volume_tools                 &lt;- {&#x27;volume&#x27;: [&#x27;None.None&#x27;]}
+J93   validation                   &lt;- {&#x27;volume&#x27;: [&#x27;None.None&#x27;], &#x27;mask&#x27;: [&#x27;None.None&#x27;]}
+J94   sharpen                      &lt;- {&#x27;volume&#x27;: [&#x27;None.None&#x27;]}</td></tr><tr><td>34</td><td><i>reasoning</i></td><td colspan=2>Connections exist but the source fields parse differently. Let me inspect the actual connection structure.</td></tr><tr><td>34</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>g = refine.model.model_dump()[&quot;spec&quot;][&quot;inputs&quot;][&quot;particles&quot;]
+print(json.dumps(g, indent=1, default=str)[:1500])</pre></div></td><td class='result'>{
  &quot;type&quot;: &quot;particle&quot;,
  &quot;title&quot;: &quot;Particle stacks&quot;,
  &quot;description&quot;: &quot;Particle stacks to use. Multiple stacks will be concatenated.&quot;,
@@ -1366,25 +1681,84 @@ print(json.dumps(g, indent=1, default=str)[:1500])</pre></td><td style='font-siz
  &quot;connections&quot;: [
   {
    &quot;job_uid&quot;: &quot;J88&quot;,
-   &quot;output&quot;: &quot;particl</td></tr><tr><td>35</td><td><i>reasoning</i></td><td colspan=2>The connection keys are `job_uid` and `output`. Let me re-verify the full DAG correctly.</td></tr><tr><td>35</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>for j in jobs:
+   &quot;output&quot;: &quot;particles_all_classes&quot;,
+   &quot;results&quot;: [
+    {
+     &quot;name&quot;: &quot;blob&quot;,
+     &quot;dtype&quot;: &quot;blob&quot;,
+     &quot;job_uid&quot;: &quot;J88&quot;,
+     &quot;output&quot;: &quot;particles_all_classes&quot;,
+     &quot;result&quot;: &quot;blob&quot;,
+     &quot;version&quot;: &quot;F&quot;
+    },
+    {
+     &quot;name&quot;: &quot;ctf&quot;,
+     &quot;dtype&quot;: &quot;ctf&quot;,
+     &quot;job_uid&quot;: &quot;J88&quot;,
+     &quot;output&quot;: &quot;particles_all_classes&quot;,
+     &quot;result&quot;: &quot;ctf&quot;,
+     &quot;version&quot;: &quot;F&quot;
+    },
+    {
+     &quot;name&quot;: null,
+     &quot;dtype&quot;: &quot;alignments3D_multi&quot;,
+     &quot;job_uid&quot;: &quot;J88&quot;,
+     &quot;output&quot;: &quot;particles_all_classes&quot;,
+     &quot;result&quot;: &quot;alignments3D_multi&quot;,
+     &quot;version&quot;: &quot;F&quot;
+    },
+    {
+     &quot;name&quot;: null,
+     &quot;dtype&quot;: &quot;alignments2D&quot;,
+     &quot;job_uid&quot;: &quot;J88&quot;,
+     &quot;output&quot;: &quot;particles_all_classes&quot;,
+     &quot;result&quot;: &quot;alignments2D&quot;,
+     &quot;version&quot;: &quot;F&quot;
+    },
+    {
+     &quot;name&quot;: null,
+     &quot;dtype&quot;: &quot;pick_stats&quot;,
+     &quot;job_uid&quot;: &quot;J88&quot;,
+     &quot;output&quot;: &quot;particles_all_classes&quot;,
+     &quot;result&quot;: &quot;pick_stats&quot;,
+     &quot;version&quot;: &quot;F&quot;
+    },
+    {
+     &quot;name&quot;: null,
+     &quot;dtype&quot;: &quot;location&quot;,
+     &quot;job_uid&quot;: &quot;J88&quot;,
+     &quot;output&quot;: &quot;particles_all_classes&quot;,</td></tr><tr><td>35</td><td><i>reasoning</i></td><td colspan=2>The connection keys are `job_uid` and `output`. Let me re-verify the full DAG correctly.</td></tr><tr><td>35</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>for j in jobs:
     spec = j.model.model_dump()[&quot;spec&quot;]
     conns = {}
     for gname, g in spec[&quot;inputs&quot;].items():
         srcs = [f&quot;{c[&#x27;job_uid&#x27;]}.{c[&#x27;output&#x27;]}&quot; for c in g.get(&quot;connections&quot;, [])]
         if srcs:
             conns[gname] = srcs
-    print(f&quot;{j.uid:5} {spec[&#x27;type&#x27;]:28} &lt;- {conns}&quot;)</pre></td><td style='font-size:12px'>J73   import_movies                &lt;- {}
+    print(f&quot;{j.uid:5} {spec[&#x27;type&#x27;]:28} &lt;- {conns}&quot;)</pre></div></td><td class='result'>J73   import_movies                &lt;- {}
 J74   patch_motion_correction_multi &lt;- {&#x27;movies&#x27;: [&#x27;J73.imported_movies&#x27;]}
 J75   patch_ctf_estimation_multi   &lt;- {&#x27;exposures&#x27;: [&#x27;J74.micrographs&#x27;]}
 J76   denoise_train                &lt;- {&#x27;exposures&#x27;: [&#x27;J75.exposures&#x27;]}
 J77   blob_picker_gpu              &lt;- {&#x27;micrographs&#x27;: [&#x27;J76.exposures&#x27;]}
 J78   junk_detector_v1             &lt;- {&#x27;exposures&#x27;: [&#x27;J77.micrographs&#x27;], &#x27;particles&#x27;: [&#x27;J77.particles&#x27;]}
 J79   inspect_picks_v2             &lt;- {&#x27;particles&#x27;: [&#x27;J78.particles_accepted&#x27;], &#x27;micrographs&#x27;: [&#x27;J78.exposures&#x27;]}
-J80   extract_micrographs_multi    &lt;- {&#x27;micrographs&#x27;: </td></tr><tr><td>36</td><td><i>reasoning</i></td><td colspan=2>The full pipeline is wired correctly in dependency order. Let me confirm key parameters and that nothing is queued.</td></tr><tr><td>36</td><td><b>run_python</b></td><td><pre style='font-size:11px;margin:0'>ip = imp.model.model_dump()[&quot;spec&quot;][&quot;params&quot;]
+J80   extract_micrographs_multi    &lt;- {&#x27;micrographs&#x27;: [&#x27;J79.micrographs&#x27;], &#x27;particles&#x27;: [&#x27;J79.particles&#x27;]}
+J81   class_2D_new                 &lt;- {&#x27;particles&#x27;: [&#x27;J80.particles&#x27;]}
+J82   select_2D                    &lt;- {&#x27;particles&#x27;: [&#x27;J81.particles&#x27;], &#x27;templates&#x27;: [&#x27;J81.class_averages&#x27;]}
+J83   template_picker_gpu          &lt;- {&#x27;templates&#x27;: [&#x27;J82.templates_selected&#x27;], &#x27;micrographs&#x27;: [&#x27;J76.exposures&#x27;]}
+J84   inspect_picks_v2             &lt;- {&#x27;particles&#x27;: [&#x27;J83.particles&#x27;], &#x27;micrographs&#x27;: [&#x27;J83.micrographs&#x27;]}
+J85   extract_micrographs_multi    &lt;- {&#x27;micrographs&#x27;: [&#x27;J84.micrographs&#x27;], &#x27;particles&#x27;: [&#x27;J84.particles&#x27;]}
+J86   class_2D_new                 &lt;- {&#x27;particles&#x27;: [&#x27;J85.particles&#x27;]}
+J87   select_2D                    &lt;- {&#x27;particles&#x27;: [&#x27;J86.particles&#x27;], &#x27;templates&#x27;: [&#x27;J86.class_averages&#x27;]}
+J88   homo_abinit                  &lt;- {&#x27;particles&#x27;: [&#x27;J87.particles_selected&#x27;]}
+J89   homo_refine_new              &lt;- {&#x27;particles&#x27;: [&#x27;J88.particles_all_classes&#x27;], &#x27;volume&#x27;: [&#x27;J88.volume_class_0&#x27;]}
+J90   volume_tools                 &lt;- {&#x27;volume&#x27;: [&#x27;J89.volume&#x27;]}
+J91   volume_tools                 &lt;- {&#x27;volume&#x27;: [&#x27;J90.volume&#x27;]}
+J93   validation                   &lt;- {&#x27;volume&#x27;: [&#x27;J89.volume&#x27;], &#x27;mask&#x27;: [&#x27;J91.mask&#x27;]}
+J94   sharpen                      &lt;- {&#x27;volume&#x27;: [&#x27;J89.volume&#x27;]}</td></tr><tr><td>36</td><td><i>reasoning</i></td><td colspan=2>The full pipeline is wired correctly in dependency order. Let me confirm key parameters and that nothing is queued.</td></tr><tr><td>36</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>ip = imp.model.model_dump()[&quot;spec&quot;][&quot;params&quot;]
 print(&quot;Import:&quot;, ip[&quot;psize_A&quot;], ip[&quot;accel_kv&quot;], ip[&quot;cs_mm&quot;], ip[&quot;total_dose_e_per_A2&quot;])
 print(&quot;Import blob_paths:&quot;, ip[&quot;blob_paths&quot;])
 for j in jobs:
-    print(j.uid, j.model.model_dump()[&quot;status&quot;])</pre></td><td style='font-size:12px'>Import: 0.6575 300.0 2.7 53.0
+    print(j.uid, j.model.model_dump()[&quot;status&quot;])</pre></div></td><td class='result'>Import: 0.6575 300.0 2.7 53.0
 Import blob_paths: /shared/data/empiar_10025_subset_v1/*.frames.tif
 J73 building
 J74 building
@@ -1406,8 +1780,9 @@ J89 building
 J90 building
 J91 building
 J93 building
-J94 building</td></tr><tr><td>37</td><td><i>reasoning</i></td><td colspan=2>The complete pipeline is assembled and wired, all jobs in &quot;building&quot; status (nothing queued or run). Let me present the final plan.</td></tr><tr><td>37</td><td><b>finish</b></td><td><pre style='font-size:11px;margin:0'>{&quot;summary&quot;: &quot;Built and wired the complete T20S single-particle pipeline in workspace W5 (P5), following the cryoSPARC intro tutorial, entirely via cryosparc-tools. Nothing was queued/run \u2014 all 21 jobs are in &#x27;building&#x27; state for PI review.\n\nDAG (job \u2192 key params/wiring):\n- J73 import_movies: *.frames.tif + gain norm-amibox05-0.mrc, psize 0.6575 \u00c5, 300 kV, Cs 2.7 mm, dose 53 e/\u00c5\u00b2.\n- J74 patch_motion_correction_multi \u2190 J73.imported_movies.\n- J75 patch_ctf_estimation_multi \u2190 J74.micrographs.\n- J76 denoise_train (Micrograph Denoiser) \u2190 J75.exposures, num_train_mics=20 (dataset has only 20 mics).\n- J77 blob_picker_gpu \u2190 J76.exposures, diameter 100\u2013200 \u00c5, use_denoised=True.\n- J78 junk_detector_v1 \u2190 J77 micrographs+particles (removes carbon/ice junk picks).\n- J79 inspect_picks_v2 \u2190 J78.particles_accepted + exposures (blob pick curation).\n- J80 extract_micrographs_multi \u2190 J79, box 440 px.\n- J81 class_2D_new \u2190 J80 (K=50).\n- J82 select_2D \u2190 J81 (pick top/side templates).\n- J83 template_picker_gpu \u2190 J82.templates_selected + J76 denoised mics, diameter 190 \u00c5, use_deno</pre></td><td style='font-size:12px'></td></tr></table>
-<h3>Observation images returned to the model (0)</h3>
+J94 building</td></tr><tr><td>37</td><td><i>reasoning</i></td><td colspan=2>The complete pipeline is assembled and wired, all jobs in &quot;building&quot; status (nothing queued or run). Let me present the final plan.</td></tr><tr><td>37</td><td><b>finish</b></td><td class='code'><div class='codecell'><pre>{&quot;summary&quot;: &quot;Built and wired the complete T20S single-particle pipeline in workspace W5 (P5), following the cryoSPARC intro tutorial, entirely via cryosparc-tools. Nothing was queued/run \u2014 all 21 jobs are in &#x27;building&#x27; state for PI review.\n\nDAG (job \u2192 key params/wiring):\n- J73 import_movies: *.frames.tif + gain norm-amibox05-0.mrc, psize 0.6575 \u00c5, 300 kV, Cs 2.7 mm, dose 53 e/\u00c5\u00b2.\n- J74 patch_motion_correction_multi \u2190 J73.imported_movies.\n- J75 patch_ctf_estimation_multi \u2190 J74.micrographs.\n- J76 denoise_train (Micrograph Denoiser) \u2190 J75.exposures, num_train_mics=20 (dataset has only 20 mics).\n- J77 blob_picker_gpu \u2190 J76.exposures, diameter 100\u2013200 \u00c5, use_denoised=True.\n- J78 junk_detector_v1 \u2190 J77 micrographs+particles (removes carbon/ice junk picks).\n- J79 inspect_picks_v2 \u2190 J78.particles_accepted + exposures (blob pick curation).\n- J80 extract_micrographs_multi \u2190 J79, box 440 px.\n- J81 class_2D_new \u2190 J80 (K=50).\n- J82 select_2D \u2190 J81 (pick top/side templates).\n- J83 template_picker_gpu \u2190 J82.templates_selected + J76 denoised mics, diameter 190 \u00c5, use_denoised=True.\n- J84 inspect_picks_v2 \u2190 J83.\n- J85 extract_micrographs_multi \u2190 J84, box 440 px.\n- J86 class_2D_new \u2190 J85.\n- J87 select_2D \u2190 J86 (keep all good classes).\n- J88 homo_abinit \u2190 J87.particles_selected (C1, K=1 \u2014 no symmetry, per tutorial).\n- J89 homo_refine_new \u2190 J88 particles_all_classes + volume_class_0, refine_symmetry=D7.\n- J90 volume_tools \u2190 J89.volume, lowpass 10 \u00c5 (smooth map for mask).\n- J91 volume_tools \u2190 J90.volume, output mask, threshold 0.5 (to be tuned via mask sweep at run time), dilation 4 px, soft pad 14 px.\n- J93 validation (FSC) \u2190 J89.volume + J91.mask, compute facility GPU (gold-standard FSC validation).\n- J94 sharpen \u2190 J89.volume, B-factor \u221277 (tutorial range \u221256.7\u2026\u221296.7), generate new FSC mask.\n\nSymmetry (D7) imposed at refinement; ab-initio left at C1 as recommended. Resolution target ~2.9 \u00c5 will be assessed from J89 GSFSC and J93 validation when executed. The two interactive jobs (inspect picks, select 2D) are wired and would be driven headlessly/curated at execute time.&quot;}</pre></div></td><td class='result'></td></tr></table></details>
+
+<h3 id="images">Observation images returned to the model (0)</h3>
 <p class='note'>No observation images were rendered for this run.</p>
 </article></main>
 </div>

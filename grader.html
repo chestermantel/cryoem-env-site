@@ -15,121 +15,188 @@
 <script type="text/markdown" id="doc">
 # The grader
 
-How a reconstruction run is reduced to **named, weighted, computable subscores** — what each metric is, how it is computed, and why it is used. The grading logic lives in `src/recon_env/scoring.py` (the harness-agnostic IP). This page is a living explainer; metrics marked <span class="pill gap">deferred</span> are designed but not yet contributing weight.
+What the grader actually computes — the subscores, their weights, and the exact computation — first; then what each subscore is and its scientific justification; then how the scheme serves the Anthropic RFP. Everything below reflects the current `src/recon_env/scoring.py` (the harness-agnostic IP) and the live scorecard. Numbers are a snapshot; the grader is under active calibration.
 
-> **Why the grader exists.** Every end-to-end agent run reached ~3.11–3.18 Å loose-mask resolution despite materially different decision quality — so **resolution alone cannot rank them** (the realistic run hit 3.16 Å while keeping 14 Select-2D templates instead of ~2). The grader adds (a) a **held-out outcome** metric beyond resolution and (b) **computable per-stage procedure** subscores that catch what resolution misses, plus (c) an **integrity** term against reward gaming.
+> **One-line orientation (then straight to the literal definitions).** Every run is reduced to a single number by a weighted combination of named subscores in three blocks — **outcome 0.50 · procedure 0.35 · integrity 0.15** — with a multiplicative **handedness gate** on the outcome block. The motivating fact: every run reached ~3.1 Å, so resolution can't rank them; the grader adds held-out structural-agreement and per-stage procedure subscores that can.
 
-## What the grader is
+## Subscores, weights & computation
 
-- **The contract** (RFP wording: *"named numeric subscores with weights"*): every scorer returns `{name: (value, weight)}`, with `value ∈ [0,1]` normalized so **higher = better**, and a stated direction. A run's trajectory is reduced to one number by a **weighted, outcome-dominated combination** of these signals.
-- **The IP**: `scoring.py` is **pure** — stdlib only, no framework / cryoSPARC / Phenix dependencies — so it survives a port from one eval harness to another. The messy file/log/Phenix I/O lives in the driver (`run_grader.py`); the scoring functions consume an already-normalized record.
-- **Principles baked in:**
-  - **Coarse bands, not exact matches** — cryo-EM numbers are not reproducible across cryoSPARC versions, so we reward the right *regime*, not a digit.
-  - **Partial credit, never pass/fail**, and each subscore is **conditioned on its stage being reached** — a skipped stage scores 0 at reduced weight rather than silently earning full credit.
-  - **Grade procedure structurally**, against the golden *intent* — **never an exact-DAG match** (a capable agent can reach the goal via a different valid pipeline).
-  - **Outcome is graded against held-out ground truth** — the integrity defense against a run that games its own self-reported resolution.
+This section is the literal definition of the scheme: every subscore, its weight, and exactly how it is computed. Each subscore returns a value in `[0,1]` (normalized so **higher = better**) and a weight; values are coarse **bands**, not exact matches (cryo-EM numbers drift across software versions, so the grader rewards the right *regime*).
 
-## How a run becomes a number
+### How a run becomes a number
 
-Three blocks, with explicit (provisional) weights:
+```
+block_score   = Σ(value · weight) / Σ(weight)        within a block; subscores with weight 0 drop out
+outcome_block = block_score(outcome) · handedness_gate          the gate is multiplicative
+TOTAL         = Σ(block_score · block_weight) / Σ(block_weight)  over blocks that have any data
+```
 
-| Block | Weight | What it answers |
+| Block | Weight | Reference it scores against |
 |---|---|---|
-| **Outcome** | 0.50 | did it build the *right structure* (held-out agreement) |
-| **Procedure** | 0.35 | was the *science done correctly* (per-stage decisions) |
-| **Integrity** | 0.15 | is the headline *honest* (not mask-inflated) |
+| **Outcome** | **0.50** | the held-out deposited answer key (PDB 6BDF + EMD-6287), via a resolution-matched ceiling |
+| **Procedure** | **0.35** | the golden *intent* (W1 by-hand: templates 2, refine 15, D7, box 440, ~9.5k particles) |
+| **Integrity** | **0.15** | within-run self-consistency |
 
-Within each block, the score is the **weighted mean** of its subscores (signals with zero weight — i.e. data not available — drop out so they don't drag the block down). The blocks are then combined by their block weights. The **handedness gate** multiplies the *outcome* block: a wrong-hand map can't score on outcome no matter how good its resolution.
+A subscore whose input is missing returns weight 0 (it doesn't fabricate credit); a block with no data drops out of the total entirely rather than dragging it toward 0.
 
-```
-block_score = Σ(value·weight) / Σ(weight)          # per block, zero-weight signals excluded
-outcome     = block_outcome · handedness_gate      # gate ∈ [0,1], multiplicative
-total       = Σ(block_score · block_weight) / Σ(block_weight present)
-```
+### Outcome block — weight 0.50 (× handedness gate)
 
-Procedure carries real weight on purpose: **correct procedure is part of the ground truth** in scientific RL, and on a well-behaved instance like T20S the outcome saturates, so the procedure block is what actually discriminates. The block weights are **flagged for review** — to be calibrated on the degraded-map suite, then frozen.
+Held-out structural agreement vs the deposited ground truth, each normalized to the deposited reference scored the *same way* but low-passed to the run's own resolution (the "resolution-matched ceiling" — a subset map is never penalized for not reaching the full-data 2.8 Å).
 
-## The fairness rule
+| Subscore | Weight | How it is computed |
+|---|---|---|
+| **CC_mask (map–model)** <span class="pill ok">computed</span> | 1.0 | real-space correlation of the fixed 6BDF model against the run map in a mask (`phenix.map_model_cc`); scored `value / ceiling`, rebaselined so the bulk-envelope floor (ratio 0.5) maps to 0 |
+| **EMRinger** <span class="pill ok">computed</span> | 0.9 | side-chain rotamer-in-density score vs 6BDF (`phenix.emringer`); scored `value / ceiling` (floor 0) |
+| **map–model FSC@0.5** <span class="pill ok">computed</span> | 0.8 | resolution (Å) where map-vs-model FSC = 0.5 (`phenix.mtriage`); lower Å is better, scored `ceiling / value` |
+| **deposited agreement (CC vs EMD-6287)** <span class="pill ok">computed</span> | 0.5 | map-to-map CC vs the deposited map; scored `value / ceiling` (floor 0.5). Hand-blind → guarded by the gate |
+| **fair GSFSC@0.143** <span class="pill ok">computed</span> | 0.5 | half-map FSC@0.143 recomputed under one fixed mask; banded vs the W1 anchor 3.15 Å: Δ ≤ 0.15 → 1.0; ≤ 0.4 → 0.8; ≤ 0.8 → 0.55; ≤ 1.5 → 0.3; else 0.1 |
+| **handedness** <span class="pill rfp">gate (×)</span> | — | compares the run map's CC-to-W1 against its mirror's: if mirror > cc + 0.05 → **0.0**; within 0.02 → 0.6; else 1.0. Multiplies the whole outcome block |
 
-One rule underpins every outcome number: **one engine, one procedure, recomputed from half-maps for every map — including the deposited reference.** We never compare a number *we* computed against a number cryoSPARC or a paper *printed* (different masking/FSC conventions silently bias it). Two consequences:
+### Procedure block — weight 0.35
 
-- A run's self-reported resolution (which depends on *the agent's own mask choice*) is **not** what we grade on — we re-derive it under a fixed policy, identically for every run.
-- **Subset-ceiling guardrail:** our runs use the 20-movie subset (~3.1 Å ceiling); the deposited map is the full 2.8 Å dataset. Outcome scores are normalized to the deposited reference **low-passed to each run's own resolution**, and resolution is banded against the same-subset **W1 golden (3.15 Å)** — *never* the 2.8 Å figure. A run is never penalized for not reaching full-dataset resolution.
+Per-stage decision quality vs the golden intent, computed from the run's structured job-graph fields.
 
-## Outcome metrics — held-out structural agreement
+| Subscore | Weight | How it is computed |
+|---|---|---|
+| **Select-2D templates** <span class="pill ok">computed</span> | 1.0 | count vs ideal 2; banded on \|n − 2\|: 0 → 1.0; ≤ 1 → 0.85; ≤ 3 → 0.55; ≤ 6 → 0.30; ≤ 11 → 0.12; else 0 |
+| **Select-2D refine** <span class="pill ok">computed</span> | 1.0 | count vs ideal 15; banded on \|n − 15\|: ≤ 3 → 1.0; ≤ 5 → 0.80; ≤ 8 → 0.60; ≤ 12 → 0.40; else 0.20 |
+| **symmetry** <span class="pill ok">computed</span> | 1.0 | refine = D7 → 1.0; C7/D14 → 0.5; C1/none → 0.0; else 0.2. × 0.8 if ab-initio imposed symmetry (should be C1) |
+| **box size** <span class="pill ok">computed</span> | 0.6 | banded around 440 px: 420–460 → 1.0; 360–520 → 0.8; 256–640 → 0.5; else 0.2. × 0.9 if an intermediate extract was binned |
+| **picker diameters** <span class="pill ok">computed</span> | 0.4 | blob in [60–160]&[150–260] Å → 1.0 else 0.4; template in [140–240] Å → 1.0 else 0.4; averaged |
+| **stage completeness** <span class="pill ok">computed</span> | 0.7 | share of stages present + completed (denoise .15, junk-detect .10, mask-gen .25, validation .25, sharpen .10, two inspect passes .15); a **failed** stage scores 0.3× its share; absent → 0 |
+| **pick curation** <span class="pill ok">computed</span> | 0.7\* | NCC per Inspect-Picks cut, banded: 0.35–0.55 → 1.0; 0.30–0.65 → 0.7; 0.20–0.75 → 0.4; else 0.2; averaged over cuts present (\*weight 0 if no cut data) |
+| **particle trajectory** <span class="pill ok">computed</span> | 0.6\* | final stack ÷ golden 9519, banded: 0.85–1.25 → 1.0; 0.65–1.6 → 0.75; 0.4–2.2 → 0.45; else 0.2 (\*weight 0 if no final count) |
 
-Ground truth is the **EMDB/PDB deposit** (EMD-6287 map + PDB 6BDF model), held out from the agent. Each metric below lists how it's computed and why.
+### Integrity block — weight 0.15
 
-**Structure agreement — CC vs the W1 golden map.** <span class="pill ok">computed</span>
-*How:* real-space cross-correlation of the run's map to the by-hand W1 map (same 20-movie subset, same cryoSPARC frame), after a coarse-to-fine SO(3) alignment recovers arbitrary orientation; ceiling = golden-vs-golden = 1.0. *Why:* a robust, resolution-orthogonal "did the agent reconstruct the correct molecule" signal that is local and convergent (unlike docking the full deposited assembly). *Note:* being **demoted to a same-subset cross-check** as the map-to-model metrics come online — it is one human trajectory, not the published ground truth.
+| Subscore | Weight | How it is computed |
+|---|---|---|
+| **over-fit / mask gap** <span class="pill ok">computed</span> | 0.5 | gap = no-mask − tight-mask GSFSC (Å); banded: < 0.7 → 1.0; 0.7–0.9 → 0.8; 0.9–1.2 → 0.55; else 0.3 |
 
-**Deposited agreement — CC vs EMD-6287.** <span class="pill ok">computed</span>
-*How:* map-to-map CC against the deposited map, normalized to the golden-vs-deposited ceiling (~0.50 — resolution-limited, since the deposit is the full 2.8 Å dataset). *Why:* a structural cross-check against the *published* answer key, not just the in-house human run. It is hand-blind (a mirror map can correlate well), so the **handedness gate guards it**.
+### Cross-check — reported, 0 headline weight
 
-**Map-model CC_mask — vs PDB 6BDF.** <span class="pill gap">deferred</span>
-*How (designed):* `phenix.map_model_cc` of the deposited 6BDF model (held fixed) against the run map, normalized to a resolution-matched ceiling. *Why:* the strongest *resolution-orthogonal* discriminator — does the density support the **known atomic structure**. *Status:* deferred — globally docking the 46k-atom, D7-symmetric 6BDF assembly did not converge within budget; this is the top next step (dock detached / on-box).
+| Signal | Weight | How it is computed |
+|---|---|---|
+| **structure agreement (CC vs W1)** <span class="pill rfp">cross-check</span> | 0 | map-to-map CC vs the in-house W1 by-hand map; reported as a same-subset sanity signal, **excluded** from the total (W1 is one human trajectory, not the published ground truth) |
 
-**EMRinger — side-chain register vs 6BDF.** <span class="pill gap">deferred</span>
-*How (designed):* `phenix.emringer` measures whether map density peaks fall in register with the model's side chains. *Why:* a **thresholded interpretability bar** — does the map cross a side-chain-resolvability usefulness bar, not just a resolution number — and the metric where a wrong-hand or wishfully-masked map collapses even at good resolution. *Status:* deferred (needs the same reliable docking).
+### The current scorecard
 
-**Map-model FSC@0.5.** <span class="pill gap">deferred</span> *How:* `phenix.mtriage` (map + model + half-maps), lower Å better. *Why:* catches a map whose agreement with the known model decays faster across shells than its nominal resolution implies.
+The literal output over the four graded runs (`runs/agent/grader/scorecard.md`):
 
-**Fair GSFSC@0.143.** <span class="pill ok">computed</span>
-*How:* the half-map gold-standard FSC recomputed by us under one fixed mask (not the run's self-reported, mask-dependent number), banded against the W1 anchor (3.15 Å). *Why:* deliberately **low weight** — this is the metric that already *can't* rank the runs; it's kept only so a genuinely worse-resolution run is still caught.
-
-**Handedness gate.** <span class="pill ok">computed</span>
-*How:* from the both-hands alignment to golden — if the **mirrored** (enantiomer) map correlates markedly better than the original, the run built the wrong hand. Returns a multiplier in [0,1]. *Why:* a wrong-hand map is a wrong structure even at perfect resolution; the gate caps the whole outcome block multiplicatively. (Validated: a deliberately mirrored map drops the gate to **0.0**.)
-
-## Procedure subscores — where the ranking lives on T20S
-
-These are computable off the run's structured job-graph fields, off-box. The golden intent: templates 2, refine ~15, D7, box 440, ~9.5k final particles.
-
-**Select-2D templates count.** <span class="pill ok">computed</span> *How:* `count_band` on |count − 2| (the agent should keep ~2 classes, one per distinct dominant view, to seed the template picker). *Why:* over-selection (hard kept 29, realistic 14) is the **single highest-signal procedural error** resolution misses — so it carries the top procedure weight (1.0) and bands steeply (14 templates → score 0).
-
-**Select-2D refine count.** <span class="pill ok">computed</span> *How:* `count_band` on |count − 15|, wider tolerance (keeping the good classes is a softer call). *Why:* the final particle stack's quality depends on this curation.
-
-**Symmetry.** <span class="pill ok">computed</span> *How:* exact-match — D7 imposed at refinement, C1 at ab-initio; partial credit for a related point group (C7 ≈ D7), penalty if symmetry is imposed too early at ab-initio. *Why:* recognizing the molecule's symmetry is a core structural judgment.
-
-**Box size.** <span class="pill ok">computed</span> *How:* banded around 440 px, with a small deduction if an intermediate extract was binned (a quality smell — feeds half-resolution particles into 2D). *Why:* box too small clips the particle; binning trades resolution for speed.
-
-**Picker diameters.** <span class="pill ok">computed</span> *How:* sanity bands on the blob (100–200 Å) + template (190 Å) diameters. *Why:* low weight — a check that the agent used a sane particle size; all runs nailed it.
-
-**Stage completeness.** <span class="pill ok">computed</span> *How:* partial credit per recommended polish stage (denoise, junk-detect, mask-gen, validation, sharpen, two inspect passes) present and completed; a **failed** stage scores below a clean skip. *Why:* a soft, low-weight signal — skipping is *defensible* (capable agents take different valid paths), so this nudges rather than gates.
-
-**Pick curation.** <span class="pill ok">computed</span> *How:* bands the Inspect-Picks NCC thresholds — penalize grossly **loose** cuts (under-curation lets junk through: hard 0.25, realistic 0.30 vs the ~0.41 auto-calibrated example). Conditioned on the cuts we actually have. *Why:* loose curation degrades the stack silently.
-
-**Particle trajectory.** <span class="pill ok">computed</span> *How:* the final-stack count within a coarse band of the golden *shape* (~9.5k), graded on shape not exact counts. *Why:* a collapsing or ballooning particle count signals a broken curation chain.
-
-## Integrity
-
-**Over-fit / mask gap.** <span class="pill ok">computed</span> *How:* the spread between the no-mask and tight/auto GSFSC (same engine for all runs, so the *gap* is fair even though absolute numbers aren't). Small gap = honest; large gap = inflated. *Why:* the computable defense against **wishful masking** — inflating self-reported resolution with a too-tight mask. This is the reward-integrity term.
-
-## Reward integrity (anti-gaming)
-
-- **Visible to the agent:** its own self half-map FSC, cryoSPARC plots, intermediate counts — everything a working scientist sees.
-- **Held out for scoring:** the deposited EMD-6287 / 6BDF and all agreement metrics computed against them. The agent never reads the answer key.
-- **Main gaming vector — wishful masking:** caught by the held-out agreement (a wishfully-masked map disagrees with the truth) + the explicit mask-gap term.
-- **Rule-based only** — no learned reward model, no LLM-judge in the core (both gameable). An LLM-judge may be a separate optional QC signal, never the core reward.
-
-## Current headline
-
-The grader's output over the collected runs (`runs/agent/grader/scorecard.md`):
-
-| Run | TOTAL | outcome | procedure | integrity | the procedural tell |
+| Run | TOTAL | outcome (0.50) | procedure (0.35) | integrity (0.15) | hand-gate |
 |---|---|---|---|---|---|
-| raw_easy | **0.99** | 0.98 | 1.00 | 1.0 | clean: 2 templates, 16 classes |
-| e2e_easy | **0.98** | 0.99 | 0.96 | 1.0 | 2 templates, 19 classes |
-| raw_realistic | **0.89** | 0.99 | 0.71 | 1.0 | **14 templates**, no denoise, mask failed |
-| e2e_hard | **0.87** | 0.97 | 0.68 | 1.0 | **29 templates**, skipped denoise + mask-gen |
+| raw_easy | **0.873** | 0.745 | 1.000 | 1.000 | 1.00 |
+| e2e_easy | **0.862** | 0.750 | 0.963 | 1.000 | 1.00 |
+| raw_realistic | **0.773** | 0.749 | 0.711 | 1.000 | 1.00 |
+| e2e_hard | **0.755** | 0.736 | 0.679 | 1.000 | 1.00 |
 
-All four reached 3.11–3.18 Å and all four score **outcome ≈ 0.97–0.99** (held-out agreement confirms every run built the *correct* structure — none gamed). The **procedure block carries the ranking**, dropping the sloppy runs ~0.10 — surfacing exactly the decision-quality gap that resolution concealed. **Sensitivity check:** a wrong-hand mirror → hand-gate 0.0; heavy noise → 0.91; half-density → 0.35.
+Outcome metrics per run (raw → ceiling-normalized); the deposited anchor is the full-data 2.8 Å reference, **not** a target for the 20-movie subset runs:
 
-## Status — what's evolving
+| Run | EMRinger | →norm | CC_mask | →norm | FSC@0.5 Å | →norm | CC vs W1 (xcheck) |
+|---|---|---|---|---|---|---|---|
+| raw_easy | 1.66 | 0.394 | 0.744 | 0.841 | 3.35 | 0.905 | 0.985 |
+| e2e_easy | 1.65 | 0.399 | 0.747 | 0.844 | 3.35 | 0.912 | 0.986 |
+| raw_realistic | 1.71 | 0.404 | 0.745 | 0.843 | 3.35 | 0.906 | 0.985 |
+| e2e_hard | 1.53 | 0.365 | 0.743 | 0.842 | 3.34 | 0.896 | 0.975 |
+| _deposited anchor (2.8 Å)_ | 3.83 | – | 0.865 | – | 2.84 | – | – |
 
-- **Map-to-model outcome** (CC_mask, EMRinger, map-model FSC vs 6BDF) is the designed primary but is **deferred** pending reliable docking of the large D7 assembly; until then map-to-map CC-vs-golden is the computed outcome primary and EMRinger sits at 0 weight.
-- **Ground-truth correction (2026-06-22):** the outcome ground truth is now the **EMDB/PDB deposit**, with the in-house W1 run demoted to a same-subset cross-check. This is in `scoring.py` now; the on-disk scorecard predates a regeneration, so the numbers above still show W1-CC as the outcome primary.
-- **Weights** (0.50 / 0.35 / 0.15) are provisional — calibrate on the degraded-map suite, then freeze.
-- **Train/test splits + instance family** are deferred for this single-instance POC.
+The procedural discriminators (what actually separates the runs):
+
+| Run | templates (gold 2) | refine cls (gold 15) | denoise | mask-gen | loose-res Å |
+|---|---|---|---|---|---|
+| raw_easy | 2 | 16 | completed | completed | 3.16 |
+| e2e_easy | 2 | 19 | completed | completed | 3.18 |
+| raw_realistic | **14** | 19 | none | **failed** | 3.16 |
+| e2e_hard | **29** | 15 | none | **none** | 3.11 |
+
+**Read of the scorecard:** the outcome block is ~0.74–0.75 for **all** runs — they all reconstructed the correct structure (none gamed), and the uniform sub-ceiling value reflects the genuine subset-vs-full-data interpretability gap (EMRinger norm ~0.40). So outcome confirms and anti-games but does not rank; the **procedure block carries the ranking**, dropping the sloppy runs (14/29-template over-selection, skipped/failed stages) ~0.10–0.30 below the clean ones — exactly the decision-quality gap that 3.11–3.18 Å resolution concealed.
+
+## Each subscore — what it is and why
+
+What each subscore measures, why it is scientifically meaningful, and why it is computed the way it is.
+
+### CC_mask (map–model) — primary outcome
+Real-space correlation between the deposited atomic model (6BDF) and the agent's density map, inside a mask around the model. This is the gold-standard "is the map *right*" question in structural biology: does the density actually support the known structure, atom for atom. It is **orthogonal to resolution** — a map can hit a resolution number yet not match the real structure — which is exactly the discriminator resolution lacks. Normalizing to the resolution-matched deposited ceiling (the same model vs the deposit low-passed to this run's resolution) judges a subset map against the best achievable *at its resolution*; the 0.5 floor rebaselines the bulk-envelope correlation that even a featureless blob earns. It is **held out** (the agent never sees 6BDF), making it the anti-gaming anchor.
+
+### EMRinger — interpretability bar
+The fraction of side chains whose density peak sits in the correct rotameric position (Barad et al., *Nat. Methods* 2015), measured against 6BDF. Where CC_mask asks "is the backbone envelope right," EMRinger asks the harder, more useful question: **does the map resolve side chains in register** — the thing a model-builder actually needs. It is the single strongest detector of a wrong-hand or wishfully-masked map, because in those cases side chains fall into mirror-image or empty density and the score collapses even when resolution looks fine. The low normalized value (~0.40 across runs) is honest: a 20-movie subset genuinely resolves fewer side chains than the full dataset, uniformly.
+
+### map–model FSC@0.5 — cross-frequency agreement
+The resolution shell at which the map-vs-model Fourier Shell Correlation crosses 0.5. It checks that map–model agreement holds *across spatial frequencies*, not just in aggregate, and catches a map whose agreement decays faster than its nominal resolution implies. Lower Å is better, so it is scored as `ceiling / value`.
+
+### deposited agreement (CC vs EMD-6287) — supporting cross-check
+Map-to-map correlation against the *published density map* itself (not the model, not the in-house human run). It corroborates the model-based metrics against an independent reference on the same molecule. It is hand-blind — a mirror map can correlate well — so it is explicitly guarded by the handedness gate, and carries a lower weight (0.5) as a supporting signal.
+
+### fair GSFSC@0.143 — honest resolution
+The half-map gold-standard FSC@0.143, recomputed by us under one fixed mask rather than taken from the run's self-reported, mask-dependent value. It is banded against the same-subset W1 golden (3.15 Å), never the 2.8 Å full-data figure. Its weight is deliberately low: this is precisely the metric that already *can't* rank the runs — it is kept only so a genuinely worse-resolution run is still caught.
+
+### handedness — the gate
+Cryo-EM reconstructions can emerge in the wrong hand (enantiomer) — a wrong structure even at perfect resolution. Because map-to-map correlation is hand-blind, a mirror map can score well on agreement; the gate prevents that from being rewarded. It compares the run map's correlation to W1 against its mirror's correlation: a clearly-better mirror zeroes the entire outcome block. It is multiplicative, not additive, because handedness is a correctness precondition, not a quality dimension. (Validated: a deliberately mirrored map drives the gate to 0.0.)
+
+### Select-2D templates — the highest-signal procedure subscore
+How many 2D class averages the agent kept to seed the template picker. The right answer is ~2 — one per distinct dominant view (a top/ring and a side/barrel for the D7 T20S barrel) — giving the template picker clean, non-redundant references. Keeping 14 (realistic) or 29 (hard) pulls in redundant and lower-quality classes and is the single highest-signal procedural error that resolution misses, which is why it carries the top procedure weight and bands steeply on distance from 2.
+
+### Select-2D refine — final-stack curation
+How many of the 50 classes the agent kept for the final particle stack. The golden keep is ~15; this is a softer judgment than the template pass ("keep the good classes"), so it bands with wider tolerance on distance from 15.
+
+### symmetry — recognizing the molecule
+The point group imposed at refinement (and whether ab-initio correctly stayed C1). T20S has **D7** symmetry — 14 asymmetric units per particle — and imposing it at refinement is a core structural judgment that multiplies the effective particle count and the achievable resolution. Imposing symmetry at ab-initio instead would give the answer away, so that is penalized. Scored exact-match with partial credit for a related point group.
+
+### box size — extraction geometry
+The final particle-extraction box (golden 440 px ≈ 289 Å at 0.6575 Å/px, ~2× the particle). A box too small clips the particle and its delocalized CTF signal; binning an intermediate extract feeds half-resolution particles into 2D classification — defensible but a quality smell, hence the small 0.9 multiplier. Banded around 440.
+
+### picker diameters — particle-size sanity
+The blob and template picker diameter settings. These are largely given by the tutorial, so this is a low-weight sanity check that the agent used a physically reasonable particle size (T20S ~150–200 Å); all runs passed.
+
+### stage completeness — pipeline polish
+Which recommended polish stages were present and completed: denoise, junk-detect, mask generation, validation, sharpening, and the two Inspect-Picks passes. These are *defensible to skip* — a capable agent can reach a good map without denoise — so this is a soft, low-weight nudge rather than a gate. A **failed** stage scores below a clean skip (0.3× its share): attempting a step and breaking it is worse than deciding not to do it.
+
+### pick curation — junk rejection
+The NCC threshold chosen at each Inspect-Picks cut. Too-loose thresholds let junk particles through and silently degrade the stack (hard cut at 0.25, realistic at 0.30, vs the ~0.41 auto-calibrated example). Banded per cut and averaged; weight drops to 0 when no cut data is available, so the grader never fabricates credit.
+
+### particle trajectory — curation-chain shape
+The final particle-stack size relative to the golden shape (~9.5k). A stack that collapses to far fewer or balloons to far more signals a broken curation chain. It is graded on *shape* (a banded ratio to 9519), never exact counts, which drift with software version.
+
+### over-fit / mask gap — the integrity term
+The spread between the no-mask and tight-mask GSFSC. This is the computable defense against **wishful masking** — inflating self-reported resolution with a too-tight mask. A clean reconstruction's masked and unmasked curves track each other; a wishfully-masked one shows a large gap. Because it is a within-run, same-engine comparison, the *gap* is fair across runs even though absolute numbers are not.
+
+### structure agreement (CC vs W1) — the demoted cross-check
+Map-to-map correlation against the in-house W1 by-hand reconstruction. It answers "did the agent reconstruct what the human did on the same data" — informative, but **not** ground truth, because W1 is one human trajectory rather than the published answer key. It was demoted to a 0-weight reported cross-check on 2026-06-22 when the deposited 6BDF/EMD-6287 became the outcome reference. It still feeds the handedness gate.
+
+## How the scheme serves the RFP
+
+The RFP asks for execution-graded environments with **named, weighted, computable subscores**, **held-out** ground truth, defenses against degenerate strategies, and a headline that sits **below ceiling**. How this scheme discharges that:
+
+### The fairness rule
+Every outcome number is recomputed by us under **one engine and one procedure, from half-maps, for every map — including the deposited reference**. We never compare a number we computed against a number cryoSPARC or a paper printed (different masking/FSC conventions silently bias it). Two consequences: a run's self-reported, mask-dependent resolution is not what we grade on; and the **subset-ceiling guardrail** normalizes outcome to the deposit low-passed to each run's own resolution, banding resolution against the same-subset W1 (3.15 Å), never the full-data 2.8 Å — so a subset run is never penalized for the data it wasn't given.
+
+### Reward integrity (anti-gaming)
+- **Visible to the agent during the run:** its own self half-map FSC, the cryoSPARC plots, intermediate counts — everything a working scientist legitimately sees.
+- **Held out for scoring:** the deposited 6BDF model + EMD-6287 map and every agreement metric computed against them. The agent never reads the answer key.
+- **Main gaming vector — wishful masking** — is caught two ways: the held-out map–model metrics (EMRinger especially) disagree with a wishfully-masked map even when its self-FSC looks great, and the explicit mask-gap integrity term flags the inflation directly.
+- The core reward is **rule-based and computable** — no learned reward model, no LLM-judge (both gameable). An LLM-judge could only ever be a separate, optional QC signal.
+
+### Difficulty & headroom
+With the map–model metrics live, the outcome block sits at **~0.74**, not saturated — genuine headroom, driven by the honest subset-vs-full-data interpretability gap. It is also nearly flat across runs (all reconstructed the correct structure, none gamed), so the **procedure block carries the ranking** (clean runs 0.96–1.0 vs sloppy 0.68–0.71). The headline total sits meaningfully below ceiling, as the RFP requires, and the spread lives in scientific judgment rather than in the final scalar.
+
+### RFP traceability
+
+| RFP requirement (quoted) | How this grader satisfies it |
+|---|---|
+| "three to six signals … each a **named, computable metric**" with "**normalization and direction**" | named subscores in `[0,1]`, higher = better, with explicit normalization (§ Subscores) |
+| "a grading function that returns **named numeric subscores with weights**" | `score_run → {block: {name: (value, weight)}}` (the `scoring.py` contract) |
+| "how a **full interaction trajectory is reduced to a number**" | weighted combination of blocks, outcome-dominated, handedness-gated (§ How a run becomes a number) |
+| "guards against **trivial or degenerate strategies**"; "**visible … versus held out**" | held-out deposited-agreement outcome + the mask-gap integrity term (§ Reward integrity) |
+| "how **ground truth is established** … measurement model" | the published, validated EMD-6287 / 6BDF deposit, recomputed under one engine (§ The fairness rule) |
+| "headline score should **sit meaningfully below ceiling**" | total well below 1.0; outcome unsaturated, procedure discriminating (§ Difficulty & headroom) |
+| "what **bad performance** looks like" | the procedure subscores expose over-selection, skipped/failed stages, under-curation |
+
+Everything cryo-EM-specific here (the metrics, the bands, the weights, the outcome/procedure/integrity split) is **our** instantiation of the RFP's generic categories, not an RFP citation.
+
+### What's provisional
+- **Block weights (0.50 / 0.35 / 0.15) and every band** are explicit but flagged for review — to be calibrated on the degraded-map / quality ladder, then frozen.
+- **Train/test splits and a parameterized instance family** are deferred for this single-instance T20S POC.
+- **cFAR / anisotropy** is an optional QC signal, weak on the near-isotropic D7 T20S; revisit for lower-symmetry instances.
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
@@ -139,7 +206,7 @@ All four reached 3.11–3.18 Å and all four score **outcome ≈ 0.97–0.99** (
     meta: '<div class="docmeta">'
       + '<span class="tag draft">working draft</span>'
       + '<span class="tag stage">scoring.py — the IP</span>'
-      + '<span class="tag dot">updated 2026-06-22</span></div>'
+      + '<span class="tag dot">snapshot 2026-06-22</span></div>'
   });
   Site.nav('grader');
 </script>

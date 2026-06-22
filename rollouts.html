@@ -82,7 +82,7 @@ const ROLLOUTS = {
     title: 'realistic · execute · v2', star: true,
     badge: { cls: 'reached', txt: 'reached map' },
     stats: [['resolution', '2.91 Å final · 3.16 Å loose'], ['jobs', '17'], ['turns', '64'],
-            ['wall', '58 min'], ['grader', '0.89 / 1.0']],
+            ['wall', '58 min'], ['grader', '0.77 / 1.0']],
     inputs: {
       kv: [
         ['model', '<code>claude-opus-4-8</code>, max_tokens 32k'],
@@ -111,15 +111,16 @@ const ROLLOUTS = {
       'Infra resilience: when mask-gen crashed it did not retry blindly — it substituted the refinement’s FSC mask and a separate Validation job to reach a defensible result.'
     ],
     performance: {
-      total: 0.89,
-      blocks: { outcome: 0.986, procedure: 0.711, integrity: 1.0 },
+      total: 0.77,
+      blocks: { outcome: 0.749, procedure: 0.711, integrity: 1.0 },
       gate: 1.0,
       subscores: [
         ['outcome', [
-          ['structure agreement (CC vs golden)', 0.97, 1.0, false],
-          ['deposited agreement (CC vs EMD-6287)', 0.996, 0.8, false],
-          ['fair GSFSC@0.143', 1.0, 0.5, false],
-          ['interpretability (EMRinger)', null, 0.0, false]
+          ['CC_mask (map–model vs 6BDF)', 0.69, 1.0, false],
+          ['EMRinger (interpretability)', 0.40, 0.9, false],
+          ['map–model FSC@0.5', 0.91, 0.8, false],
+          ['deposited agreement (CC vs EMD-6287)', 1.00, 0.5, false],
+          ['fair GSFSC@0.143', 1.00, 0.5, false]
         ]],
         ['procedure', [
           ['Select-2D templates (14 vs 2)', 0.0, 1.0, true],
@@ -135,7 +136,7 @@ const ROLLOUTS = {
           ['over-fit / mask gap', 1.0, 0.5, false]
         ]]
       ],
-      note: 'Reached a golden-class map (outcome 0.99, hand-gate 1.0 — it reconstructed the correct structure), but the <b>procedure block (0.71) carries the penalty</b>: the 14-template over-selection zeroes the highest-weight procedural subscore, and the skipped/failed polish stages drag stage-completeness to 0.48. This is exactly the decision-quality gap the 3.16 Å resolution hides.'
+      note: 'Held-out outcome ≈ 0.75 — uniform across all runs (it reconstructed the correct structure; hand-gate 1.0; none gamed), the sub-ceiling value reflecting the genuine subset-vs-full-data interpretability gap (EMRinger ≈ 0.40). The <b>procedure block (0.71) carries the ranking</b>: the 14-template over-selection zeroes the highest-weight procedural subscore, and the skipped denoise + failed mask-gen drag stage-completeness to 0.48 — the decision-quality gap that 3.16 Å resolution hides. See the <a href="grader.html">grader</a>.'
     }
   },
 
