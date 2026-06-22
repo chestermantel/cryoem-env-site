@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>cryo-EM env — internal site</title>
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<div class="wrap solo">
+  <main>
+    <article>
+      <h1>cryo-EM reconstruction environment</h1>
+      <p class="subtitle">Internal working views over the Scripps cryo-EM RL/eval environment — the spec we
+        build to, the agent rollouts, and how they're graded. For my own use; evolving.</p>
+      <div class="docmeta">
+        <span class="tag stage">tutorial MVP · T20S</span>
+        <span class="tag dot">public data only</span>
+        <span class="tag dot">updated 2026-06-22</span>
+      </div>
+
+      <div class="hubcards">
+        <a class="hubcard" href="rfp.html">
+          <h3>RFP spec</h3>
+          <p>A living version of the Anthropic RFP, instantiated for the tutorial MVP — task, data, signals,
+             reward integrity, difficulty, data access.</p>
+          <span class="arrow">Open →</span>
+        </a>
+        <a class="hubcard" href="rollouts.html">
+          <h3>Rollouts</h3>
+          <p>Demo agent rollouts grouped by action surface, with inputs, outputs, model behavior, and grader
+             performance — toggle any subset.</p>
+          <span class="arrow">Open →</span>
+        </a>
+        <a class="hubcard" href="grader.html">
+          <h3>Grader</h3>
+          <p>What the reward module is and, per metric, how it's computed and why it's used.</p>
+          <span class="arrow">Open →</span>
+        </a>
+      </div>
+    </article>
+  </main>
+</div>
+<script src="assets/site.js"></script>
+<script>Site.nav('index');</script>
+</body>
+</html>
