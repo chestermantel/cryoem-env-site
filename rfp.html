@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>T20S environment — v0 spec (tutorial MVP)</title>
+<title>Single-particle cryo-EM reconstruction — v0 evaluation-environment specification</title>
 <link rel="stylesheet" href="assets/site.css">
 </head>
 <body>
@@ -15,244 +15,233 @@
 </div>
 
 <script type="text/markdown" id="doc">
-# T20S reconstruction environment — v0 specification
+# Single-particle cryo-EM reconstruction — v0 evaluation-environment specification
 
-Drafted to the Anthropic RFP, *Evaluation Environments for Scientific Tasks* (May 2026). Instantiated for the public cryo-EM **tutorial MVP**: single-particle reconstruction of the **T20S proteasome** (EMPIAR-10025, 20-movie subset).
+Submitted in response to the RFP *Evaluation Environments for Scientific Tasks* (May 2026). This document specifies a v0 evaluation environment for **single-particle cryo-electron microscopy (cryo-EM) reconstruction**: the iterative, judgment-heavy pipeline that turns raw electron-microscope data into a 3D structure. It is written to be concrete enough to begin implementing, and it is instantiated on a public dataset that runs end to end today.
 
-> **What this page is.** New Atlantic's v0 environment specification answering the Anthropic RFP, scoped to the tutorial MVP we have actually built and run. It follows the RFP's required sections (task · data · signals/scoring · reward integrity · baseline & golden path · difficulty · problem family · metadata · 4–6-week plan · data access). It is a **living draft** — the spec's demands and our coverage tighten as we collect more and better results. This copy is for internal review, so each section carries a **status line** (`built` / `partial` / `gap`) that would not appear in a customer-facing spec.
-
-> **Our-instantiation vs the RFP (guardrail).** The RFP names **no framework** and prescribes execution-graded environments *generically* — named, weighted, computable subscores with held-out ground truth. Everything cryo-EM-specific here (the metrics, the weights, the tiers, the accessions, "outcome / procedure / integrity") is **our** instantiation, not an RFP citation. Where the RFP wording is load-bearing it is quoted.
+> **Note.** The RFP prescribes execution-graded environments generically — named, weighted, computable subscores graded against held-out ground truth. Everything domain-specific below (the particular metrics, their weights, the action surfaces, and the accessions) is our instantiation of those generic requirements, not a restatement of them.
 
 ---
 
 ## 1. Task definition
 
-The agent drives a **complete single-particle cryo-EM reconstruction**: from raw electron-microscope movies to a refined 3D density map, on the T20S proteasome tutorial set. This is the full iterative pipeline a structural biologist runs, not an isolated step.
+**What the agent does.** The agent performs a complete single-particle cryo-EM reconstruction: from raw electron-microscope movie frames and their acquisition metadata, it drives the full processing pipeline and must deliver a refined 3D density map of the imaged macromolecule — the entire iterative loop a structural biologist runs, not an isolated step.
 
-The continuous workflow the agent must execute:
+**Input the agent receives.**
+
+- Raw multi-frame movies for one dataset.
+- Acquisition metadata: pixel size, accelerating voltage, spherical aberration (Cs), total exposure dose, gain reference, detector type.
+- The point-group symmetry to impose at refinement and the particle-picker diameter(s) — given, not chosen.
+- A programmatic, no-GUI interface to a standard reconstruction package (cryoSPARC, via its Python API).
+- Depending on the configured guidance level: the public processing tutorial this environment tracks, and/or a job-type catalog with parameter values, and/or only a supervisor-style task brief plus the public API.
+- At each interactive step, a faithfully rendered, **non-leaking** observation (a class-average montage with per-class statistics; picks overlaid on a micrograph with the score histogram; map orthoslices and FSC curves) — images and aggregate statistics, with the raw per-particle arrays, the fitted cut, and the answer key withheld.
+
+**Actions the agent can take.** The primitive action vocabulary is: **create a job, run a job, read a job's results, and inspect-and-adjust an interactive job** — and, at the most open level, **write code directly against the package's Python API**. The environment presents these at three action surfaces, crossed with how much guidance it supplies:
+
+| Action surface | What the agent emits | Guidance range |
+|---|---|---|
+| **Single decision** | the choice for one interactive step (kept-class indices, a threshold, an iso-level), executed by the environment | one isolated task per decision, with correct upstream state supplied |
+| **Constrained tool calls** | one call per step over the verb set above; builds and runs the whole graph, every decision inline | fully specified workflow → tutorial-only minimal catalog |
+| **Free-form code** | Python written against the package API | full catalog + guidance → only a supervisor brief, the public tutorial, and the public API, with the agent discovering the job types itself |
+
+**Artifact it must produce.** A final 3D density map (sharpened, with its two half-maps), its global resolution from the gold-standard Fourier shell correlation (FSC), the refinement mask, and the realized job graph — job types, parameters, and intermediate outputs — that produced it.
+
+Formally, the agent constructs and executes a job graph **τ = (j₁,…,jₙ)**, each *jᵢ* a *(type, parameters, input-edges)* triple, yielding a final map **M** with half-maps; the environment returns a score **g(M, τ)** against held-out ground truth (§3).
+
+**What makes the task hard.** The pipeline is a directed graph, not a linear script — several parameters are *derived* from a prior job's output rather than supplied as inputs — and within the otherwise-fixed protocol exactly **five steps are genuine interactive judgments** rather than fixed procedure:
 
 ```
-import → motion-correct → CTF → (denoise) → blob-pick → inspect → extract → 2D classify
-   → select templates → template-pick → inspect → extract → 2D classify → select refine
-   → ab-initio (C1) → homogeneous refine (D7) → mask → validation → sharpen
+import movies → motion correction → CTF estimation → (denoise) → particle picking
+   → inspect/filter picks → extract → 2D classification → select picking templates
+   → template-based picking → inspect/filter picks → extract → 2D classification
+   → select refinement classes → ab-initio 3D (no symmetry) → 3D refinement (symmetry imposed)
+   → mask generation + FSC validation → B-factor sharpening
 ```
 
-It tracks the verbatim public cryoSPARC **Introductory Tutorial (T20S)**. Within it, **five steps are genuine interactive judgment calls** — everything else is procedurally fixed by the tutorial:
-
-1. **Select-2D (templates)** — which 2D class averages become picking templates (golden: ~2, one top + one side view).
-2. **Inspect picks (blob pass)** — NCC / power thresholds for junk rejection.
-3. **Select-2D (refine)** — which classes feed the 3D refinement (golden: ~15 of 50).
-4. **Inspect picks (template pass)** — second-pass thresholds.
-5. **Mask threshold** — iso-level for the static mask used in validation.
-
-Symmetry (D7) and particle diameter are **given by the tutorial — not interactive** at this tier.
-
-**Input the agent receives.** Raw movies plus acquisition metadata (pixel size, voltage, Cs, dose, gain reference), and — depending on tier — the public tutorial text and/or a job-type catalog and API references. **Artifact it must produce.** A final 3D density map (`.mrc`) with its two half-maps, plus the realized job graph (job types, parameters, and intermediate outputs) that produced it.
-
-**Action space — a realism ladder (built and run).** Two axes: *action surface* (constrained tools → the agent writing raw code) × *scaffolding* (easy → hard → realistic).
-
-| Tier | Action surface | Variants | What the agent is given |
-|---|---|---|---|
-| **1 · Single-decision** | structured decision only (emit indices / thresholds / iso-level) | one task per decision (×5) | a faithful, **non-leaking** rendered observation + the tutorial's decision criteria; correct upstream state grafted in |
-| **2 · End-to-end, constrained tools** | `create_job` / `run_job` / `get_results` / `inspect_*` | easy · hard | one prompt to **build + run** the whole DAG, every decision inline. easy = full catalog + params + guidance; hard = tutorial-only minimal catalog |
-| **3 · Raw cryosparc-tools** | the agent **writes `cryosparc-tools` Python** (`run_python` over a persistent namespace) | easy · **realistic** | the public tutorial + public API only; phased build→execute. realistic = PI-style brief, agent discovers job types itself (`cs.print_job_types()`) and decides everything |
-
-> **Status — tier built.** <span class="pill ok">built</span> All three tiers run live against a real cryoSPARC instance; 17 rollouts catalogued. The maximally-realistic tier-3 run reconstructed a map autonomously (discovered job types, drove interactive inspection via the job API, self-recovered a crashed cryoSPARC DB). <span class="pill partial">partial</span> Observations are rendered programmatically (PNG montages / pick overlays); a **frozen-observation snapshot** so a fixed benchmark replays without the live pipeline is not yet built.
+The five judgments the agent owns: **two particle-pick threshold cuts** (after the first and second picking passes — the cross-correlation/power cut separating particles from junk); **two 2D class-average selections** (which classes become picking templates, and which feed 3D refinement); and **one mask iso-level**. The point-group symmetry and the particle diameter are given, not chosen.
 
 ---
 
 ## 2. Data
 
-**Primary dataset.** EMPIAR-10025, T20S proteasome — the **20-movie subset** that is the cryoSPARC tutorial's own `downloadtest` set (Titan Krios, 300 kV, K2). Acquisition parameters (task-intrinsic, version-pinned): pixel **0.6575 Å**, **300 kV**, Cs **2.7 mm**, dose **53 e/Å²**, gain `norm-amibox05-0.mrc`, symmetry **D7**.
+**Primary dataset.** EMPIAR-10025, the T20S proteasome — the 20-movie subset used by the standard public reconstruction tutorial (Titan Krios, 300 kV, K2 detector). Acquisition parameters (task-intrinsic): pixel size **0.6575 Å**, voltage **300 kV**, Cs **2.7 mm**, dose **53 e/Å²**, gain reference `norm-amibox05-0.mrc`, symmetry **D7**.
 
-**Ground truth — two references, used for two different jobs:**
+**Ground truth.** The published, peer-reviewed reconstruction of this specimen, held out from the agent:
 
-| Reference | What | Used for |
+| Reference | What it is | Role |
 |---|---|---|
-| **In-house golden — W1 by-hand** | the same 20-movie subset, run by hand to ~**3.15 Å** loose-mask GSFSC, D7 | the **resolution / particle-count band anchor** (same subset → apples-to-apples) and the **procedure** reference |
-| **Held-out deposited — EMD-6287 + PDB 6BDF** | the published full-dataset **2.8 Å** T20S reconstruction + re-refined atomic model, D7 (+ deposited half-maps) | **structural correctness** ("did it build the right structure"), held out from the agent |
+| **Deposited atomic model (PDB 6BDF)** | the re-refined atomic model of the structure | primary structural answer key — *did the agent build the right structure* |
+| **Deposited density map (EMD-6287)** | the full-dataset 2.8 Å reconstruction + half-maps | supporting map-to-map cross-check |
+| **In-house expert reconstruction** | the same 20-movie subset processed by hand to ≈3.15 Å | the same-subset resolution / particle-count reference and the procedure target values |
 
-**Measurement model / how ground truth is established.** The deposited map and model come from the published, peer-reviewed T20S reconstruction pipeline; we recompute every agreement metric ourselves from half-maps under **one fixed engine and procedure** for every map *including the deposited reference* (the cryoAgent fairness rule) — never comparing a number we computed against a number a paper printed.
+**Measurement model.** The deposited map and model come from the published structure-determination pipeline for this specimen. We do not compare against numbers printed in the paper: every agreement metric is recomputed by us, under one fixed engine and procedure applied identically to every map — including the deposited reference itself.
 
-**Splits the environment needs (RFP).** *Held-out:* the deposited EMD-6287/6BDF structural answer key (§4). *Perturbed/resampled:* a **degraded-map suite** (wrong-hand mirror, fewer particles / half-density, added noise, over-loose mask) used to prove the scorer drops monotonically. *External / cross-source (transfer):* a harder public EMPIAR instance, then the Scripps tier-3 system (§10) — the **same structural workflow** across all tiers.
+**Splits.**
 
-> **Guardrails (verified — do not violate).** (a) **Subset ceiling** — our runs use 20 movies (~3.1 Å ceiling); a run must **not** be penalized for not reaching the 2.8 Å full-dataset figure (band against W1, never 2.8 Å). (b) The accession is **EMD-6287 / 6BDF, *not* 3J9I** (a different T20S deposition). (c) **Never** grade T20S runs against the Scripps HIV-Env / VRC01 maps in `ChimeraX/` — a different system.
+- **Held-out (in place):** the deposited model and map, and all agreement metrics computed against them. The agent never reads the answer key.
+- **Perturbed / resampled (in place):** a degraded-map control suite — a wrong-hand (mirror) variant, a fewer-particles / half-density variant, and an added-noise variant — used to confirm the scorer drops on quality differences the resolution number cannot see.
+- **External / transfer (proposed):** a harder public EMPIAR dataset, and then the same structural workflow on an access-restricted dataset (§10). The pipeline is identical across splits, which is what makes transfer meaningful.
 
-> **Status.** <span class="pill ok">built</span> Primary dataset staged; W1 golden + half-maps verified; deposited map/model/half-maps confirmed present. <span class="pill gap">gap</span> Stable, named **train/test splits** (RFP) are deliberately **deferred** for this single-instance POC — flagged in §11.
+> **Note — resolution ceiling.** Runs use a 20-movie subset, whose achievable ceiling is ≈3.1 Å. A run is never penalized for not reaching the 2.8 Å full-dataset figure: resolution bands are set against the same-subset reference, and structural agreement is normalized to the deposited reference low-pass-filtered to each run's *own* resolution.
 
 ---
 
 ## 3. Feedback signals and scoring
 
-The environment returns **named, computable subscores in three blocks** — each a number in `[0,1]` with a stated direction, *not* a qualitative judgment. The signals an agent legitimately sees during interaction (its own half-map FSC, counts, cryoSPARC plots) are distinct from the **held-out** agreement metrics used only for final scoring (§4).
+The environment returns **named, computable subscores**, each a number in `[0,1]` with a stated direction — never a qualitative judgment. They are organized into **three weighted blocks** — outcome, procedure, integrity — which are the three named signals the headline reduces to; the per-block subscores below are their computable decomposition. The signals an agent legitimately sees during interaction (its own half-map FSC, the package's plots, intermediate particle counts) are distinct from the held-out agreement metrics used only for final scoring (§4).
 
-### Outcome block — did it build the right structure (held out)
+### Outcome — did it build the right structure (held out)
 
-| Subscore | Measures | Direction | Normalization |
+| Signal | Measures | Direction | Normalization |
 |---|---|---|---|
-| **Structure agreement (CC vs golden)** — *primary* | real-space correlation of the run's map to the W1 golden map, after a coarse-to-fine SO(3) alignment | higher better | ceiling = golden-vs-golden = 1.0 |
-| **Deposited agreement (CC vs EMD-6287)** — *supporting* | correlation to the deposited map | higher better | normalized to the golden-vs-deposited ceiling (~0.50, resolution-limited — subset ceiling honored) |
-| **Handedness gate** | enantiomer (mirror) CC vs golden — catches wrong-hand maps | gate | **multiplicative**: wrong hand caps the outcome to ~0 |
-| **EMRinger / map-model CC** — *deferred* | side-chain register & map-model agreement vs 6BDF | higher better | weight 0 until supplied (see §11) |
+| **Map–model correlation** *(primary)* | real-space correlation between the run's map and the held-out deposited model | higher better | ratio to the deposited reference's correlation at the run's own resolution |
+| **Side-chain interpretability (EMRinger)** *(primary)* | fraction of side chains whose density peaks at the modeled rotamer — register and interpretability, orthogonal to nominal resolution | higher better | ratio to the resolution-matched reference |
+| **Map–model resolution (FSC = 0.5)** *(primary)* | the resolution at which map and model agree across shells | lower better | reference resolution ÷ value |
+| **Map–map agreement** *(supporting)* | real-space correlation to the deposited density map | higher better | ratio to the resolution-limited deposited ceiling |
+| **Fair resolution (gold-standard FSC at 0.143)** *(supporting)* | nominal resolution, recomputed under one fixed mask for every run rather than each run's self-reported mask | lower better | banded against the same-subset reference |
+| **Handedness gate** | enantiomer (mirror) check — catches wrong-hand maps | gate | **multiplicative**: a wrong-hand map caps the outcome block to ≈0 |
 
-### Procedure block — was the science done correctly (computable off structured fields)
+The interpretability and map–model signals are deliberately resolution-orthogonal: a map can report good resolution yet fail them, which is the failure mode resolution alone hides (§6).
 
-| Subscore | Golden | Banding |
+### Procedure — was the science done correctly (computed off the realized job graph)
+
+Each procedure signal is banded to `[0,1]`, higher = closer to the golden target:
+
+| Signal | Target | Banding |
 |---|---|---|
-| **Select-2D templates count** | 2 | band around 2; heavy penalty for gross over-selection (hard kept 29, realistic 14) — the single highest-signal procedural flag |
-| **Select-2D refine count** | 15 of 50 | band around 15 |
-| **Symmetry** | D7 at refine, C1 at ab-initio | exact-match |
-| **Box size** | 440 px | band; flag anomalies |
-| **Picker diameters** | tutorial values | band |
-| **Stage completeness** | denoise · junk · mask-gen · validation · sharpen | partial credit per expected stage; penalize skips |
-| **Particle-count trajectory** | ~12.7k→11k→9.5k *shape* | each stage within a band of golden shape (not exact counts — version-sensitive) |
-| **Pick curation** | auto-calibrated (~0.41 NCC) | thresholds not absurdly loose + downstream kept-fraction |
+| **Picking-template count** | a small distinct-view set (≈2) | band around the target; gross over-selection is the single highest-signal procedural flag |
+| **Refinement-class count** | the clean subset (≈15 of 50) | band around the target (wider tolerance — a softer call) |
+| **Symmetry** | the given point group at refinement; none imposed at ab-initio | exact match |
+| **Box size** | the protocol value | band; flag anomalies |
+| **Picker diameters** | the protocol values | band |
+| **Stage completeness** | denoising · junk rejection · mask generation · validation · sharpening present | partial credit per expected stage; penalize skips |
+| **Particle-count trajectory** | the expected stage-to-stage shape | each stage within a band of the reference shape — not exact counts, which are version-sensitive |
+| **Pick-threshold curation** | thresholds not grossly loose | banded on the cut and the downstream kept fraction |
 
-### Integrity block — is the headline honest (§4)
+### Integrity — is the headline honest
 
-| Subscore | Measures | Direction |
+| Signal | Measures | Direction |
 |---|---|---|
-| **Over-fit / mask gap** | self-FSC inflation from a too-tight mask vs the corrected curve | smaller gap better |
+| **Over-fitting / mask gap** | inflation of the self-reported FSC from a too-tight mask, relative to the corrected curve | smaller gap better |
 
-**Reduction — full trajectory → one number.** The RFP-sanctioned "weighted combination of signals": a weighted sum of the named subscores, **outcome-dominated**, with provisional block weights **outcome 0.50 / procedure 0.35 / integrity 0.15** (the handedness gate is multiplicative). Procedure carries real weight on purpose: in scientific RL, *correct procedure is part of the ground truth*, and on this well-behaved instance the outcome is near-saturated, so the procedure block is what discriminates.
+**Reduction to a single number.** A full trajectory reduces to a weighted sum of the named subscores — the RFP's "weighted combination of signals" — grouped into the three blocks above, so the headline is three named, weighted components (outcome / procedure / integrity), outcome-dominated, with the handedness gate applied multiplicatively to the outcome block. Provisional block weights are **outcome 0.50 / procedure 0.35 / integrity 0.15**.
 
-**Current headline scorecard** (`runs/agent/grader/scorecard.md`):
+**Results — four end-to-end rollouts.** All four reached a final map at essentially the same nominal resolution (3.11–3.18 Å):
 
-| Run | TOTAL | outcome | procedure | integrity | the procedural tell |
+| Run | Total | Outcome | Procedure | Integrity | What distinguished it |
 |---|---|---|---|---|---|
-| raw_easy | **0.99** | 0.98 | 1.00 | 1.0 | clean: 2 templates, 16 classes |
-| e2e_easy | **0.98** | 0.99 | 0.96 | 1.0 | 2 templates, 19 classes |
-| raw_realistic | **0.89** | 0.99 | 0.71 | 1.0 | **14 templates**, no denoise, mask failed |
-| e2e_hard | **0.87** | 0.97 | 0.68 | 1.0 | **29 templates**, skipped denoise + mask-gen |
+| Fully guided | **0.86** | 0.73 | 1.00 | 1.00 | clean: 2 picking templates, 16 refinement classes |
+| Guided, tool-driven | **0.86** | 0.74 | 0.96 | 1.00 | 2 templates, 19 classes |
+| Autonomous (brief + tutorial only) | **0.77** | 0.74 | 0.71 | 1.00 | **14 templates**, no denoising, mask step failed |
+| Sparse guidance | **0.75** | 0.72 | 0.68 | 1.00 | **29 templates**, skipped denoising and mask generation |
 
-> **Status.** <span class="pill ok">built</span> Outcome (map-to-map + handedness), procedure, and integrity blocks implemented in `scoring.py` (the harness-agnostic IP) and produce the scorecard above. <span class="pill gap">gap</span> The map-to-**model** outcome (EMRinger / CC_mask vs 6BDF) is deferred — `dock_in_map` did not converge on the 46k-atom D7 assembly within budget; flagged as the top next step. <span class="pill partial">partial</span> Weights are explicit but **provisional**, to be frozen after calibration on the degraded-map suite.
+The runs are indistinguishable on resolution; the procedure block recovers the quality gap between them.
 
 ---
 
 ## 4. Reward integrity
 
-- **Visible to the agent during interaction:** its own half-map GSFSC, the cryoSPARC plots, intermediate particle counts — everything a working scientist legitimately sees.
-- **Held out for final scoring:** the deposited **EMD-6287 map + 6BDF model** and every agreement metric computed against them. The agent never reads the answer key.
-- **Main gaming vector — "wishful masking" / over-fitting:** a too-tight mask inflates the self-reported FSC while the map disagrees with the truth. **Defense:** the held-out map agreement (and the within-run tight-vs-corrected mask gap, §3 integrity) catch this structurally — a wishfully-masked map scores worse on the held-out outcome even when its self-FSC looks great.
-- **State the agent must not read or alter:** the deposited reference files, the grading code, any cached golden key.
-- **Core reward is rule-based and computable — no learned reward model, no LLM-judge** (both gameable). An LLM-judge or the non-leaking observation PNGs may be a *separate, optional QC signal*, never in the core.
+- **Visible to the agent during interaction:** its own half-map FSC, the reconstruction package's plots, and intermediate particle counts — everything a working scientist legitimately sees.
+- **Held out for final scoring:** the deposited model and map, and every agreement metric computed against them.
+- **Main degenerate strategy — "wishful masking" / over-fitting:** a too-tight mask inflates the self-reported FSC while the underlying map disagrees with the truth. The defense is structural: the held-out map–model agreement scores such a map down regardless of how good its self-reported FSC looks, and the within-run mask-gap integrity signal flags the inflation directly.
+- **State the agent must not read or alter:** the held-out reference files, the grading code, and any cached answer key.
+- **The core reward is rule-based and computable** — no learned reward model and no LLM-as-judge, both of which are gameable. (A model-graded or image-based check could serve as a separate, optional quality signal, never as part of the core score.)
 
-> **Status.** <span class="pill ok">built</span> Held-out outcome + mask-gap integrity term implemented; sensitivity validated (`validation.md`): wrong-hand mirror → hand-gate **0.0**; heavy noise → 0.91; half-density → 0.35; real runs 0.95–0.97.
+The degraded-map control suite (§2) confirms the held-out signals behave: a wrong-hand map is zeroed by the handedness gate, and a half-density map — which passes the handedness gate — is caught instead by the map–model block, while honest runs sit well above both.
 
 ---
 
 ## 5. Baseline and golden path
 
-**Golden path.** The **W1 by-hand expert trajectory** — a structural biologist driving the full cryoSPARC pipeline to ~3.15 Å, with the exact job graph and parameters recorded (`docs/golden-path.md`). This is both the reference trajectory an agent is graded against and the source of the procedure golden values.
+**Golden path.** The expert by-hand trajectory: a structural biologist driving the full pipeline to ≈3.15 Å on the subset, with the complete job graph and parameter choices recorded. This is both the reference trajectory procedure is graded against and the source of the procedure target values.
 
-**Baselines the agent should beat.**
-- **Rigid programmatic pipeline** (`reconstruction_pipeline.py`) — "dumb automation" that runs the DAG with fixed heuristics and no judgment. A floor reference.
-- **The naive resolution-only grader** — the in-sample-reasonable baseline that *fails the robustness signal*: it rates every run ~equal because all four reach 3.11–3.18 Å, and so **cannot rank decision quality**. The environment's whole point is to beat this — the quality headline separates runs the resolution number conflates.
-
-> **Status.** <span class="pill ok">built</span> Golden path run, recorded, and reproduced programmatically (matches by-hand). <span class="pill partial">partial</span> The rigid pipeline exists as a floor; it is not yet wired into the scorecard as a labelled baseline row.
+**Baseline the agent should beat — a resolution-only scorer.** Ranking runs by final resolution looks entirely reasonable in-sample, but it fails on exactly the signal that matters: every end-to-end run reaches ≈golden resolution (3.11–3.18 Å) regardless of decision quality, so a resolution-only metric rates them all equal and **cannot rank the science**. Beating this baseline — recovering the quality differences resolution conflates — is the environment's reason to exist. Correct procedure is itself part of the ground truth here, which is why the procedure block carries real weight. A rigid, fixed-heuristic automation of the same pipeline serves as a second, floor-level baseline.
 
 ---
 
 ## 6. Difficulty
 
-The RFP asks the headline to sit **meaningfully below ceiling**. Here the subtlety *is* the difficulty: the **naive metric (resolution) is saturated** — every end-to-end run reaches ~golden resolution (3.11–3.18 Å) regardless of decision quality — but the **real quality headline is not**. The procedure and integrity terms keep the sloppy runs (`e2e_hard` 0.87, `raw_realistic` 0.89) visibly below the clean runs (`raw_easy` 0.99, `e2e_easy` 0.98).
+The naive metric is saturated; the real quality signal is not. Every end-to-end run reaches ≈golden resolution, yet the procedure and integrity terms keep the sloppy runs visibly below the clean ones (0.75–0.77 vs 0.86 above). The cleanest evidence of non-triviality: a run that kept **29 picking templates** (it should keep about two) and **skipped both denoising and mask generation** still posted the *best* nominal resolution (3.11 Å) — and the scorer ranked it below the clean runs anyway. The headroom lives in judgment, not in the final scalar.
 
-The cleanest evidence of non-triviality: **`e2e_hard` kept 29 templates (should be ~2) and skipped denoise + mask generation, yet posted the *best* resolution (3.11 Å).** A model can reach a good-looking number while doing poor science — and the grader catches it. This is an environment where headroom lives in *judgment*, not in the final scalar.
-
-> **Status.** <span class="pill ok">built</span> The saturation-vs-discrimination result is demonstrated and is the grader's reason to exist. <span class="pill gap">gap</span> Headroom is currently shown across *scaffolding* (easy vs hard/realistic); a harder *instance* that pushes even clean-procedure runs below ceiling on outcome is future work (§7, §10).
+On this single, well-behaved instance the held-out *outcome* block is itself near-saturated, so most of the current discrimination comes from the procedure block and from the perturbation and transfer splits. Pushing even clean-procedure runs meaningfully below ceiling on outcome is the role of harder instances — see the problem family (§7).
 
 ---
 
 ## 7. Problem family
 
-**Today: a single fixed instance** (T20S / EMPIAR-10025, 20-movie subset) — valuable as a held-out eval, with a **within-instance perturbation family** already built (the degraded-map suite: mirror / low-N / noise / mask).
+Today this is a **single fixed instance** — valuable as a held-out eval — together with a **within-instance perturbation family** already in place (the degraded-map control suite: mirror / low-particle / noise).
 
-**Proposed family** (for training value): a parameterized manifold of instances **{dataset × start-tier × perturbation}** — multiple EMPIAR datasets, the pipeline entered at different stages (raw movies vs pre-computed particles), and systematic perturbations. Instances would be enumerated by a generator script (the RFP's "manifest of problem instances generated by a script you write").
+For training value we propose a **parameterized family of instances** over three axes:
 
-> **Status.** <span class="pill gap">gap</span> Family is specified, not yet formalized or enumerated. Per-decision variance also unmeasured — cryoSPARC is stochastic and runs are single-shot; each interactive decision should be repeated ~5× to characterize the distribution, not a single draw.
+- **dataset** — a handful of public EMPIAR single-particle sets spanning a range of symmetries, particle sizes, and difficulties;
+- **pipeline entry stage** — the agent enters at raw movies, at motion-corrected micrographs, or at pre-extracted particles;
+- **perturbation** — none, mirror, particle subsampling at set fractions, or added noise at set levels.
+
+A generator script emits one manifest row per point in the product of these axes — a stable instance id mapping to its configuration — yielding the RFP's "manifest of problem instances generated by a script you write." The perturbation axis is already enumerated; the dataset and entry-stage axes are the proposed extension.
 
 ---
 
 ## 8. Metadata
 
-- **Expected human completion time (one instance):** roughly a half to a full working day for a trained user end-to-end (interactive steps + queue/compute waits); the compute itself is GPU-hours.
-- **Difficulty tier (relative to current models):** medium. Frontier models reach a golden-class *map* but make materially sub-optimal *judgment* calls — the gap the grader measures.
-- **Grading approach:** **hybrid, programmatic-dominant** — computable map-agreement + structured-field procedure checks; no LLM-judge in the core.
-- **What bad performance looks like (failure modes the env exposes):**
+- **Expected human completion time (one instance):** roughly a half to a full working day for a trained user end to end, counting the interactive steps and queue/compute waits; the compute itself is GPU-hours.
+- **Difficulty tier (relative to current models):** medium — distinct from the data-access tiers in §10. Frontier models reach a golden-class *map* but make materially sub-optimal *judgment* calls, which is the gap this environment measures.
+- **Grading approach:** hybrid, programmatic-dominant — computable map-agreement metrics plus structured-field procedure checks; no LLM-judge in the core.
+- **What bad performance looks like:**
 
 | Failure mode | Signature | Caught by |
 |---|---|---|
-| Over-selecting 2D templates | 14–29 templates kept vs ~2 | procedure: select-2D templates |
-| Skipping pipeline stages | no denoise / no mask-gen / no validation | procedure: stage completeness |
-| Under-curating picks | NCC/power thresholds left far too loose | procedure: pick curation |
-| Wishful masking | inflated self-FSC, disagreement with truth | integrity gap + held-out outcome |
-| Wrong handedness | mirrored map | outcome: handedness gate → ~0 |
-| Right answer, wrong science | golden resolution via a bad procedure | the procedure block (the headline finding) |
+| Over-selecting picking templates | 14–29 templates kept vs ≈2 | procedure: template count |
+| Skipping pipeline stages | no denoising / no mask generation / no validation | procedure: stage completeness |
+| Under-curating picks | thresholds left far too loose | procedure: pick-threshold curation |
+| Wishful masking | inflated self-FSC that disagrees with the truth | integrity gap + held-out outcome |
+| Wrong handedness | mirrored map | outcome: handedness gate → ≈0 |
+| Right number, wrong science | golden resolution via a poor procedure | the procedure block |
 
 ---
 
 ## 9. Four-to-six-week plan
 
-A pilot that ends with something runnable end-to-end under a fixed compute budget. Much of this is already complete in the MVP; the plan is framed against what a clean pilot delivery would sequence.
+A pilot that ends with the environment runnable end to end under a fixed compute budget. Weeks 1–4 already run as a working prototype on the public data; the schedule below is how we would sequence a clean delivery.
 
-| Week | Deliverable | MVP status |
-|---|---|---|
-| 1 | Data staged; golden path run by hand + reproduced programmatically | <span class="pill ok">done</span> |
-| 2 | Action surface live — agent drives the pipeline (single-decision → end-to-end) | <span class="pill ok">done</span> |
-| 3 | Raw-code / maximally-realistic tier; rollouts collected and catalogued | <span class="pill ok">done</span> |
-| 4 | Scorer implemented — named weighted subscores; held-out outcome; sensitivity-validated | <span class="pill ok">done</span> |
-| 5 | Baseline rows wired in; weights frozen on the degraded suite; map-to-model outcome added | <span class="pill partial">in progress</span> |
-| 6 | Containerized two-hook env + instance manifest + stable splits; runnable from a fixed budget | <span class="pill gap">remaining</span> |
-
----
-
-## 10. Data access (tiered)
-
-Runnable **from day one on public data**, with a tiered path to the encumbered data where the real value is:
-
-1. **Day-one public (no agreement):** T20S / EMPIAR-10025 + the deposited EMD-6287 / 6BDF answer key — all public, fetched from EMPIAR/EMDB/RCSB. The entire MVP runs on this.
-2. **Light credentialing:** a harder public EMPIAR instance to extend the difficulty/transfer ladder (to be selected).
-3. **DUA-gated (the moat):** the Scripps tier-3 system — the non-public reconstruction pipeline data (raw micrographs → particle selections → maps → model-building/refinement logs, parameters, provenance) behind a *published* paper, ~20 TB. The **same structural workflow** scales from the public T20S anchor to this tier — public tier-1 and DUA tier-3 are the same kind of pipeline, so the environment generalizes along one continuous workflow.
-
-> **Status.** <span class="pill ok">built</span> Tier-1 fully public and runnable. <span class="pill gap">gap</span> Tier-2 instance unselected; tier-3 gated on the pilot DUA.
+| Week | Deliverable |
+|---|---|
+| 1 | Stage the public data; run and record the expert golden path; reproduce it programmatically. |
+| 2 | Stand up the action surface — the agent drives the pipeline on a live instance, from single decisions to end-to-end. |
+| 3 | Collect and catalogue agent rollouts across the guidance/autonomy range. |
+| 4 | Implement the scorer — named weighted subscores with a held-out outcome — and validate its sensitivity on the degraded-map control suite. |
+| 5 | Wire in the baselines (the resolution-only scorer and the rigid pipeline); calibrate and freeze the weights. |
+| 6 | Package the containerized environment (setup + grading hooks), the instance manifest from a generator script, the data-fetch step, and stable train/test splits; confirm an end-to-end run under a fixed budget. |
 
 ---
 
-## How this proposal evaluates itself
+## 10. Data access
 
-The RFP scores proposals on two criteria.
+Runnable from day one on public data, with a tiered path to the encumbered data where the deepest value is:
 
-- **Technical feasibility.** Demonstrated, not promised: the environment is **already built and run end-to-end** on obtainable public data, with computable metrics, an implemented scorer, and a real baseline — all on a single cloud GPU instance.
-- **Scientific merit.** The task is the genuine iterative reconstruction loop a structural biologist runs, graded against a **published, validated** answer key, with a held-out outcome that confirms *the right structure was built* and a procedure layer that measures *whether the science was done well* — the difference a resolution number hides. A model that scores well here is genuinely more useful for the underlying research problem.
+1. **Public, day one (no agreement):** EMPIAR-10025 and the deposited answer key (the model and map), all fetched from public archives. The entire v0 runs on this.
+2. **Light credentialing:** a harder public EMPIAR dataset, to extend the difficulty and transfer range.
+3. **Under a data-use agreement:** the non-public reconstruction pipeline data behind a *published* structure — raw micrographs, particle selections, intermediate maps, and the model-building/refinement logs, parameter choices, and provenance (~20 TB) — held by a partner research institute. The same structural workflow scales continuously from the public anchor to this dataset.
 
----
-
-## Deliverable — what we build toward
-
-Per the RFP's "what you will eventually build": a **containerized environment with two hooks** — a *setup* function returning the task prompt + materials, and a *grading* function returning **named numeric subscores with weights** — plus an instance manifest from a generator script, a data-fetch step, a trivial baseline, and stable train/test splits.
-
-Current mapping: `scoring.py` is the harness-agnostic grading IP (`score_run → {subscores, total, bands}`); `inspect_tasks.py` is a thin adapter; the run drivers are the setup/rollout surface. The scoring module is kept **framework-agnostic** so it survives a harness port.
+**Shareable vs. encumbered.** The public tier is shareable for this purpose immediately. The encumbered tier comes online under a data-use agreement now in negotiation with the partner institution; the public tier is fully sufficient to build, run, and evaluate the v0 environment in the meantime.
 
 ---
 
-## Open questions — what will change as results improve
+## How this meets the evaluation criteria
 
-This is the part most likely to move; it is why the page is a draft.
+- **Technical feasibility.** Demonstrated rather than promised: the environment has been built and run end to end on obtainable public data, on a single cloud GPU instance, with computable metrics, an implemented scorer, and a real baseline.
+- **Scientific merit.** The task is the genuine iterative reconstruction loop a structural biologist runs, graded against a published, validated answer key — with a held-out outcome that confirms the *right structure* was built and a procedure layer that measures whether the *science was done well*, the difference a resolution number hides. A model that scores well here is more useful for the underlying research problem, not just better at the narrow metric.
 
-- **Map-to-model outcome** (EMRinger / CC_mask vs 6BDF) — add the side-chain-register interpretability bar once model docking is made reliable (detached/on-box `dock_in_map`, or seeded single-ASU docking).
-- **Weights** — freeze the 0.50 / 0.35 / 0.15 blocks (and within-block weights) after calibration on the degraded-map suite.
-- **Train/test splits & instance family** — formalize {dataset × start-tier × perturbation} and enumerate via a manifest script.
-- **Per-decision variance** — repeat each interactive decision ~5× to grade the *distribution*, not a single stochastic draw.
-- **Harder transfer instance** — pick the specific harder public EMPIAR dataset(s) for tier-2.
-- **Frozen-observation snapshots** — capture rendered observations so a fixed benchmark replays without the live pipeline.
-- **cFAR / anisotropy** — optional for D7 T20S (weak discriminator); revisit for lower-symmetry instances.
-- **Baseline rows** — wire the rigid pipeline and the naive resolution-only grader in as explicit scorecard rows.
+## What the pilot builds toward
 
----
+Per the RFP's "what you will eventually build": a containerized environment with two hooks — a *setup* function returning the task prompt and materials, and a *grading* function returning named numeric subscores with weights — plus a manifest of problem instances from a generator script, a data-fetch step, a trivial baseline, and stable train/test splits. The scoring module is kept harness-agnostic so it survives integration into any evaluation framework.
 
-## Revision log
+## Open questions for the pilot
 
-- **2026-06-22** — initial draft. Synthesized from the Anthropic RFP + Samuel Stanton correspondence and the current design docs (`grading.md`, `benchmark-tasks.md`, `golden-path.md`) and the built grader (`scoring.py`, `scorecard.md`, `validation.md`).
+- Calibrating and freezing the block and within-block weights on the degraded-map control suite (they are provisional today).
+- Formalizing and enumerating the instance family `{dataset × entry-stage × perturbation}` via the generator script.
+- Characterizing per-decision variance: the pipeline is stochastic and runs are single-shot, so each interactive decision should be repeated several times to grade the distribution rather than a single draw.
+- Selecting the specific harder public dataset for the transfer split.
+- Capturing frozen observation snapshots so a fixed benchmark can replay without driving the live pipeline.
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
@@ -260,10 +249,10 @@ This is the part most likely to move; it is why the page is a draft.
 <script>
   Site.renderDoc({
     meta: '<div class="docmeta">'
-      + '<span class="tag draft">working draft</span>'
-      + '<span class="tag stage">tutorial MVP \u00b7 T20S</span>'
-      + '<span class="tag dot">public data only</span>'
-      + '<span class="tag dot">updated 2026-06-22</span></div>'
+      + '<span class="tag stage">v0 specification</span>'
+      + '<span class="tag dot">single-particle cryo-EM reconstruction</span>'
+      + '<span class="tag dot">runnable on public data</span>'
+      + '<span class="tag dot">submitted June 2026</span></div>'
   });
   Site.nav('rfp');
 </script>

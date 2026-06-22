@@ -17,6 +17,8 @@
 
 What the grader actually computes — the subscores, their weights, and the exact computation — first; then what each subscore is and its scientific justification; then how the scheme serves the Anthropic RFP. Everything below reflects the current `src/recon_env/scoring.py` (the harness-agnostic IP) and the live scorecard. Numbers are a snapshot; the grader is under active calibration.
 
+The scheme **is** one declarative registry, `scoring.BLOCKS` — adding or reweighting a metric is one edit there. A run is graded by the `recon_env.grade` pipeline (a rollout manifest → `grades.json` + `scorecard.md`), and this exact suite is auto-rendered to `runs/agent/grader/suite.md` so it can't drift from the code.
+
 > **One-line orientation (then straight to the literal definitions).** Every run is reduced to a single number by a weighted combination of named subscores in three blocks — **outcome 0.50 · procedure 0.35 · integrity 0.15** — with a multiplicative **handedness gate** on the outcome block. The motivating fact: every run reached ~3.1 Å, so resolution can't rank them; the grader adds held-out structural-agreement and per-stage procedure subscores that can.
 
 ## Subscores, weights & computation
@@ -49,7 +51,7 @@ Held-out structural agreement vs the deposited ground truth, each normalized to 
 | **EMRinger** <span class="pill ok">computed</span> | 0.9 | side-chain rotamer-in-density score vs 6BDF (`phenix.emringer`); scored `value / ceiling` (floor 0) |
 | **map–model FSC@0.5** <span class="pill ok">computed</span> | 0.8 | resolution (Å) where map-vs-model FSC = 0.5 (`phenix.mtriage`); lower Å is better, scored `ceiling / value` |
 | **deposited agreement (CC vs EMD-6287)** <span class="pill ok">computed</span> | 0.5 | map-to-map CC vs the deposited map; scored `value / ceiling` (floor 0.5). Hand-blind → guarded by the gate |
-| **fair GSFSC@0.143** <span class="pill ok">computed</span> | 0.5 | half-map FSC@0.143 recomputed under one fixed mask; banded vs the W1 anchor 3.15 Å: Δ ≤ 0.15 → 1.0; ≤ 0.4 → 0.8; ≤ 0.8 → 0.55; ≤ 1.5 → 0.3; else 0.1 |
+| **fair GSFSC@0.143** <span class="pill ok">computed</span> | 0.3 | half-map FSC@0.143 recomputed under one fixed mask; banded vs the W1 anchor 3.15 Å: Δ ≤ 0.15 → 1.0; ≤ 0.4 → 0.8; ≤ 0.8 → 0.55; ≤ 1.5 → 0.3; else 0.1. Deliberately low weight — the metric that already can't rank the runs |
 | **handedness** <span class="pill rfp">gate (×)</span> | — | compares the run map's CC-to-W1 against its mirror's: if mirror > cc + 0.05 → **0.0**; within 0.02 → 0.6; else 1.0. Multiplies the whole outcome block |
 
 ### Procedure block — weight 0.35
@@ -85,16 +87,16 @@ The literal output over the four graded runs (`runs/agent/grader/scorecard.md`):
 
 | Run | TOTAL | outcome (0.50) | procedure (0.35) | integrity (0.15) | hand-gate |
 |---|---|---|---|---|---|
-| raw_easy | **0.873** | 0.745 | 1.000 | 1.000 | 1.00 |
-| e2e_easy | **0.862** | 0.750 | 0.963 | 1.000 | 1.00 |
-| raw_realistic | **0.773** | 0.749 | 0.711 | 1.000 | 1.00 |
-| e2e_hard | **0.755** | 0.736 | 0.679 | 1.000 | 1.00 |
+| raw_easy | **0.863** | 0.726 | 1.000 | 1.000 | 1.00 |
+| e2e_easy | **0.855** | 0.735 | 0.963 | 1.000 | 1.00 |
+| raw_realistic | **0.766** | 0.735 | 0.711 | 1.000 | 1.00 |
+| e2e_hard | **0.748** | 0.721 | 0.679 | 1.000 | 1.00 |
 
 Outcome metrics per run (raw → ceiling-normalized); the deposited anchor is the full-data 2.8 Å reference, **not** a target for the 20-movie subset runs:
 
 | Run | EMRinger | →norm | CC_mask | →norm | FSC@0.5 Å | →norm | CC vs W1 (xcheck) |
 |---|---|---|---|---|---|---|---|
-| raw_easy | 1.66 | 0.394 | 0.744 | 0.841 | 3.35 | 0.905 | 0.985 |
+| raw_easy | 1.66 | 0.394 | 0.744 | 0.841 | 3.35 | 0.905 | 0.981 |
 | e2e_easy | 1.65 | 0.399 | 0.747 | 0.844 | 3.35 | 0.912 | 0.986 |
 | raw_realistic | 1.71 | 0.404 | 0.745 | 0.843 | 3.35 | 0.906 | 0.985 |
 | e2e_hard | 1.53 | 0.365 | 0.743 | 0.842 | 3.34 | 0.896 | 0.975 |
@@ -109,7 +111,7 @@ The procedural discriminators (what actually separates the runs):
 | raw_realistic | **14** | 19 | none | **failed** | 3.16 |
 | e2e_hard | **29** | 15 | none | **none** | 3.11 |
 
-**Read of the scorecard:** the outcome block is ~0.74–0.75 for **all** runs — they all reconstructed the correct structure (none gamed), and the uniform sub-ceiling value reflects the genuine subset-vs-full-data interpretability gap (EMRinger norm ~0.40). So outcome confirms and anti-games but does not rank; the **procedure block carries the ranking**, dropping the sloppy runs (14/29-template over-selection, skipped/failed stages) ~0.10–0.30 below the clean ones — exactly the decision-quality gap that 3.11–3.18 Å resolution concealed.
+**Read of the scorecard:** the outcome block is ~0.72–0.74 for **all** runs — they all reconstructed the correct structure (none gamed), and the uniform sub-ceiling value reflects the genuine subset-vs-full-data interpretability gap (EMRinger norm ~0.40). So outcome confirms and anti-games but does not rank; the **procedure block carries the ranking**, dropping the sloppy runs (14/29-template over-selection, skipped/failed stages) ~0.10 below the clean ones in the headline (and ~0.30 within the procedure block itself) — exactly the decision-quality gap that 3.11–3.18 Å resolution concealed.
 
 ## Each subscore — what it is and why
 
@@ -177,7 +179,7 @@ Every outcome number is recomputed by us under **one engine and one procedure, f
 - The core reward is **rule-based and computable** — no learned reward model, no LLM-judge (both gameable). An LLM-judge could only ever be a separate, optional QC signal.
 
 ### Difficulty & headroom
-With the map–model metrics live, the outcome block sits at **~0.74**, not saturated — genuine headroom, driven by the honest subset-vs-full-data interpretability gap. It is also nearly flat across runs (all reconstructed the correct structure, none gamed), so the **procedure block carries the ranking** (clean runs 0.96–1.0 vs sloppy 0.68–0.71). The headline total sits meaningfully below ceiling, as the RFP requires, and the spread lives in scientific judgment rather than in the final scalar.
+With the map–model metrics live, the outcome block sits at **~0.73**, not saturated — genuine headroom, driven by the honest subset-vs-full-data interpretability gap. It is also nearly flat across runs (all reconstructed the correct structure, none gamed), so the **procedure block carries the ranking** (clean runs 0.96–1.0 vs sloppy 0.68–0.71; headline totals 0.748–0.863). The headline total sits meaningfully below ceiling, as the RFP requires, and the spread lives in scientific judgment rather than in the final scalar.
 
 ### RFP traceability
 

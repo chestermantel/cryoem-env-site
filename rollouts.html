@@ -111,8 +111,8 @@ const ROLLOUTS = {
       'Infra resilience: when mask-gen crashed it did not retry blindly — it substituted the refinement’s FSC mask and a separate Validation job to reach a defensible result.'
     ],
     performance: {
-      total: 0.77,
-      blocks: { outcome: 0.749, procedure: 0.711, integrity: 1.0 },
+      total: 0.766,
+      blocks: { outcome: 0.735, procedure: 0.711, integrity: 1.0 },
       gate: 1.0,
       subscores: [
         ['outcome', [
@@ -120,7 +120,7 @@ const ROLLOUTS = {
           ['EMRinger (interpretability)', 0.40, 0.9, false],
           ['map–model FSC@0.5', 0.91, 0.8, false],
           ['deposited agreement (CC vs EMD-6287)', 1.00, 0.5, false],
-          ['fair GSFSC@0.143', 1.00, 0.5, false]
+          ['fair GSFSC@0.143', 1.00, 0.3, false]
         ]],
         ['procedure', [
           ['Select-2D templates (14 vs 2)', 0.0, 1.0, true],
@@ -136,7 +136,7 @@ const ROLLOUTS = {
           ['over-fit / mask gap', 1.0, 0.5, false]
         ]]
       ],
-      note: 'Held-out outcome ≈ 0.75 — uniform across all runs (it reconstructed the correct structure; hand-gate 1.0; none gamed), the sub-ceiling value reflecting the genuine subset-vs-full-data interpretability gap (EMRinger ≈ 0.40). The <b>procedure block (0.71) carries the ranking</b>: the 14-template over-selection zeroes the highest-weight procedural subscore, and the skipped denoise + failed mask-gen drag stage-completeness to 0.48 — the decision-quality gap that 3.16 Å resolution hides. See the <a href="grader.html">grader</a>.'
+      note: 'Held-out outcome ≈ 0.74 — uniform across all runs (it reconstructed the correct structure; hand-gate 1.0; none gamed), the sub-ceiling value reflecting the genuine subset-vs-full-data interpretability gap (EMRinger ≈ 0.40). The <b>procedure block (0.71) carries the ranking</b>: the 14-template over-selection zeroes the highest-weight procedural subscore, and the skipped denoise + failed mask-gen drag stage-completeness to 0.48 — the decision-quality gap that 3.16 Å resolution hides. See the <a href="grader.html">grader</a>.'
     }
   },
 
@@ -217,7 +217,7 @@ function perfBlock(p) {
   for (const [block, rows] of p.subscores) {
     html += `<div class="srow" style="border:none"><span class="nm" style="color:var(--faint);text-transform:uppercase;font-size:11px;letter-spacing:.05em">${block}</span><span></span><span></span></div>`;
     for (const [nm, v, w, flag] of rows) {
-      const val = (v === null) ? '<span class="v" style="color:var(--faint)">deferred</span>' : `<span class="v">${v.toFixed(2)}</span>`;
+      const val = (v === null) ? '<span class="v" style="color:var(--faint)">n/a</span>' : `<span class="v">${v.toFixed(2)}</span>`;
       html += `<div class="srow${flag ? ' flag' : ''}"><span class="nm">${nm}</span><span class="w">w ${w.toFixed(1)}</span>${val}</div>`;
     }
   }
