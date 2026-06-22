@@ -162,6 +162,23 @@ details.surface .surface-body p{margin:10px 0;}
 .subscores .srow.flag .nm{color:var(--gap-ink); font-weight:500;}
 .note{font-size:13px; color:var(--muted); margin-top:8px;}
 
+/* ================= REPORT pages ================= */
+.report h2{scroll-margin-top:70px;}
+.report h3{margin-top:28px; font-size:16px;}
+.report details{border:1px solid var(--line); border-radius:9px; margin:11px 0; background:var(--surface);}
+.report details>summary{cursor:pointer; padding:9px 13px; font-size:14px; color:var(--ink); list-style:none; user-select:none;}
+.report details>summary::-webkit-details-marker{display:none;}
+.report details>summary::before{content:"\25B8"; color:var(--faint); margin-right:8px; font-size:11px;}
+.report details[open]>summary::before{content:"\25BE";}
+.report details>*:not(summary){margin:0 13px 12px;}
+.report details pre, .report .outputs-res{white-space:pre-wrap; word-break:break-word;}
+.report pre{white-space:pre-wrap; word-break:break-word;}
+.report figure{margin:14px 0;}
+.report figure img{max-width:100%; border:1px solid var(--line); border-radius:8px; display:block;}
+.report figcaption{color:var(--muted); font-size:12.5px; margin-top:5px;}
+.report tr.errrow td{background:var(--gap-bg);}
+.report .backlink{display:inline-block; margin-bottom:10px; font-size:13px; color:var(--accent); text-decoration:none;}
+
 @media (max-width:880px){
   .wrap{grid-template-columns:1fr;}
   .side{position:static; height:auto; border-right:none; border-bottom:1px solid var(--line);}

@@ -7,11 +7,12 @@
     { id: 'grader',   href: 'grader.html',   label: 'Grader' }
   ];
 
-  function nav(active) {
+  function nav(active, prefix) {
+    prefix = prefix || '';
     var header = document.createElement('header');
     header.className = 'topnav';
     var links = PAGES.map(function (p) {
-      return '<a href="' + p.href + '"' + (p.id === active ? ' class="active"' : '') + '>' + p.label + '</a>';
+      return '<a href="' + prefix + p.href + '"' + (p.id === active ? ' class="active"' : '') + '>' + p.label + '</a>';
     }).join('');
     header.innerHTML =
       '<span class="brand">New Atlantic <span class="dim">· cryo-EM env</span></span>' +

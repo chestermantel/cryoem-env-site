@@ -101,7 +101,7 @@ const ROLLOUTS = {
         ['sharpening', 'Guinier B-factor −75.3'],
         ['note', 'Volume Tools mask-gen (J115) <b>crashed</b> on the master node during preview rendering → worked around it with the refinement’s own FSC mask + a GPU Validation job']
       ],
-      report: 'runs/agent/raw_tools/execute/realistic/v2/report.html'
+      report: 'reports/raw-realistic-exec-v2.html'
     },
     behavior: [
       'Discovered job types from the live instance and built + ran the full single-particle pipeline unassisted in 64 turns / 58 min (3.46M input / 19k output tokens, 13 observation images).',
@@ -155,7 +155,7 @@ const ROLLOUTS = {
         ['result', 'did not reach a final map (5 jobs); the import job failed and the loop ended on an Anthropic API overload'],
         ['why kept', 'demonstrates autonomous <b>infrastructure recovery</b> — see behavior']
       ],
-      report: 'runs/agent/raw_tools/execute/realistic/v1/report.html'
+      report: 'reports/raw-realistic-exec-v1.html'
     },
     behavior: [
       'Mid-run the <b>cryoSPARC database crashed</b>. The agent diagnosed the failure from the tracebacks and <b>self-recovered the instance</b> before continuing — unprompted infra repair, the kind of long-horizon resilience the realistic surface is meant to surface.',
@@ -181,7 +181,7 @@ const ROLLOUTS = {
         ['result', 'a complete <b>21-job DAG</b> built and wired (every dependency), all jobs left in “building” state for PI review — nothing executed'],
         ['note', 'this build <i>includes</i> the denoise + junk-detect stages that the v2 execute run later skipped — a cleaner plan than v2 actually ran']
       ],
-      report: 'runs/agent/raw_tools/build/realistic/v1/report.html'
+      report: 'reports/raw-realistic-build-v1.html'
     },
     behavior: [
       'Discovered the job types and wired the full tutorial pipeline from scratch through the API — correct dependencies, parameters, and units (e.g. denoiser num_train_mics=20 derived from the dataset size) — in 37 turns / 3.4 min.',
@@ -240,7 +240,7 @@ function rolloutCard(r) {
     let inner = '';
     if (r.outputs.dag) inner += `<p style="font-size:13.5px;margin-top:0"><code>${r.outputs.dag}</code></p>`;
     if (r.outputs.kv) inner += kvList(r.outputs.kv);
-    if (r.outputs.report) inner += `<p class="note"><a href="../${r.outputs.report}">full per-run report ↗</a></p>`;
+    if (r.outputs.report) inner += `<p class="note"><a href="${r.outputs.report}">full per-run report ↗</a></p>`;
     h += fieldBlock('outputs', 'Outputs', inner);
   }
   if (r.behavior) {
