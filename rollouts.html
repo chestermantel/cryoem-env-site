@@ -34,7 +34,7 @@
       <div class="docmeta">
         <span class="tag stage">raw cryosparc-tools · realistic</span>
         <span class="tag dot">grader = grades.json</span>
-        <span class="tag dot">updated 2026-06-23</span>
+        <span class="tag dot">updated 2026-06-24</span>
       </div>
       <p style="font-size:14px;color:var(--muted)">Use the <b>Show fields</b> toggles (left) to pick any subset of
         the five display aspects across every rollout.</p>
@@ -85,7 +85,7 @@ const ROLLOUTS = {
     title: 'realistic · execute · v2', star: true,
     badge: { cls: 'reached', txt: 'reached map' },
     stats: [['resolution', '2.91 Å final · 3.16 Å loose'], ['jobs', '17'], ['turns', '64'],
-            ['wall', '58 min'], ['grader', '0.80 / 1.0']],
+            ['wall', '58 min'], ['grader', '0.77 / 1.0']],
     inputs: {
       kv: [
         ['model', '<code>claude-opus-4-8</code>, max_tokens 32k'],
@@ -114,13 +114,15 @@ const ROLLOUTS = {
       'When mask-gen crashed it substituted the refinement’s FSC mask and a separate Validation job rather than retrying the failed job.'
     ],
     performance: {
-      total: 0.801,
-      blocks: { outcome: 0.805, procedure: 0.711, integrity: 1.0 },
+      total: 0.769,
+      blocks: { outcome: 0.740, procedure: 0.711, integrity: 1.0 },
       gate: 1.0,
       subscores: [
-        ['outcome — signal ⊕ reference (50/50)', [
+        ['outcome — signal 0.870 ⊕ reference 0.610 (50/50) → 0.740', [
           ['signal · global resolution (3.16 Å)', 1.00, 0.40, false],
-          ['signal · FSC-curve / local-res / cFAR — box-pending', null, 0.0, true],
+          ['signal · FSC-curve AUC (0.80)', 1.00, 0.20, false],
+          ['signal · local-res spread (2.26 Å)', 0.55, 0.20, true],
+          ['signal · anisotropy cFAR (0.74)', 0.80, 0.20, false],
           ['reference · map↔EMDB CC', 0.37, 0.50, false],
           ['reference · map↔EMDB FSC@0.5', 0.85, 0.50, false],
           ['(deferred, 0 wt) EMRinger / CC_mask / map-model FSC vs 6BDF', null, 0.0, false]
@@ -139,7 +141,7 @@ const ROLLOUTS = {
           ['over-fit / mask gap', 1.0, 0.5, false]
         ]]
       ],
-      note: 'TOTAL 0.801 = outcome 0.805 (×0.50) + procedure 0.711 (×0.35) + integrity 1.000 (×0.15). Outcome = signal 1.000 ⊕ reference 0.610, × gate 1.000; signal is global-resolution-only (FSC-curve / local-res / cFAR return n/a pending the box compute); reference = map↔EMDB CC 0.37 + FSC@0.5 0.85. The map↔model block (EMRinger 0.40, CC_mask, map-model FSC) is reported at 0 weight. Full scoreboard: <a href="benchmark.html">benchmark</a>; computation: <a href="grader.html">grader</a>.'
+      note: 'TOTAL 0.769 = outcome 0.740 (×0.50) + procedure 0.711 (×0.35) + integrity 1.000 (×0.15). Outcome = signal 0.870 ⊕ reference 0.610, × gate 1.000. Signal = global resolution 1.00 (w0.40) + FSC-curve 1.00 (w0.20) + local-res 0.55 (w0.20) + cFAR 0.80 (w0.20); reference = map↔EMDB CC 0.37 + FSC@0.5 0.85 (EMDB branch). The map↔model block (EMRinger 0.40, CC_mask, map-model FSC) is reported at 0 weight. Full scoreboard: <a href="benchmark.html">benchmark</a>; computation: <a href="grader.html">grader</a>.'
     }
   },
 
@@ -157,12 +159,12 @@ const ROLLOUTS = {
     outputs: {
       kv: [
         ['result', 'did not reach a final map (5 jobs); the import job failed and the loop ended on an Anthropic API overload'],
-        ['why kept', 'demonstrates autonomous <b>infrastructure recovery</b> — see behavior']
+        ['note', 'cryoSPARC database crashed mid-run; the agent diagnosed it from tracebacks and restarted the instance before the API overload ended the loop — see behavior']
       ],
       report: 'reports/raw-realistic-exec-v1.html'
     },
     behavior: [
-      'Mid-run the <b>cryoSPARC database crashed</b>. The agent diagnosed the failure from the tracebacks and <b>self-recovered the instance</b> before continuing — unprompted infra repair, the kind of long-horizon resilience the realistic surface is meant to surface.',
+      'Mid-run the <b>cryoSPARC database crashed</b>. The agent diagnosed the failure from the tracebacks and <b>self-recovered the instance</b> before continuing, without being prompted to.',
       'An Anthropic API overload then terminated the streaming loop at 5 jobs, before a map. Re-run as v2, which completed.'
     ],
     performance: null
@@ -183,13 +185,13 @@ const ROLLOUTS = {
       dag: 'import → patch-motion → patch-CTF → denoise → blob-pick → junk-detect → inspect → extract → 2D → select → template-pick → inspect → extract → 2D → select → ab-initio → refine → mask-gen → validation → sharpen',
       kv: [
         ['result', 'a complete <b>21-job DAG</b> built and wired (every dependency), all jobs left in “building” state for PI review — nothing executed'],
-        ['note', 'this build <i>includes</i> the denoise + junk-detect stages that the v2 execute run later skipped — a cleaner plan than v2 actually ran']
+        ['note', 'this build <i>includes</i> the denoise + junk-detect stages that the v2 execute run did not run']
       ],
       report: 'reports/raw-realistic-build-v1.html'
     },
     behavior: [
       'Discovered the job types and wired the full tutorial pipeline from scratch through the API — correct dependencies, parameters, and units (e.g. denoiser num_train_mics=20 derived from the dataset size) — in 37 turns / 3.4 min.',
-      'Build-only: the value here is the <b>plan</b> (the intended DAG), separated from execution so the wiring can be reviewed before any GPU time is spent.'
+      'Build-only: the DAG was wired but not executed (no GPU jobs run), so the output is the intended job graph, not a final map.'
     ],
     performance: null
   }

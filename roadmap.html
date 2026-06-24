@@ -28,13 +28,13 @@ A high-level map of the build — what's done, what's in progress, and the open 
 - ✓ **Outcome restructured into signal quality ⊕ reference consistency (50/50)** — the run's *own* reconstruction (global resolution + FSC-curve + local-res + cFAR) paired with *held-out* agreement vs the deposited EMD-6287 map (map-to-map CC + FSC@0.5, ceiling-normalized). The map-to-model EMRinger/CC_mask block is retained as a **0-weight cross-check** (we grade map quality, not model quality), and a **divergence** diagnostic flags signal-vs-reference gaps. The held-out reference half + the handedness gate are the validated correct-vs-wrong separator (degraded suite: mirror/noise/half-density collapse). *(The earlier dock wall was bypassed by lowpass-locked map alignment.)*
 - ✓ **Ground-truth correction** — the EMDB/PDB deposit (EMD-6287 + 6BDF) is the answer key; the by-hand run is demoted to a 0-weight cross-check.
 - ✓ **Grading pipeline** — a `rollout → grades` front door (`grade.py`); reproduces the scorecard from committed code; the whole scheme is one declarative registry (`scoring.BLOCKS`), and the suite reference is auto-rendered (`suite.md`) so it can't drift.
-- ✓ **This site** — RFP spec, rollouts, grader, and per-run reports.
+- ✓ **Signal-quality compute run** — all four signal axes populated (`grader_signal.py`): global resolution + FSC-curve AUC from the run half-maps; local-res spread + cFAR from cryoSPARC Local Resolution Estimation + Orientation Diagnostics jobs. Merged into the outcome and re-graded (totals 0.758–0.870).
+- ✓ **This site** — RFP spec, rollouts, grader, benchmark (per-run × per-subscore scoreboard), and per-run reports.
 
 ## Now — validate the suite
 
 The active thread: confirm the metrics measure *scientific quality*, then calibrate and freeze. The pipeline *is* the validation harness — feed inputs of known quality and check the grades behave. (Deferred to compute until the scheme settles.)
 
-- **Run the box-side signal-quality compute** (`grader_signal.py`) — populate the FSC-curve / local-res / cFAR axes from the run half-maps + cryoSPARC Local Resolution + Orientation Diagnostics jobs (signal quality is global-resolution-only until then). Needs one live box introspection to confirm the job-type strings + the cFAR output field.
 - **Controlled quality ladder** — reconstruct from 5 / 10 / 20 / 40 movies + inject known-bad decisions (wrong symmetry, over-selection, tight mask); grades must move monotonically. The strongest test, and it calibrates the procedure bands.
 - **Adversarial + reproducibility** — construct a wishful-mask map and confirm the integrity term catches it; check the banded grade is stable under version drift. (The degraded-map suite already covers basic sensitivity.)
 - **Per-decision quality layer** — grade each interactive choice against what the agent could observe (partial credit for valid alternatives). The crux of "quality beyond resolution," since outcome saturates on T20S.
@@ -74,7 +74,7 @@ Deferred until the build itself is satisfying (this site is for my own use for n
     meta: '<div class="docmeta">'
       + '<span class="tag draft">living</span>'
       + '<span class="tag stage">for orientation</span>'
-      + '<span class="tag dot">snapshot 2026-06-23</span></div>'
+      + '<span class="tag dot">snapshot 2026-06-24</span></div>'
   });
   Site.nav('roadmap');
 </script>
