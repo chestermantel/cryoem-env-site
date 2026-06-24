@@ -114,34 +114,28 @@ const ROLLOUTS = {
       'When mask-gen crashed it substituted the refinement’s FSC mask and a separate Validation job rather than retrying the failed job.'
     ],
     performance: {
-      total: 0.769,
-      blocks: { outcome: 0.740, procedure: 0.711, integrity: 1.0 },
+      total: 0.677,
+      blocks: { outcome: 0.763, procedure: 0.592 },
       gate: 1.0,
       subscores: [
-        ['outcome — signal 0.870 ⊕ reference 0.610 (50/50) → 0.740', [
+        ['outcome — signal 0.915 ⊕ reference 0.610 (50/50) → 0.763', [
           ['signal · global resolution (3.16 Å)', 1.00, 0.40, false],
-          ['signal · FSC-curve AUC (0.80)', 1.00, 0.20, false],
-          ['signal · local-res spread (2.26 Å)', 0.55, 0.20, true],
-          ['signal · anisotropy cFAR (0.74)', 0.80, 0.20, false],
+          ['signal · FSC-curve AUC (0.80)', 0.83, 0.20, false],
+          ['signal · local-res spread (2.64–3.39 Å)', 0.79, 0.20, false],
+          ['signal · anisotropy cFAR (0.93)', 0.97, 0.20, false],
           ['reference · map↔EMDB CC', 0.37, 0.50, false],
           ['reference · map↔EMDB FSC@0.5', 0.85, 0.50, false],
           ['(deferred, 0 wt) EMRinger / CC_mask / map-model FSC vs 6BDF', null, 0.0, false]
         ]],
-        ['procedure', [
-          ['Select-2D templates (14 vs 2)', 0.0, 1.0, true],
-          ['Select-2D refine (19 vs 15)', 0.8, 1.0, false],
-          ['symmetry (D7)', 1.0, 1.0, false],
-          ['box size (440, intermediate binned)', 0.9, 0.6, false],
-          ['picker diameters', 1.0, 0.4, false],
-          ['stage completeness (skipped/​failed)', 0.475, 0.7, true],
-          ['pick curation', 0.85, 0.7, false],
-          ['particle trajectory', 1.0, 0.6, false]
-        ]],
-        ['integrity', [
-          ['over-fit / mask gap', 1.0, 0.5, false]
+        ['procedure — trajectory 0.50 / select-2D 0.25 / picks 0.25', [
+          ['trajectory · completeness (9/9)', 1.0, 1.0, false],
+          ['trajectory · reference_similarity (2 extra, 7 missing)', 0.625, 1.0, true],
+          ['select-2D · templates (14 vs 2)', 0.0, 1.0, true],
+          ['select-2D · refine CryoSift (deferred)', null, 0.0, false],
+          ['particle picks · F2 vs golden (deferred)', null, 0.0, false]
         ]]
       ],
-      note: 'TOTAL 0.769 = outcome 0.740 (×0.50) + procedure 0.711 (×0.35) + integrity 1.000 (×0.15). Outcome = signal 0.870 ⊕ reference 0.610, × gate 1.000. Signal = global resolution 1.00 (w0.40) + FSC-curve 1.00 (w0.20) + local-res 0.55 (w0.20) + cFAR 0.80 (w0.20); reference = map↔EMDB CC 0.37 + FSC@0.5 0.85 (EMDB branch). The map↔model block (EMRinger 0.40, CC_mask, map-model FSC) is reported at 0 weight. Full scoreboard: <a href="benchmark.html">benchmark</a>; computation: <a href="grader.html">grader</a>.'
+      note: 'TOTAL 0.677 = outcome 0.763 (×0.50) + procedure 0.592 (×0.50). Outcome = signal 0.915 ⊕ reference 0.610, × gate 1.000. Signal (all maps-only, continuous, normalized to the deposit): global resolution 1.00 (w0.40) + FSC-curve AUC 0.83 (w0.20) + local-res spread 0.79 (w0.20) + 3DFSC cFAR 0.97 (w0.20); reference = map↔EMDB CC 0.37 + FSC@0.5 0.85 (EMDB branch). The map↔model block (EMRinger / CC_mask / map-model FSC vs 6BDF) is reported at 0 weight. Procedure = trajectory (completeness 1.00 + reference_similarity 0.63) + select-2D templates 0.00; refine-CryoSift + picking-F2 await box-side compute. Full scoreboard incl. W1 + deposit: <a href="benchmark.html">benchmark</a>; computation: <a href="grader.html">grader</a>.'
     }
   },
 
@@ -217,7 +211,7 @@ function perfBlock(p) {
   html += '<div class="scorebars">' +
     bar('outcome', p.blocks.outcome, 'outcome') +
     bar('procedure', p.blocks.procedure, 'procedure') +
-    bar('integrity', p.blocks.integrity, 'integrity') + '</div>';
+    (p.blocks.integrity != null ? bar('integrity', p.blocks.integrity, 'integrity') : '') + '</div>';
   html += '<div class="subscores">';
   for (const [block, rows] of p.subscores) {
     html += `<div class="srow" style="border:none"><span class="nm" style="color:var(--faint);text-transform:uppercase;font-size:11px;letter-spacing:.05em">${block}</span><span></span><span></span></div>`;

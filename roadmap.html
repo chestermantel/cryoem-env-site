@@ -24,11 +24,11 @@ A high-level map of the build — what's done, what's in progress, and the open 
 - ✓ **Golden path** — the by-hand expert reconstruction (W1, ≈ 3.15 Å) plus a no-LLM programmatic reproduction of it.
 - ✓ **Action surface — built & validated** across three task families: single-decision ×5, end-to-end (constrained tools, easy/hard), and raw `cryosparc-tools` (easy + maximally-realistic). Every end-to-end run reaches a golden-class map.
 - ✓ **The core finding** — resolution alone can't rank runs (a run can hit ≈ 3.1 Å with poor decisions). This is *why* the grader exists.
-- ✓ **Grader** — a 3-block weighted scorecard (outcome / procedure / integrity) with a handedness gate and degraded-map sensitivity checks; reproduces the quality gap resolution misses.
+- ✓ **Grader** — a two-block weighted scorecard (outcome 0.50 / procedure 0.50) with a handedness gate and degraded-map sensitivity checks; reproduces the quality gap resolution misses. (The integrity block was deleted 2026-06-24 — a strong multi-metric suite makes single-metric gaming hard; the mask-gap survives as a 0-weight diagnostic.)
 - ✓ **Outcome restructured into signal quality ⊕ reference consistency (50/50)** — the run's *own* reconstruction (global resolution + FSC-curve + local-res + cFAR) paired with *held-out* agreement vs the deposited EMD-6287 map (map-to-map CC + FSC@0.5, ceiling-normalized). The map-to-model EMRinger/CC_mask block is retained as a **0-weight cross-check** (we grade map quality, not model quality), and a **divergence** diagnostic flags signal-vs-reference gaps. The held-out reference half + the handedness gate are the validated correct-vs-wrong separator (degraded suite: mirror/noise/half-density collapse). *(The earlier dock wall was bypassed by lowpass-locked map alignment.)*
 - ✓ **Ground-truth correction** — the EMDB/PDB deposit (EMD-6287 + 6BDF) is the answer key; the by-hand run is demoted to a 0-weight cross-check.
 - ✓ **Grading pipeline** — a `rollout → grades` front door (`grade.py`); reproduces the scorecard from committed code; the whole scheme is one declarative registry (`scoring.BLOCKS`), and the suite reference is auto-rendered (`suite.md`) so it can't drift.
-- ✓ **Signal-quality compute run** — all four signal axes populated (`grader_signal.py`): global resolution + FSC-curve AUC from the run half-maps; local-res spread + cFAR from cryoSPARC Local Resolution Estimation + Orientation Diagnostics jobs. Merged into the outcome and re-graded (totals 0.758–0.870).
+- ✓ **Signal-quality compute run** — all four signal axes populated maps-only (`grader_signal.py`, no particles / cryoSPARC / Phenix): global resolution + FSC-curve AUC + windowed-FSC local resolution + 3DFSC conical-FSC cFAR, one method scoring the four runs, the by-hand W1, and the deposit. Each axis is continuous, normalized to the deposit's own value (the runs use a 20-movie subset, so the deposit leads). Merged into the outcome and re-graded (totals 0.677–0.880).
 - ✓ **This site** — RFP spec, rollouts, grader, benchmark (per-run × per-subscore scoreboard), and per-run reports.
 
 ## Now — validate the suite
@@ -36,7 +36,7 @@ A high-level map of the build — what's done, what's in progress, and the open 
 The active thread: confirm the metrics measure *scientific quality*, then calibrate and freeze. The pipeline *is* the validation harness — feed inputs of known quality and check the grades behave. (Deferred to compute until the scheme settles.)
 
 - **Controlled quality ladder** — reconstruct from 5 / 10 / 20 / 40 movies + inject known-bad decisions (wrong symmetry, over-selection, tight mask); grades must move monotonically. The strongest test, and it calibrates the procedure bands.
-- **Adversarial + reproducibility** — construct a wishful-mask map and confirm the integrity term catches it; check the banded grade is stable under version drift. (The degraded-map suite already covers basic sensitivity.)
+- **Adversarial + reproducibility** — construct a wishful-mask map and confirm the held-out reference + the mask-gap diagnostic catch it; check the grade is stable under version drift. (The degraded-map suite already covers basic sensitivity.)
 - **Per-decision quality layer** — grade each interactive choice against what the agent could observe (partial credit for valid alternatives). The crux of "quality beyond resolution," since outcome saturates on T20S.
 - **Calibrate, then freeze** the block weights + the new outcome-subscore weights (currently flagged-for-review).
 
