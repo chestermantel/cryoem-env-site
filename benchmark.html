@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Benchmark — cryo-EM env</title>
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<div class="wrap">
+  <aside class="side"><div class="brand">Contents</div><div id="toc"></div></aside>
+  <main><article id="doc-out"></article></main>
+</div>
+
+<script type="text/markdown" id="doc">
+# Benchmark
+
+Per-run × per-subscore results for the four graded reconstruction rollouts. Every number is emitted by `recon_env.grade` to `runs/agent/grader/{grades.json, scorecard.md}` (raw scalars in `outcome/<run>.json`). Subscore values are in `[0, 1]`, higher = better; each carries a weight. The scheme that produces them: [grader](grader.html). The runs themselves, with full inputs and outputs: [rollouts](rollouts.html).
+
+Conventions: a subscore shown **n/a** returned **weight 0** (no data — it drops out of its block, it did not score zero). The three signal-quality axes other than global resolution are n/a pending the box-side compute (`grader_signal.py`, not yet run). Deferred (0 headline weight) subscores are computed and reported, not folded into the total.
+
+## Runs
+
+| Run | Action surface | Variant | Jobs | GSFSC loose-mask | Report |
+|---|---|---|---|---|---|
+| **raw_easy** | agent writes `cryosparc-tools` | easy | 21 | 3.16 Å | [raw_tools/execute/v1](rollouts.html) |
+| **e2e_easy** | constrained job tools | easy | 22 | 3.18 Å | [end_to_end/easy/v1](rollouts.html) |
+| **raw_realistic** | agent writes `cryosparc-tools` | realistic | 17 | 3.16 Å | [report](reports/raw-realistic-exec-v2.html) |
+| **e2e_hard** | constrained job tools | hard | 16 | 3.11 Å | [end_to_end/hard/v1](rollouts.html) |
+
+Golden reference: W1 by-hand, GSFSC ≈ 3.15 Å loose-mask, same 20-movie EMPIAR-10025 subset, D7. Ground-truth deposit: EMD-6287 (map) + PDB 6BDF (model).
+
+## Headline
+
+Block weights: outcome 0.50, procedure 0.35, integrity 0.15. Outcome = (signal · 0.50 + reference · 0.50) × handedness gate. `divergence` = signal − reference (diagnostic, not weighted). Runs ordered by TOTAL.
+
+| Run | TOTAL | outcome | ↳ signal | ↳ reference | divergence | procedure | integrity | gate |
+|---|---|---|---|---|---|---|---|---|
+| raw_easy | **0.902** | 0.804 | 1.000 | 0.608 | 0.392 | 1.000 | 1.000 | 1.00 |
+| e2e_easy | **0.891** | 0.808 | 1.000 | 0.616 | 0.384 | 0.963 | 1.000 | 1.00 |
+| raw_realistic | **0.801** | 0.805 | 1.000 | 0.610 | 0.390 | 0.711 | 1.000 | 1.00 |
+| e2e_hard | **0.790** | 0.805 | 1.000 | 0.610 | 0.390 | 0.679 | 1.000 | 1.00 |
+
+## Outcome · signal quality
+
+Weight 0.50 within outcome. Computed on the run's own reconstruction (no reference). Cells are the subscore value per run; `wt` = weight within signal quality.
+
+| Subscore | wt | raw_easy | e2e_easy | raw_realistic | e2e_hard |
+|---|---|---|---|---|---|
+| global_resolution | 0.40 | 1.00 | 1.00 | 1.00 | 1.00 |
+| fsc_curve | 0.20 | n/a | n/a | n/a | n/a |
+| local_resolution | 0.20 | n/a | n/a | n/a | n/a |
+| anisotropy (cFAR) | 0.20 | n/a | n/a | n/a | n/a |
+| **signal subtotal** | | **1.000** | **1.000** | **1.000** | **1.000** |
+
+global_resolution scalar (GSFSC@0.143 loose-mask, Å), banded vs the 3.15 Å anchor (Δ ≤ 0.15 → 1.0):
+
+| | raw_easy | e2e_easy | raw_realistic | e2e_hard |
+|---|---|---|---|---|
+| loose-mask Å | 3.16 | 3.18 | 3.16 | 3.11 |
+
+## Outcome · reference consistency
+
+Weight 0.50 within outcome. Agreement vs the deposit, ceiling-normalized (deposit low-passed to the run's resolution). EMDB / map-to-map is active (subblock weight 1.0); PDB / map-to-model is deferred (subblock weight 0.0, reported).
+
+| Subscore | branch | wt | raw_easy | e2e_easy | raw_realistic | e2e_hard |
+|---|---|---|---|---|---|---|
+| map_emdb_cc | EMDB · active | 0.50 | 0.36 | 0.37 | 0.37 | 0.37 |
+| map_emdb_fsc | EMDB · active | 0.50 | 0.85 | 0.86 | 0.85 | 0.85 |
+| map_model_cc | PDB · deferred 0w | 1.00 | 0.68 | 0.69 | 0.69 | 0.68 |
+| interpretability (EMRinger) | PDB · deferred 0w | 0.90 | 0.39 | 0.40 | 0.40 | 0.37 |
+| map_model_fsc | PDB · deferred 0w | 0.80 | 0.91 | 0.91 | 0.91 | 0.90 |
+| **reference subtotal** (EMDB only) | | | **0.608** | **0.616** | **0.610** | **0.610** |
+
+Raw scalars behind the normalized subscores, with the resolution-matched ceiling each is divided by:
+
+| Scalar | raw_easy | e2e_easy | raw_realistic | e2e_hard | ceiling (run-matched) |
+|---|---|---|---|---|---|
+| cc_map_emdb (placed, hand-consistent) | 0.644 | 0.645 | 0.646 | 0.651 | 0.945 / 0.939 / 0.945 / 0.953 |
+| map↔EMDB FSC@0.5 (Å) | 3.53 | 3.53 | 3.53 | 3.47 | 3.01 / 3.03 / 3.01 / 2.96 |
+| EMRinger | 1.66 | 1.65 | 1.71 | 1.53 | 4.23 / 4.15 / 4.23 / 4.19 |
+| CC_mask | 0.744 | 0.747 | 0.745 | 0.743 | 0.884 / 0.885 / 0.884 / 0.883 |
+| map↔model FSC@0.5 (Å) | 3.35 | 3.35 | 3.35 | 3.34 | 3.03 / 3.06 / 3.03 / 2.99 |
+
+map_emdb_cc and map_model_cc normalize via `(raw/ceiling − 0.5) / 0.5`, clamped to [0,1] (the 0.5 placement floor); map_emdb_fsc, map_model_fsc via `ceiling/raw`; interpretability via `raw/ceiling`. The full-data deposited anchor (not a target): EMRinger 3.83, CC_mask 0.865, map↔model FSC 2.84 Å at 2.8 Å.
+
+## Procedure
+
+Weight 0.35. Per-stage decision quality vs the W1 golden intent, from the run's job-graph. `wt` = weight within the procedure block.
+
+| Subscore | wt | raw_easy | e2e_easy | raw_realistic | e2e_hard |
+|---|---|---|---|---|---|
+| select2d_templates | 1.0 | 1.00 | 1.00 | 0.00 | 0.00 |
+| select2d_refine | 1.0 | 1.00 | 0.80 | 0.80 | 1.00 |
+| symmetry | 1.0 | 1.00 | 1.00 | 1.00 | 1.00 |
+| box_size | 0.6 | 1.00 | 1.00 | 0.90 | 1.00 |
+| picker_diameters | 0.4 | 1.00 | 1.00 | 1.00 | 1.00 |
+| stage_completeness | 0.7 | 1.00 | 1.00 | 0.48 | 0.25 |
+| curation | 0.7 | n/a | 1.00 | 0.85 | 0.70 |
+| trajectory | 0.6 | 1.00 | n/a | 1.00 | n/a |
+| **procedure block** | | **1.000** | **0.963** | **0.711** | **0.679** |
+
+curation weight → 0 when no NCC-cut data (raw_easy); trajectory weight → 0 when no final-count data (e2e_easy, e2e_hard).
+
+## Integrity
+
+Weight 0.15. `overfit_gap` = no-mask − res-mask GSFSC (Å), banded (< 0.7 → 1.0).
+
+| Subscore | wt | raw_easy | e2e_easy | raw_realistic | e2e_hard |
+|---|---|---|---|---|---|
+| overfit_gap | 0.5 | 1.00 | 1.00 | 1.00 | 1.00 |
+| ↳ gap (Å) | | 0.59 | 0.57 | 0.54 | 0.54 |
+
+## Cross-check
+
+Reported, 0 headline weight. `structure_agreement` = map-to-map CC vs the in-house W1 by-hand map, rescaled [0.5, 1.0] → [0, 1].
+
+| | raw_easy | e2e_easy | raw_realistic | e2e_hard |
+|---|---|---|---|---|
+| structure_agreement | 0.96 | 0.97 | 0.97 | 0.95 |
+| ↳ CC vs W1 (raw) | 0.981 | 0.986 | 0.985 | 0.975 |
+
+## Submission facts
+
+The structured job-graph fields the procedure and integrity blocks read, plus the map-only GSFSC metrics (surfaced, not scored).
+
+| Field | raw_easy | e2e_easy | raw_realistic | e2e_hard |
+|---|---|---|---|---|
+| Select-2D templates kept | 2 | 2 | 14 | 29 |
+| Select-2D refine classes | 16 | 19 | 19 | 15 |
+| refine symmetry | D7 | D7 | D7 | D7 |
+| ab-initio symmetry | C1 | C1 | C1 | C1 |
+| extraction box (px) | 440 | 440 | 440 | 440 |
+| intermediate extract binned | no | no | yes | no |
+| denoise | completed | completed | — | — |
+| junk-detect | completed | completed | — | — |
+| mask-gen | completed | completed | **failed** | — |
+| validation (FSC) | completed | completed | completed | — |
+| sharpen | completed | completed | — | completed |
+| Inspect-Picks NCC (blob / template) | — | 0.45 / 0.37 | 0.30 / 0.42 | 0.25 / 0.35 |
+| final particles | 10,010 | — | 9,916 | — |
+| GSFSC no-mask / loose / res-mask (Å) | 3.57 / 3.16 / 2.98 | 3.56 / 3.18 / 2.99 | 3.56 / 3.16 / 3.02 | 3.51 / 3.11 / 2.97 |
+| sharpening B (Å²) | −75.4 | −75.3 | −75.3 | −80.2 |
+
+## Degraded suite (reference)
+
+Three deliberately-degraded versions of the golden map — wrong-hand mirror, added noise, half particle density — graded through the same outcome pipeline. Not rollouts; included as reference rows for the reference-consistency and gate axes (`validation.md`). Honest-run band shown for comparison.
+
+| Map | map_emdb_cc → norm | map_emdb_fsc Å → norm | reference | gate | EMRinger → norm | CC_mask → norm | map↔model FSC Å |
+|---|---|---|---|---|---|---|---|
+| _four honest runs_ | 0.644–0.651 → 0.36–0.37 | 3.47–3.53 → 0.85–0.86 | 0.608–0.616 | 1.00 | 1.53–1.71 → 0.37–0.40 | 0.743–0.747 → 0.84 | 3.34–3.35 |
+| degraded_noise | 0.531 → 0.12 | 4.22 → 0.71 | 0.42 | 1.00 | 1.33 → 0.31 | 0.681 → 0.77 | 3.62 |
+| degraded_mirror | 0.120 → 0.00 | 22.01 → 0.14 | 0.07 | **0.00** | 0.16 → 0.04 | 0.130 → 0.15 | 23.64 |
+| degraded_halfdensity | 0.380 → 0.00 | 90.97 → 0.03 | 0.02 | 1.00 | 0.76 → 0.18 | 0.421 → 0.48 | 48.48 |
+
+Map-to-map ceiling (cc_map_emdb) = 0.946, fsc_map_emdb_05 = 3.00 Å, EMRinger = 4.23, CC_mask = 0.884 — the golden-vs-deposit resolution-matched values these are normalized against. Mirror gate: cc_vs_golden 0.71 < cc_vs_golden_mirror 1.00 → ×0.0.
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="assets/site.js"></script>
+<script>
+  Site.renderDoc({
+    meta: '<div class="docmeta">'
+      + '<span class="tag stage">grades.json / scorecard.md</span>'
+      + '<span class="tag dot">4 graded runs + degraded suite</span>'
+      + '<span class="tag dot">snapshot 2026-06-23</span></div>'
+  });
+  Site.nav('benchmark');
+</script>
+</body>
+</html>

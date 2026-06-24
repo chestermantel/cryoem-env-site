@@ -1,11 +1,12 @@
 /* New Atlantic — cryo-EM env internal site. Shared nav + markdown rendering. */
 (function (global) {
   var PAGES = [
-    { id: 'index',    href: 'index.html',    label: 'Overview' },
-    { id: 'rollouts', href: 'rollouts.html', label: 'Rollouts' },
-    { id: 'grader',   href: 'grader.html',   label: 'Grader' },
-    { id: 'rfp',      href: 'rfp.html',      label: 'RFP spec' },
-    { id: 'roadmap',  href: 'roadmap.html',  label: 'Roadmap' }
+    { id: 'index',     href: 'index.html',     label: 'Overview' },
+    { id: 'rollouts',  href: 'rollouts.html',  label: 'Rollouts' },
+    { id: 'grader',    href: 'grader.html',    label: 'Grader' },
+    { id: 'benchmark', href: 'benchmark.html', label: 'Benchmark' },
+    { id: 'rfp',       href: 'rfp.html',       label: 'RFP spec' },
+    { id: 'roadmap',   href: 'roadmap.html',   label: 'Roadmap' }
   ];
 
   function nav(active, prefix) {
