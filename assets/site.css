@@ -227,6 +227,8 @@ article details.csub>summary>h3{margin:0;}
 #doc-out details.gdet{margin:12px 0; border:1px solid var(--line); border-radius:10px; background:var(--surface); padding:4px 18px 10px;}
 #doc-out details.gdet>summary{padding:9px 0;}
 #doc-out details.gdet>summary>h4{font-size:14px; font-weight:600;}
+#doc-out .eqn{margin:14px 0; padding:10px 14px; background:var(--code-bg); border:1px solid var(--line); border-radius:8px; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:13px; line-height:1.55; overflow-x:auto; white-space:nowrap;}
+#doc-out .eqn .def{color:var(--muted);}
 
 @media (max-width:880px){
   .wrap{grid-template-columns:1fr;}

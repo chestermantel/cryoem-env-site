@@ -32,9 +32,9 @@ Three same-subset reference points anchor the map-quality scores: the **ceiling 
 
 ## Totals
 
-Block weights: outcome 0.50, procedure 0.50. Outcome = (map quality · 0.50 + reference · 0.50) × handedness gate. `divergence` = map quality − reference (diagnostic, not weighted). Runs ordered by TOTAL; the random-decisions **floor** is included as the bottom anchor. Column order is held constant in every table below.
+Block weights: outcome 0.50, procedure 0.50. Outcome = (map quality · 0.50 + map similarity · 0.50) × handedness gate. `divergence` = map quality − map similarity (diagnostic, not weighted). Runs ordered by TOTAL; the random-decisions **floor** is included as the bottom anchor. Column order is held constant in every table below.
 
-| Run | TOTAL | outcome | ↳ map quality | ↳ reference | divergence | procedure | gate |
+| Run | TOTAL | outcome | ↳ map quality | ↳ map similarity | divergence | procedure | gate |
 |---|---|---|---|---|---|---|---|
 | e2e_easy | **0.870** | 0.798 | 0.979 | 0.616 | 0.363 | 0.942 | 1.00 |
 | raw_easy | **0.864** | 0.803 | 0.998 | 0.608 | 0.390 | 0.924 | 1.00 |
@@ -72,7 +72,7 @@ global_resolution is the run-reported loose-mask GSFSC (`gsfsc_loosemask_0143_A`
 
 The honest runs sit at the W1 expert ceiling (map quality 0.98–1.00); the floor is 0 by construction. The metrics separate good-from-bad by 4.5–21.5× the run-to-run noise (effective), but cannot rank the runs — agent performance is not discernible by outcome quality on this saturating target. Validation: `runs/agent/grader/validation.md`.
 
-## Outcome · reference consistency
+## Outcome · map similarity
 
 Weight 0.50 within outcome. Agreement vs the deposit, ceiling-normalized (deposit low-passed to the run's resolution). EMDB / map-to-map is active (subblock weight 1.0); PDB / map-to-model is deferred (subblock weight 0.0, reported).
 
@@ -86,7 +86,7 @@ Weight 0.50 within outcome. Agreement vs the deposit, ceiling-normalized (deposi
 | interpretability | EMRinger | 1.65 | 1.66 | 1.53 | 1.71 | 4.15 / 4.23 / 4.19 / 4.23 |
 | map_model_fsc | map↔model FSC@0.5, Å | 3.35 | 3.35 | 3.34 | 3.35 | 3.06 / 3.03 / 2.99 / 3.03 |
 
-Normalization: map_emdb_cc and map_model_cc via `(raw/ceiling − 0.5)/0.5`, clamped [0,1]; map_emdb_fsc and map_model_fsc via `ceiling/raw`; interpretability via `raw/ceiling`. Full-data deposited anchor (not a target): EMRinger 3.83, CC_mask 0.865, map↔model FSC 2.84 Å at 2.8 Å. The **floor** fails reference too — placed CC 0.00, map↔EMDB FSC@0.5 54 Å → reference subtotal **0.038** — so its bad map registers on both outcome halves.
+Normalization: map_emdb_cc and map_model_cc via `(raw/ceiling − 0.5)/0.5`, clamped [0,1]; map_emdb_fsc and map_model_fsc via `ceiling/raw`; interpretability via `raw/ceiling`. Full-data deposited anchor (not a target): EMRinger 3.83, CC_mask 0.865, map↔model FSC 2.84 Å at 2.8 Å. The **floor** fails map similarity too — placed CC 0.00, map↔EMDB FSC@0.5 54 Å → map-similarity subtotal **0.038** — so its bad map registers on both outcome halves.
 
 **Normalized into the block** (weight 0.50 within outcome)
 
@@ -97,7 +97,7 @@ Normalization: map_emdb_cc and map_model_cc via `(raw/ceiling − 0.5)/0.5`, cla
 | map_model_cc | PDB · deferred 0w | 1.00 | 0.688 | 0.682 | 0.684 | 0.685 |
 | interpretability | PDB · deferred 0w | 0.90 | 0.399 | 0.394 | 0.365 | 0.404 |
 | map_model_fsc | PDB · deferred 0w | 0.80 | 0.912 | 0.905 | 0.896 | 0.906 |
-| **reference subtotal** (EMDB only) | | | **0.616** | **0.608** | **0.610** | **0.610** |
+| **map-similarity subtotal** (EMDB only) | | | **0.616** | **0.608** | **0.610** | **0.610** |
 
 ## Procedure
 
