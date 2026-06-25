@@ -28,18 +28,18 @@
   <main>
     <article>
       <h1>Tasks</h1>
-      <p class="subtitle">The benchmark tasks: the action space they share, a catalog of every task and why it
-        is included, and the per-run rollouts — model inputs, outputs, decisions, grader scores — that realize
-        them. Per-run × per-subscore results: <a href="benchmark.html">benchmark</a>. The scoring scheme:
+      <p class="subtitle">The benchmark tasks: the action space, a catalog of every task, and the per-run
+        rollouts (model inputs, outputs, trajectories, grader scores, and run metadata). Run-by-run performance
+        comparison: <a href="benchmark.html">benchmark</a>. The scoring scheme:
         <a href="grader.html">grader</a>.</p>
       <div class="docmeta">
         <span class="tag stage">task catalog + raw cryosparc-tools</span>
         <span class="tag dot">grader = grades.json</span>
-        <span class="tag dot">updated 2026-06-24</span>
+        <span class="tag dot">updated 2026-06-25</span>
       </div>
 
-      <section class="group">
-        <div class="group-head" id="group-action-space"><h2>Action space</h2></div>
+      <details class="group" id="group-action-space" open>
+        <summary class="group-head"><h2>Action space</h2></summary>
         <p>The agent operates cryoSPARC entirely by writing its own <code>cryosparc-tools</code> Python — it is
           given no pre-built job tools and no job catalog. Two tools: <code>run_python</code> executes code in a
           persistent namespace on the cryoSPARC box (returns stdout, the last expression, and any traceback; a
@@ -54,10 +54,10 @@
           controlled variable is how much of the tutorial information the agent is given —
           <b>handheld</b> (tutorial + distilled hints) → <b>tutorial</b> (the tutorial verbatim) →
           <b>realistic</b> (a PI-style goal with the step-by-step recipe removed).</p>
-      </section>
+      </details>
 
-      <section class="group">
-        <div class="group-head" id="group-task-overview"><h2>Task overview</h2></div>
+      <details class="group" id="group-task-overview" open>
+        <summary class="group-head"><h2>Task overview</h2></summary>
         <p>Every task in the benchmark, with what it is and why it is included — a catalog only; per-run inputs,
           outputs, and grader scores are in the rollout cards below and on the <a href="benchmark.html">benchmark</a>
           page. <b>Core</b> tasks run on the T20S tutorial subset (EMPIAR-10025, 20 movies), where a deposited
@@ -67,7 +67,8 @@
         <p style="font-size:13px;color:var(--muted)">Status: <span class="pill ok">built</span> a run or artifact
           exists · <span class="pill partial">planned</span> designed, not yet run.</p>
 
-        <h3 style="margin:18px 0 2px">Core — T20S tutorial subset</h3>
+        <details class="csub" open>
+          <summary><h3>Core — T20S tutorial subset</h3></summary>
         <table>
           <thead><tr><th>Task</th><th>What it is</th><th>Why it is included</th><th>Status</th></tr></thead>
           <tbody>
@@ -126,8 +127,10 @@
             </tr>
           </tbody>
         </table>
+        </details>
 
-        <h3 style="margin:22px 0 2px">Generalization preview — other structures</h3>
+        <details class="csub" open>
+          <summary><h3>Generalization preview — other structures</h3></summary>
         <p style="font-size:13px;color:var(--muted)">No golden trajectory; graded on deposit-anchored +
           reference-free subscores only. Scoped in a separate session.</p>
         <table>
@@ -153,7 +156,8 @@
             </tr>
           </tbody>
         </table>
-      </section>
+        </details>
+      </details>
 
       <p style="font-size:14px;color:var(--muted)">Per-run rollouts below. Use the <b>Show fields</b> toggles
         (left) to pick any subset of the five display aspects across every rollout.</p>
@@ -345,9 +349,9 @@ function perfBlock(p) {
 }
 
 function rolloutCard(r) {
-  let h = `<div class="rollout"><div class="rollout-head">
+  let h = `<details class="rollout"${r.star ? ' open' : ''}><summary class="rollout-head">
       <h3>${esc(r.title)}${r.star ? ' <span class="star">★</span>' : ''}</h3>
-      <span class="badge ${r.badge.cls}">${esc(r.badge.txt)}</span></div>`;
+      <span class="badge ${r.badge.cls}">${esc(r.badge.txt)}</span></summary>`;
   h += '<div class="statline">' + r.stats.map(([k, v]) => `<span>${esc(k)} <b>${v}</b></span>`).join('') + '</div>';
 
   if (r.inputs) {
@@ -368,7 +372,7 @@ function rolloutCard(r) {
   h += fieldBlock('performance', 'Performance (grader)',
     r.performance ? perfBlock(r.performance)
       : '<p class="note">No grader score — this rollout did not produce a final map. See the grader section for what is scored.</p>');
-  h += '</div>';
+  h += '</details>';
   return h;
 }
 
@@ -377,12 +381,12 @@ function render() {
   const jump = document.getElementById('jump');
   let html = '';
   for (const g of GROUPS) {
-    html += `<section class="group"><div class="group-head" id="group-${g.id}">
-        <h2>${esc(g.surface)}</h2><span class="cnt">${g.rollouts.length} rollout${g.rollouts.length > 1 ? 's' : ''}</span></div>`;
+    html += `<details class="group" id="group-${g.id}" open><summary class="group-head">
+        <h2>${esc(g.surface)}</h2><span class="cnt">${g.rollouts.length} rollout${g.rollouts.length > 1 ? 's' : ''}</span></summary>`;
     html += `<div class="field field-actionsurface"><details class="surface" open>
         <summary>Agent action surface</summary><div class="surface-body">${g.surfaceDesc}</div></details></div>`;
     for (const id of g.rollouts) { const r = ROLLOUTS[id]; if (r) html += rolloutCard(r); }
-    html += '</section>';
+    html += '</details>';
     jump.appendChild(el(`<a class="toclink" href="#group-${g.id}">${esc(g.surface)}</a>`));
   }
   root.innerHTML = html;

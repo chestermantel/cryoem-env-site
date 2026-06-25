@@ -147,6 +147,23 @@ details.surface .surface-body p{margin:10px 0;}
 .show-behavior .field-behavior{display:block;}
 .show-performance .field-performance{display:block;}
 
+/* collapsible sections + cards on the Tasks (rollouts) page */
+article details.group{scroll-margin-top:70px;}
+article details.group>summary.group-head{cursor:pointer; user-select:none; list-style:none; align-items:center;}
+article details.group>summary.group-head::-webkit-details-marker{display:none;}
+article details.group>summary.group-head::before{content:"\25B8"; order:-1; color:var(--faint); font-size:12px; transition:transform .12s;}
+article details.group[open]>summary.group-head::before{transform:rotate(90deg);}
+article details.csub{margin:20px 0;}
+article details.csub>summary{cursor:pointer; user-select:none; list-style:none; display:flex; align-items:center; gap:9px; scroll-margin-top:70px;}
+article details.csub>summary::-webkit-details-marker{display:none;}
+article details.csub>summary::before{content:"\25B8"; flex:0 0 auto; color:var(--faint); font-size:12px; transition:transform .12s;}
+article details.csub[open]>summary::before{transform:rotate(90deg);}
+article details.csub>summary>h3{margin:0;}
+article details.rollout>summary.rollout-head{cursor:pointer; user-select:none; list-style:none;}
+article details.rollout>summary.rollout-head::-webkit-details-marker{display:none;}
+article details.rollout>summary.rollout-head::before{content:"\25B8"; order:-1; color:var(--faint); font-size:12px; transition:transform .12s;}
+article details.rollout[open]>summary.rollout-head::before{transform:rotate(90deg);}
+
 /* grader score bars */
 .scorebars{margin:8px 0 2px;}
 .scorebar{display:grid; grid-template-columns:118px 1fr 86px; align-items:center; gap:10px; margin:7px 0; font-size:13px;}
