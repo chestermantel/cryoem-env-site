@@ -80,9 +80,11 @@ Four axes read from the run's own two half-maps and final volume: the overall re
 | Subscore | Wt | What it is · how it's computed | In the runs |
 |---|---|---|---|
 | **global resolution** | 0.40 | The map's overall resolution — gold-standard half-map FSC at the 0.143 threshold. Floor-to-ceiling normalized (lower Å = better). | 3.1–3.2 Å → ~1.0 |
-| **FSC-curve shape** | 0.20 | How much signal is present across *all* frequencies, not just at the cutoff — the area under the half-map FSC curve. | AUC 0.79–0.81 → ~0.83 |
-| **local-resolution spread** | 0.20 | How uniform resolution is across the map — the 5–95% spread of a local-resolution map (tighter = better). | spread 0.7–0.8 Å → 0.74–0.81 |
-| **anisotropy** | 0.20 | How directionally even the resolution is — cFAR, a conical-FSC area ratio (1.0 = isotropic). T20S is near-isotropic, so this axis has little range here. | cFAR ~0.93 → ~0.97 |
+| **FSC-curve shape** | 0.20 | How much signal is present across *all* frequencies, not just at the cutoff — the area under the half-map FSC curve. | AUC 0.79–0.81 → 1.0 (≥ W1) |
+| **local-resolution spread** | 0.20 | How uniform resolution is across the map — the 5–95% spread of a local-resolution map (tighter = better). | spread 0.73–0.80 Å → 1.0 (tighter than W1's 0.85) |
+| **anisotropy** | 0.20 | How directionally even the resolution is — cFAR, a conical-FSC area ratio (1.0 = isotropic). T20S is near-isotropic, so this axis has little range here. | cFAR 0.93–0.94 → 0.95–1.0 |
+
+**Validated, and saturating** (`runs/agent/grader/validation.md`). Across the deposit, the runs/W1, and the floor, every axis tracks known quality and separates good from bad by **4.5–21.5× the run-to-run noise** — these are effective quality measures. But the four honest runs land at signal **0.98–1.00** (all at the W1 expert ceiling) and the floor at **0.000**: on this easy, saturating target the runs are outcome-indistinguishable, and outcome is decoupled from decision quality (the run with the worst procedure has the best signal). **Agent performance cannot be discerned by outcome quality at this stage** — the ranking comes from procedure, or from a harder instance where decisions change the achievable map.
 
 ### Reference consistency — vs the deposited map
 
@@ -192,7 +194,7 @@ The two real inputs the agent reads at these steps:
 
 Each subscore is a value in [0, 1]. Within a family, subscores combine into a weighted average; a subscore with no data drops out and its siblings absorb its weight, so a not-yet-computed metric never silently scores zero or full credit. Outcome's two halves (signal and reference) average 50/50 and are then multiplied by the handedness gate. The two families average 50/50 to give the run's total.
 
-Worked, on one end-to-end run: signal 0.905 and reference 0.616 average to 0.760; the gate is 1.0, so outcome = 0.760. Procedure = 1.000. Total = 0.5 · 0.760 + 0.5 · 1.000 = **0.880**.
+Worked, on one end-to-end run (e2e_easy): signal 0.979 and reference 0.616 average to 0.798; the gate is 1.0, so outcome = 0.798. Procedure = 0.942. Total = 0.5 · 0.798 + 0.5 · 0.942 = **0.870**.
 
 <figure style="margin:20px 0">
 <svg id="d-flow" viewBox="0 0 760 218" role="img" aria-label="How a run becomes a single score" style="max-width:100%;height:auto;display:block">
@@ -207,14 +209,14 @@ Worked, on one end-to-end run: signal 0.905 and reference 0.616 average to 0.760
 <defs><marker id="mflow" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" style="fill:var(--line-strong)"/></marker></defs>
 <rect class="box" x="20" y="24" width="332" height="92" rx="11"/><rect x="20" y="24" width="6" height="92" rx="3" style="fill:var(--outcome)"/>
 <text class="ttl out" x="40" y="48">Outcome</text><text class="mut" x="118" y="48">· weight 0.50 · × handedness gate</text>
-<text class="mut" x="40" y="70">signal 0.905 · 0.50  +  reference 0.616 · 0.50</text>
-<text class="mut" x="40" y="88">= 0.760, × gate 1.00</text>
-<text class="mut" x="40" y="106" style="fill:var(--muted)">divergence = signal − reference = 0.29 (diagnostic)</text>
-<rect x="278" y="54" width="56" height="26" rx="13" style="fill:none;stroke:var(--outcome)"/><text class="out" x="306" y="71" text-anchor="middle" font-weight="600">0.76</text>
+<text class="mut" x="40" y="70">signal 0.979 · 0.50  +  reference 0.616 · 0.50</text>
+<text class="mut" x="40" y="88">= 0.798, × gate 1.00</text>
+<text class="mut" x="40" y="106" style="fill:var(--muted)">divergence = signal − reference = 0.363 (diagnostic)</text>
+<rect x="278" y="54" width="56" height="26" rx="13" style="fill:none;stroke:var(--outcome)"/><text class="out" x="306" y="71" text-anchor="middle" font-weight="600">0.80</text>
 <rect class="box" x="20" y="128" width="332" height="64" rx="11"/><rect x="20" y="128" width="6" height="64" rx="3" style="fill:var(--procedure)"/>
 <text class="ttl pro" x="40" y="152">Procedure</text><text class="mut" x="128" y="152">· weight 0.50</text>
 <text class="mut" x="40" y="174">trajectory 0.50 · select-2D 0.25 · picks 0.25</text>
-<rect x="278" y="146" width="56" height="26" rx="13" style="fill:none;stroke:var(--procedure)"/><text class="pro" x="306" y="163" text-anchor="middle" font-weight="600">1.00</text>
+<rect x="278" y="146" width="56" height="26" rx="13" style="fill:none;stroke:var(--procedure)"/><text class="pro" x="306" y="163" text-anchor="middle" font-weight="600">0.94</text>
 <line class="ln" x1="352" y1="70" x2="498" y2="100" marker-end="url(#mflow)"/>
 <line class="ln" x1="352" y1="160" x2="498" y2="120" marker-end="url(#mflow)"/>
 <rect class="box" x="502" y="82" width="158" height="76" rx="12"/>
@@ -222,9 +224,9 @@ Worked, on one end-to-end run: signal 0.905 and reference 0.616 average to 0.760
 <text class="mut" x="581" y="132" text-anchor="middle">0.50 outcome + 0.50 procedure</text>
 <line class="ln" x1="660" y1="120" x2="690" y2="120" marker-end="url(#mflow)"/>
 <text class="mut" x="725" y="106" text-anchor="middle">TOTAL</text>
-<rect x="690" y="112" width="70" height="34" rx="17" style="fill:var(--accent-soft);stroke:var(--accent)"/><text class="acc" x="725" y="134" text-anchor="middle" font-weight="600">0.88</text>
+<rect x="690" y="112" width="70" height="34" rx="17" style="fill:var(--accent-soft);stroke:var(--accent)"/><text class="acc" x="725" y="134" text-anchor="middle" font-weight="600">0.87</text>
 </svg>
-<figcaption style="color:var(--muted);font-size:13px;margin-top:6px">One end-to-end run: outcome 0.760 (signal 0.905 ⊕ reference 0.616, gate 1.00) · procedure 1.000 → 0.880.</figcaption>
+<figcaption style="color:var(--muted);font-size:13px;margin-top:6px">One end-to-end run (e2e_easy): outcome 0.798 (signal 0.979 ⊕ reference 0.616, gate 1.00) · procedure 0.942 → 0.870.</figcaption>
 </figure>
 
 Across the four MVP runs the totals span **0.68–0.88**. Outcome sits near 0.76 for all of them — on a dataset this easy every honest run reconstructs the correct structure, so the held-out reference and the gate are what separate a correct map from a wrong one (a mirror or a noise-injected map collapses here), while procedure carries the spread among the honest runs. Per-run results for every subscore are on the [benchmark](benchmark.html) page.
