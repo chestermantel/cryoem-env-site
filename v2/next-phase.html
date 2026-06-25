@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Next phase — cryo-EM benchmark</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<div class="wrap">
+  <aside class="side"><div class="toc-title">Contents</div><div id="toc"></div></aside>
+  <main>
+    <article>
+      <p class="kicker">Phase 2 · scale-up</p>
+      <h1>Next phase — scaling to the Scripps data</h1>
+      <p class="lead">How the proof of concept on the public tutorial dataset carries over to research-grade data from the Ward lab at Scripps.</p>
+      <div class="docmeta">
+        <span class="tag stage">phase 2 · scale-up</span>
+        <span class="tag dot">T20S → Scripps</span>
+        <span class="tag dot">snapshot 2026-06-24</span>
+      </div>
+
+      <h2>What the proof of concept established</h2>
+      <p>On <strong>T20S</strong> — the public cryoSPARC tutorial dataset — we built and validated the full environment end to end: an agent that drives a real reconstruction from raw movies to a final map, a set of rollouts that exercise that loop at several levels of scaffolding, and a grader that scores each run against deposited ground truth with computed outcome and procedure metrics. T20S was chosen because its answer is known and public, so every piece could be checked against a correct result.</p>
+      <p>It also exposed the central difficulty a benchmark like this has to overcome: on an easy, well-behaved specimen, <strong>resolution alone cannot rank runs</strong> — careful runs and poorly-decided runs reach nearly the same final resolution. That is exactly why the grader scores decision quality and held-out correctness, not just the headline number. The machinery works; what T20S lacks is difficulty.</p>
+
+      <h2>Why Scripps is the real target</h2>
+      <p>T20S is a textbook case: small, highly symmetric, and standardized, with several genuinely hard decisions handed to the agent by the tutorial. Research data from the <strong>Ward lab at Scripps</strong> is none of those things — antibody–antigen complexes (HIV-immunogen structures): larger, flexible, lower-symmetry particles where the right decisions are genuinely uncertain and a poor early call visibly degrades the final map.</p>
+      <p>These structures are <strong>published</strong>, which supplies the same kind of deposited ground truth the grader already uses. What is non-public is the full reconstruction pipeline behind each paper — the raw movies, particle selections, intermediate maps, and the model-building and refinement logs, with their parameter choices and reasoning. That pipeline is the high-context material a scientific agent has to learn from and be tested against.</p>
+      <p>Crucially, the public anchor (the deposited paper) and the non-public pipeline are the <em>same structural system</em>, so the environment scales from the public tutorial to research data on <strong>one continuous workflow</strong> — the same action space and the same grader, pointed at a harder problem.</p>
+
+      <h2>How each piece carries over</h2>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr><th>Proof of concept (T20S)</th><th>Next phase (Scripps)</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Action space</strong> — the agent drives cryoSPARC from raw movies to a map by writing pipeline code.</td><td>Same action surface, harder specimen: flexible, lower-symmetry particles where the interactive decisions matter more and are not given.</td></tr>
+            <tr><td><strong>Rollouts</strong> — a handful of single-shot runs at easy / realistic scaffolding on one dataset.</td><td>A family of tasks sampled over {dataset × starting point × perturbation}, each run repeated to characterise variance rather than a single draw.</td></tr>
+            <tr><td><strong>Outcome grading</strong> — signal quality + agreement with the deposited map.</td><td>The same metrics against the published Scripps structures; with real difficulty the outcome score stops saturating and starts separating runs on map quality.</td></tr>
+            <tr><td><strong>Procedure grading</strong> — trajectory, 2-D selection, particle picking vs an expert reference.</td><td>The same per-decision scoring, now over decisions that genuinely vary in quality — where the non-public logs make a richer expert reference.</td></tr>
+            <tr><td><strong>Ground truth</strong> — the public EMD-6287 / 6BDF deposit.</td><td>The published Scripps papers as the verification target, with the non-public pipeline as the high-context material behind them.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>What this unlocks</h2>
+      <p>The proof of concept shows the machinery works; Scripps is where it becomes a hard benchmark. Research-grade data gives the outcome score headroom it does not have on T20S, exercises the procedure score on decisions that actually matter, and supplies the kind of long-horizon, judgment-heavy reconstruction problem that distinguishes a capable scientific agent from one that can only follow a recipe. It also moves the environment from a single, public, solved instance toward a family of research-grade tasks with genuine difficulty and transfer — the form a training and evaluation environment ultimately needs to take.</p>
+
+    </article>
+  </main>
+</div>
+<script src="assets/site.js"></script>
+<script>Site.init({ active: 'next-phase' });</script>
+<script src="assets/edit.js"></script>
+</body>
+</html>

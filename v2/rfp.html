@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Single-particle cryo-EM reconstruction — v0 evaluation-environment specification — cryo-EM benchmark</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<div class="wrap">
+  <aside class="side"><div class="toc-title">Contents</div><div id="toc"></div></aside>
+  <main>
+    <article>
+
+      <p class="kicker">Scientific evaluation environment</p>
+      <h1>Single-particle cryo-EM reconstruction — v0 evaluation-environment specification</h1>
+      <p class="lead">Submitted in response to the RFP <em>Evaluation Environments for Scientific Tasks</em> (May 2026). This document specifies a v0 evaluation environment for <strong>single-particle cryo-electron microscopy (cryo-EM) reconstruction</strong>: the iterative, judgment-heavy pipeline that turns raw electron-microscope data into a 3D structure. It is written to be concrete enough to begin implementing, and it is instantiated on a public dataset that runs end to end today.</p>
+      <div class="docmeta">
+        <span class="tag stage">v0 specification</span>
+        <span class="tag dot">single-particle cryo-EM reconstruction</span>
+        <span class="tag dot">runnable on public data</span>
+        <span class="tag dot">submitted June 2026</span>
+      </div>
+
+      <div class="callout note"><p><span class="ct">Note.</span> The RFP prescribes execution-graded environments generically — named, weighted, computable subscores graded against held-out ground truth. Everything domain-specific below (the particular metrics, their weights, the action surfaces, and the accessions) is our instantiation of those generic requirements, not a restatement of them.</p></div>
+
+      <h2>1. Task definition</h2>
+
+      <p><strong>What the agent does.</strong> The agent performs a complete single-particle cryo-EM reconstruction: from raw electron-microscope movie frames and their acquisition metadata, it drives the full processing pipeline and must deliver a refined 3D density map of the imaged macromolecule — the entire iterative loop a structural biologist runs, not an isolated step.</p>
+
+      <p><strong>Input the agent receives.</strong></p>
+
+      <ul>
+        <li>Raw multi-frame movies for one dataset.</li>
+        <li>Acquisition metadata: pixel size, accelerating voltage, spherical aberration (Cs), total exposure dose, gain reference, detector type.</li>
+        <li>The point-group symmetry to impose at refinement and the particle-picker diameter(s) — given, not chosen.</li>
+        <li>A programmatic, no-GUI interface to a standard reconstruction package (cryoSPARC, via its Python API).</li>
+        <li>Depending on the configured guidance level: the public processing tutorial this environment tracks, and/or a job-type catalog with parameter values, and/or only a supervisor-style task brief plus the public API.</li>
+        <li>At each interactive step, a faithfully rendered, <strong>non-leaking</strong> observation (a class-average montage with per-class statistics; picks overlaid on a micrograph with the score histogram; map orthoslices and FSC curves) — images and aggregate statistics, with the raw per-particle arrays, the fitted cut, and the answer key withheld.</li>
+      </ul>
+
+      <p><strong>Actions the agent can take.</strong> The primitive action vocabulary is: <strong>create a job, run a job, read a job's results, and inspect-and-adjust an interactive job</strong> — and, at the most open level, <strong>write code directly against the package's Python API</strong>. The environment presents these at three action surfaces, crossed with how much guidance it supplies:</p>
+
+      <div class="tablewrap"><table>
+        <thead><tr><th>Action surface</th><th>What the agent emits</th><th>Guidance range</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Single decision</strong></td><td>the choice for one interactive step (kept-class indices, a threshold, an iso-level), executed by the environment</td><td>one isolated task per decision, with correct upstream state supplied</td></tr>
+          <tr><td><strong>Constrained tool calls</strong></td><td>one call per step over the verb set above; builds and runs the whole graph, every decision inline</td><td>fully specified workflow → tutorial-only minimal catalog</td></tr>
+          <tr><td><strong>Free-form code</strong></td><td>Python written against the package API</td><td>full catalog + guidance → only a supervisor brief, the public tutorial, and the public API, with the agent discovering the job types itself</td></tr>
+        </tbody>
+      </table></div>
+
+      <p><strong>Artifact it must produce.</strong> A final 3D density map (sharpened, with its two half-maps), its global resolution from the gold-standard Fourier shell correlation (FSC), the refinement mask, and the realized job graph — job types, parameters, and intermediate outputs — that produced it.</p>
+
+      <p>Formally, the agent constructs and executes a job graph <strong>τ = (j₁,…,jₙ)</strong>, each <em>jᵢ</em> a <em>(type, parameters, input-edges)</em> triple, yielding a final map <strong>M</strong> with half-maps; the environment returns a score <strong>g(M, τ)</strong> against held-out ground truth (§3).</p>
+
+      <p><strong>What makes the task hard.</strong> The pipeline is a directed graph, not a linear script — several parameters are <em>derived</em> from a prior job's output rather than supplied as inputs — and within the otherwise-fixed protocol exactly <strong>five steps are genuine interactive judgments</strong> rather than fixed procedure:</p>
+
+      <pre><code>import movies → motion correction → CTF estimation → (denoise) → particle picking
+   → inspect/filter picks → extract → 2D classification → select picking templates
+   → template-based picking → inspect/filter picks → extract → 2D classification
+   → select refinement classes → ab-initio 3D (no symmetry) → 3D refinement (symmetry imposed)
+   → mask generation + FSC validation → B-factor sharpening</code></pre>
+
+      <p>The five judgments the agent owns: <strong>two particle-pick threshold cuts</strong> (after the first and second picking passes — the cross-correlation/power cut separating particles from junk); <strong>two 2D class-average selections</strong> (which classes become picking templates, and which feed 3D refinement); and <strong>one mask iso-level</strong>. The point-group symmetry and the particle diameter are given, not chosen.</p>
+
+      <h2>2. Data</h2>
+
+      <p><strong>Primary dataset.</strong> EMPIAR-10025, the T20S proteasome — the 20-movie subset used by the standard public reconstruction tutorial (Titan Krios, 300 kV, K2 detector). Acquisition parameters (task-intrinsic): pixel size <strong>0.6575 Å</strong>, voltage <strong>300 kV</strong>, Cs <strong>2.7 mm</strong>, dose <strong>53 e/Å²</strong>, gain reference <code>norm-amibox05-0.mrc</code>, symmetry <strong>D7</strong>.</p>
+
+      <p><strong>Ground truth.</strong> The published, peer-reviewed reconstruction of this specimen, held out from the agent:</p>
+
+      <div class="tablewrap"><table>
+        <thead><tr><th>Reference</th><th>What it is</th><th>Role</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Deposited atomic model (PDB 6BDF)</strong></td><td>the re-refined atomic model of the structure</td><td>primary structural answer key — <em>did the agent build the right structure</em></td></tr>
+          <tr><td><strong>Deposited density map (EMD-6287)</strong></td><td>the full-dataset 2.8 Å reconstruction + half-maps</td><td>supporting map-to-map cross-check</td></tr>
+          <tr><td><strong>In-house expert reconstruction</strong></td><td>the same 20-movie subset processed by hand to ≈3.15 Å</td><td>the same-subset resolution / particle-count reference and the procedure target values</td></tr>
+        </tbody>
+      </table></div>
+
+      <p><strong>Measurement model.</strong> The deposited map and model come from the published structure-determination pipeline for this specimen. We do not compare against numbers printed in the paper: every agreement metric is recomputed by us, under one fixed engine and procedure applied identically to every map — including the deposited reference itself.</p>
+
+      <p><strong>Splits.</strong></p>
+
+      <ul>
+        <li><strong>Held-out (in place):</strong> the deposited model and map, and all agreement metrics computed against them. The agent never reads the answer key.</li>
+        <li><strong>Perturbed / resampled (in place):</strong> a degraded-map control suite — a wrong-hand (mirror) variant, a fewer-particles / half-density variant, and an added-noise variant — used to confirm the scorer drops on quality differences the resolution number cannot see.</li>
+        <li><strong>External / transfer (proposed):</strong> a harder public EMPIAR dataset, and then the same structural workflow on an access-restricted dataset (§10). The pipeline is identical across splits, which is what makes transfer meaningful.</li>
+      </ul>
+
+      <div class="callout note"><p><span class="ct">Note — resolution ceiling.</span> Runs use a 20-movie subset, whose achievable ceiling is ≈3.1 Å. A run is never penalized for not reaching the 2.8 Å full-dataset figure: resolution bands are set against the same-subset reference, and structural agreement is normalized to the deposited reference low-pass-filtered to each run's <em>own</em> resolution.</p></div>
+
+      <h2>3. Feedback signals and scoring</h2>
+
+      <p>The environment returns <strong>named, computable subscores</strong>, each a number in <code>[0,1]</code> with a stated direction — never a qualitative judgment. They are organized into <strong>three weighted blocks</strong> — outcome, procedure, integrity — which are the three named signals the headline reduces to; the per-block subscores below are their computable decomposition. The signals an agent legitimately sees during interaction (its own half-map FSC, the package's plots, intermediate particle counts) are distinct from the held-out agreement metrics used only for final scoring (§4).</p>
+
+      <h3>Outcome — did it build the right structure (held out)</h3>
+
+      <div class="tablewrap"><table>
+        <thead><tr><th>Signal</th><th>Measures</th><th>Direction</th><th>Normalization</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Map–model correlation</strong> <em>(primary)</em></td><td>real-space correlation between the run's map and the held-out deposited model</td><td>higher better</td><td>ratio to the deposited reference's correlation at the run's own resolution</td></tr>
+          <tr><td><strong>Side-chain interpretability (EMRinger)</strong> <em>(primary)</em></td><td>fraction of side chains whose density peaks at the modeled rotamer — register and interpretability, orthogonal to nominal resolution</td><td>higher better</td><td>ratio to the resolution-matched reference</td></tr>
+          <tr><td><strong>Map–model resolution (FSC = 0.5)</strong> <em>(primary)</em></td><td>the resolution at which map and model agree across shells</td><td>lower better</td><td>reference resolution ÷ value</td></tr>
+          <tr><td><strong>Map–map agreement</strong> <em>(supporting)</em></td><td>real-space correlation to the deposited density map</td><td>higher better</td><td>ratio to the resolution-limited deposited ceiling</td></tr>
+          <tr><td><strong>Fair resolution (gold-standard FSC at 0.143)</strong> <em>(supporting)</em></td><td>nominal resolution, recomputed under one fixed mask for every run rather than each run's self-reported mask</td><td>lower better</td><td>banded against the same-subset reference</td></tr>
+          <tr><td><strong>Handedness gate</strong></td><td>enantiomer (mirror) check — catches wrong-hand maps</td><td>gate</td><td><strong>multiplicative</strong>: a wrong-hand map caps the outcome block to ≈0</td></tr>
+        </tbody>
+      </table></div>
+
+      <p>The interpretability and map–model signals are deliberately resolution-orthogonal: a map can report good resolution yet fail them, which is the failure mode resolution alone hides (§6).</p>
+
+      <h3>Procedure — was the science done correctly (computed off the realized job graph)</h3>
+
+      <p>Each procedure signal is banded to <code>[0,1]</code>, higher = closer to the golden target:</p>
+
+      <div class="tablewrap"><table>
+        <thead><tr><th>Signal</th><th>Target</th><th>Banding</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Picking-template count</strong></td><td>a small distinct-view set (≈2)</td><td>band around the target; gross over-selection is the single highest-signal procedural flag</td></tr>
+          <tr><td><strong>Refinement-class count</strong></td><td>the clean subset (≈15 of 50)</td><td>band around the target (wider tolerance — a softer call)</td></tr>
+          <tr><td><strong>Symmetry</strong></td><td>the given point group at refinement; none imposed at ab-initio</td><td>exact match</td></tr>
+          <tr><td><strong>Box size</strong></td><td>the protocol value</td><td>band; flag anomalies</td></tr>
+          <tr><td><strong>Picker diameters</strong></td><td>the protocol values</td><td>band</td></tr>
+          <tr><td><strong>Stage completeness</strong></td><td>denoising · junk rejection · mask generation · validation · sharpening present</td><td>partial credit per expected stage; penalize skips</td></tr>
+          <tr><td><strong>Particle-count trajectory</strong></td><td>the expected stage-to-stage shape</td><td>each stage within a band of the reference shape — not exact counts, which are version-sensitive</td></tr>
+          <tr><td><strong>Pick-threshold curation</strong></td><td>thresholds not grossly loose</td><td>banded on the cut and the downstream kept fraction</td></tr>
+        </tbody>
+      </table></div>
+
+      <h3>Integrity — is the headline honest</h3>
+
+      <div class="tablewrap"><table>
+        <thead><tr><th>Signal</th><th>Measures</th><th>Direction</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Over-fitting / mask gap</strong></td><td>inflation of the self-reported FSC from a too-tight mask, relative to the corrected curve</td><td>smaller gap better</td></tr>
+        </tbody>
+      </table></div>
+
+      <p><strong>Reduction to a single number.</strong> A full trajectory reduces to a weighted sum of the named subscores — the RFP's "weighted combination of signals" — grouped into the three blocks above, so the headline is three named, weighted components (outcome / procedure / integrity), outcome-dominated, with the handedness gate applied multiplicatively to the outcome block. Provisional block weights are <strong>outcome 0.50 / procedure 0.35 / integrity 0.15</strong>.</p>
+
+      <p><strong>Results — four end-to-end rollouts.</strong> All four reached a final map at essentially the same nominal resolution (3.11–3.18 Å):</p>
+
+      <div class="tablewrap"><table class="scoretable">
+        <thead><tr><th>Run</th><th>Total</th><th>Outcome</th><th>Procedure</th><th>Integrity</th><th>What distinguished it</th></tr></thead>
+        <tbody>
+          <tr><td>Fully guided</td><td><strong>0.86</strong></td><td>0.73</td><td>1.00</td><td>1.00</td><td>clean: 2 picking templates, 16 refinement classes</td></tr>
+          <tr><td>Guided, tool-driven</td><td><strong>0.86</strong></td><td>0.74</td><td>0.96</td><td>1.00</td><td>2 templates, 19 classes</td></tr>
+          <tr><td>Autonomous (brief + tutorial only)</td><td><strong>0.77</strong></td><td>0.74</td><td>0.71</td><td>1.00</td><td><strong>14 templates</strong>, no denoising, mask step failed</td></tr>
+          <tr><td>Sparse guidance</td><td><strong>0.75</strong></td><td>0.72</td><td>0.68</td><td>1.00</td><td><strong>29 templates</strong>, skipped denoising and mask generation</td></tr>
+        </tbody>
+      </table></div>
+
+      <p>The runs are indistinguishable on resolution; the procedure block recovers the quality gap between them.</p>
+
+      <h2>4. Reward integrity</h2>
+
+      <ul>
+        <li><strong>Visible to the agent during interaction:</strong> its own half-map FSC, the reconstruction package's plots, and intermediate particle counts — everything a working scientist legitimately sees.</li>
+        <li><strong>Held out for final scoring:</strong> the deposited model and map, and every agreement metric computed against them.</li>
+        <li><strong>Main degenerate strategy — "wishful masking" / over-fitting:</strong> a too-tight mask inflates the self-reported FSC while the underlying map disagrees with the truth. The defense is structural: the held-out map–model agreement scores such a map down regardless of how good its self-reported FSC looks, and the within-run mask-gap integrity signal flags the inflation directly.</li>
+        <li><strong>State the agent must not read or alter:</strong> the held-out reference files, the grading code, and any cached answer key.</li>
+        <li><strong>The core reward is rule-based and computable</strong> — no learned reward model and no LLM-as-judge, both of which are gameable. (A model-graded or image-based check could serve as a separate, optional quality signal, never as part of the core score.)</li>
+      </ul>
+
+      <p>The degraded-map control suite (§2) confirms the held-out signals behave: a wrong-hand map is zeroed by the handedness gate, and a half-density map — which passes the handedness gate — is caught instead by the map–model block, while honest runs sit well above both.</p>
+
+      <h2>5. Baseline and golden path</h2>
+
+      <p><strong>Golden path.</strong> The expert by-hand trajectory: a structural biologist driving the full pipeline to ≈3.15 Å on the subset, with the complete job graph and parameter choices recorded. This is both the reference trajectory procedure is graded against and the source of the procedure target values.</p>
+
+      <p><strong>Baseline the agent should beat — a resolution-only scorer.</strong> Ranking runs by final resolution looks entirely reasonable in-sample, but it fails on exactly the signal that matters: every end-to-end run reaches ≈golden resolution (3.11–3.18 Å) regardless of decision quality, so a resolution-only metric rates them all equal and <strong>cannot rank the science</strong>. Beating this baseline — recovering the quality differences resolution conflates — is the environment's reason to exist. Correct procedure is itself part of the ground truth here, which is why the procedure block carries real weight. A rigid, fixed-heuristic automation of the same pipeline serves as a second, floor-level baseline.</p>
+
+      <h2>6. Difficulty</h2>
+
+      <p>The naive metric is saturated; the real quality signal is not. Every end-to-end run reaches ≈golden resolution, yet the procedure and integrity terms keep the sloppy runs visibly below the clean ones (0.75–0.77 vs 0.86 above). The cleanest evidence of non-triviality: a run that kept <strong>29 picking templates</strong> (it should keep about two) and <strong>skipped both denoising and mask generation</strong> still posted the <em>best</em> nominal resolution (3.11 Å) — and the scorer ranked it below the clean runs anyway. The headroom lives in judgment, not in the final scalar.</p>
+
+      <p>On this single, well-behaved instance the held-out <em>outcome</em> block is itself near-saturated, so most of the current discrimination comes from the procedure block and from the perturbation and transfer splits. Pushing even clean-procedure runs meaningfully below ceiling on outcome is the role of harder instances — see the problem family (§7).</p>
+
+      <h2>7. Problem family</h2>
+
+      <p>Today this is a <strong>single fixed instance</strong> — valuable as a held-out eval — together with a <strong>within-instance perturbation family</strong> already in place (the degraded-map control suite: mirror / low-particle / noise).</p>
+
+      <p>For training value we propose a <strong>parameterized family of instances</strong> over three axes:</p>
+
+      <ul>
+        <li><strong>dataset</strong> — a handful of public EMPIAR single-particle sets spanning a range of symmetries, particle sizes, and difficulties;</li>
+        <li><strong>pipeline entry stage</strong> — the agent enters at raw movies, at motion-corrected micrographs, or at pre-extracted particles;</li>
+        <li><strong>perturbation</strong> — none, mirror, particle subsampling at set fractions, or added noise at set levels.</li>
+      </ul>
+
+      <p>A generator script emits one manifest row per point in the product of these axes — a stable instance id mapping to its configuration — yielding the RFP's "manifest of problem instances generated by a script you write." The perturbation axis is already enumerated; the dataset and entry-stage axes are the proposed extension.</p>
+
+      <h2>8. Metadata</h2>
+
+      <ul>
+        <li><strong>Expected human completion time (one instance):</strong> roughly a half to a full working day for a trained user end to end, counting the interactive steps and queue/compute waits; the compute itself is GPU-hours.</li>
+        <li><strong>Difficulty tier (relative to current models):</strong> medium — distinct from the data-access tiers in §10. Frontier models reach a golden-class <em>map</em> but make materially sub-optimal <em>judgment</em> calls, which is the gap this environment measures.</li>
+        <li><strong>Grading approach:</strong> hybrid, programmatic-dominant — computable map-agreement metrics plus structured-field procedure checks; no LLM-judge in the core.</li>
+        <li><strong>What bad performance looks like:</strong></li>
+      </ul>
+
+      <div class="tablewrap"><table>
+        <thead><tr><th>Failure mode</th><th>Signature</th><th>Caught by</th></tr></thead>
+        <tbody>
+          <tr><td>Over-selecting picking templates</td><td>14–29 templates kept vs ≈2</td><td>procedure: template count</td></tr>
+          <tr><td>Skipping pipeline stages</td><td>no denoising / no mask generation / no validation</td><td>procedure: stage completeness</td></tr>
+          <tr><td>Under-curating picks</td><td>thresholds left far too loose</td><td>procedure: pick-threshold curation</td></tr>
+          <tr><td>Wishful masking</td><td>inflated self-FSC that disagrees with the truth</td><td>integrity gap + held-out outcome</td></tr>
+          <tr><td>Wrong handedness</td><td>mirrored map</td><td>outcome: handedness gate → ≈0</td></tr>
+          <tr><td>Right number, wrong science</td><td>golden resolution via a poor procedure</td><td>the procedure block</td></tr>
+        </tbody>
+      </table></div>
+
+      <h2>9. Four-to-six-week plan</h2>
+
+      <p>A pilot that ends with the environment runnable end to end under a fixed compute budget. Weeks 1–4 already run as a working prototype on the public data; the schedule below is how we would sequence a clean delivery.</p>
+
+      <div class="tablewrap"><table>
+        <thead><tr><th>Week</th><th>Deliverable</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Stage the public data; run and record the expert golden path; reproduce it programmatically.</td></tr>
+          <tr><td>2</td><td>Stand up the action surface — the agent drives the pipeline on a live instance, from single decisions to end-to-end.</td></tr>
+          <tr><td>3</td><td>Collect and catalogue agent rollouts across the guidance/autonomy range.</td></tr>
+          <tr><td>4</td><td>Implement the scorer — named weighted subscores with a held-out outcome — and validate its sensitivity on the degraded-map control suite.</td></tr>
+          <tr><td>5</td><td>Wire in the baselines (the resolution-only scorer and the rigid pipeline); calibrate and freeze the weights.</td></tr>
+          <tr><td>6</td><td>Package the containerized environment (setup + grading hooks), the instance manifest from a generator script, the data-fetch step, and stable train/test splits; confirm an end-to-end run under a fixed budget.</td></tr>
+        </tbody>
+      </table></div>
+
+      <h2>10. Data access</h2>
+
+      <p>Runnable from day one on public data, with a tiered path to the encumbered data where the deepest value is:</p>
+
+      <ol>
+        <li><strong>Public, day one (no agreement):</strong> EMPIAR-10025 and the deposited answer key (the model and map), all fetched from public archives. The entire v0 runs on this.</li>
+        <li><strong>Light credentialing:</strong> a harder public EMPIAR dataset, to extend the difficulty and transfer range.</li>
+        <li><strong>Under a data-use agreement:</strong> the non-public reconstruction pipeline data behind a <em>published</em> structure — raw micrographs, particle selections, intermediate maps, and the model-building/refinement logs, parameter choices, and provenance (~20 TB) — held by a partner research institute. The same structural workflow scales continuously from the public anchor to this dataset.</li>
+      </ol>
+
+      <p><strong>Shareable vs. encumbered.</strong> The public tier is shareable for this purpose immediately. The encumbered tier comes online under a data-use agreement now in negotiation with the partner institution; the public tier is fully sufficient to build, run, and evaluate the v0 environment in the meantime.</p>
+
+      <h2>How this meets the evaluation criteria</h2>
+
+      <ul>
+        <li><strong>Technical feasibility.</strong> Demonstrated rather than promised: the environment has been built and run end to end on obtainable public data, on a single cloud GPU instance, with computable metrics, an implemented scorer, and a real baseline.</li>
+        <li><strong>Scientific merit.</strong> The task is the genuine iterative reconstruction loop a structural biologist runs, graded against a published, validated answer key — with a held-out outcome that confirms the <em>right structure</em> was built and a procedure layer that measures whether the <em>science was done well</em>, the difference a resolution number hides. A model that scores well here is more useful for the underlying research problem, not just better at the narrow metric.</li>
+      </ul>
+
+      <h2>What the pilot builds toward</h2>
+
+      <p>Per the RFP's "what you will eventually build": a containerized environment with two hooks — a <em>setup</em> function returning the task prompt and materials, and a <em>grading</em> function returning named numeric subscores with weights — plus a manifest of problem instances from a generator script, a data-fetch step, a trivial baseline, and stable train/test splits. The scoring module is kept harness-agnostic so it survives integration into any evaluation framework.</p>
+
+      <h2>Open questions for the pilot</h2>
+
+      <ul>
+        <li>Calibrating and freezing the block and within-block weights on the degraded-map control suite (they are provisional today).</li>
+        <li>Formalizing and enumerating the instance family <code>{dataset × entry-stage × perturbation}</code> via the generator script.</li>
+        <li>Characterizing per-decision variance: the pipeline is stochastic and runs are single-shot, so each interactive decision should be repeated several times to grade the distribution rather than a single draw.</li>
+        <li>Selecting the specific harder public dataset for the transfer split.</li>
+        <li>Capturing frozen observation snapshots so a fixed benchmark can replay without driving the live pipeline.</li>
+      </ul>
+
+    </article>
+  </main>
+</div>
+<script src="assets/site.js"></script>
+<script>Site.init({ active: 'rfp' });</script>
+<script src="assets/edit.js"></script>
+</body>
+</html>

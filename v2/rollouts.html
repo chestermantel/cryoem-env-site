@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tasks — cryo-EM benchmark</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<div class="wrap">
+  <aside class="side">
+    <div class="toggles">
+      <div class="lbl">Show fields</div>
+      <label class="toggle on"><input type="checkbox" data-field="inputs" checked> Inputs</label>
+      <label class="toggle on"><input type="checkbox" data-field="outputs" checked> Outputs</label>
+      <label class="toggle on"><input type="checkbox" data-field="behavior" checked> Model behavior</label>
+      <label class="toggle on"><input type="checkbox" data-field="performance" checked> Grade</label>
+    </div>
+    <div class="jump">
+      <div class="lbl">Sections</div>
+      <div id="jump">
+        <a class="toclink" href="#group-action-space">Action space</a>
+        <a class="toclink" href="#group-task-overview">Task overview</a>
+        <a class="toclink" href="#group-rollouts">Rollouts</a>
+        <a class="toclink" href="#group-catalogue">Rollout catalogue</a>
+      </div>
+    </div>
+  </aside>
+  <main>
+    <article>
+      <p class="kicker">What the model does</p>
+      <h1>Tasks</h1>
+      <p class="lead">The benchmark tasks: the action space, a catalog of every task, and the per-run
+        rollouts (model inputs, outputs, trajectories, grader scores, and run metadata). Run-by-run performance
+        comparison: <a href="benchmark.html">benchmark</a>. The scoring scheme:
+        <a href="grader.html">grader</a>.</p>
+      <div class="docmeta">
+        <span class="tag stage">rollout catalog</span>
+        <span class="tag dot">scores on the benchmark page</span>
+        <span class="tag dot">updated 2026-06-25</span>
+      </div>
+
+      <details class="group" id="group-action-space" open>
+        <summary class="group-head"><h2>Action space</h2></summary>
+        <p>The task is a single-particle cryo-EM reconstruction: raw electron-microscope movies go in, a 3-D
+          density map comes out. The input movies are short stacks of frames, each stack recording the same field
+          of frozen particles over the few seconds of exposure; they are sourced from <b>EMPIAR</b>, the Electron
+          Microscopy Public Image Archive of raw cryo-EM data. The output is a 3-D density map, a voxel grid
+          giving the reconstructed electron density of the particle. Finished maps are deposited in the
+          <b>EMDB</b> (Electron Microscopy Data Bank) and the atomic models later built into them in the
+          <b>PDB</b> (Protein Data Bank); those two archives are where the grader's reference structures come
+          from. <b>cryoSPARC</b> is the software that performs the reconstruction. It is one of the two standard
+          suites for single-particle cryo-EM (RELION is the other), and it covers the whole pipeline the task
+          needs: motion correction, CTF estimation, particle picking, 2-D classification, ab-initio 3-D
+          reconstruction, and refinement. That makes it the only tool in the loop here. The software on either
+          side is out of scope: the microscope produces the movies, and once the map exists, atomic-model
+          building and refinement (fitting a protein structure into the density) happen in Phenix and Coot, with
+          ChimeraX or PyMOL for visualization.</p>
+        <p>Work in cryoSPARC is organized as a graph of <b>jobs</b>. Each job is one processing step, such as
+          import, Patch Motion Correction, Patch CTF, a particle picker, 2-D Classification, Ab-initio
+          Reconstruction, or Homogeneous Refinement. A job takes typed inputs (sets of micrographs, particles, or
+          volumes), exposes parameters, and produces outputs that become the inputs of later jobs. A scientist
+          normally assembles this graph in cryoSPARC's web interface: create a job, connect its inputs to an
+          upstream job's outputs, set its parameters, queue it on a GPU, look at the result, and move on. A few
+          steps are <b>interactive</b>. They cannot be set once and left alone, because they require looking at an
+          intermediate result and making a judgment call: which 2-D class averages are real particles rather than
+          junk, where to set the threshold that separates particles from contamination in a set of picks, and
+          what level to contour a mask at. The agent drives this same machinery through code rather than the web
+          interface. It connects to a live cryoSPARC instance over the official <code>cryosparc-tools</code>
+          Python API, creates and queues jobs on the GPU cluster, reads their outputs back, and for the
+          interactive steps requests a rendered image of the intermediate result and decides from it.</p>
+        <p>The agent begins from a fresh cryoSPARC workspace that contains only the raw input for this structure
+          (the EMPIAR-10025 movies and their acquisition metadata: pixel size, voltage, dose) and a short brief
+          stating the goal. It acts through exactly two tools:</p>
+        <ul>
+          <li><code>run_python(code)</code>: the agent submits a string of Python. The harness runs it in one
+            namespace on the cryoSPARC server that persists across calls, then returns whatever the code printed,
+            the value of its last expression, and any error traceback. This is the only way the agent can do
+            anything; it writes code that drives cryoSPARC through the cryosparc-tools API.</li>
+          <li><code>finish(summary)</code>: the agent calls this once a final map exists, to end the run and
+            report the resolution it reached.</li>
+        </ul>
+        <p>That namespace is pre-loaded with a connected cryoSPARC client (<code>cs</code>), the names of the
+          workspace and the GPU lanes, the location of the raw data, and a set of inspection helpers that render
+          an intermediate result as an image: a 2-D class montage, picks drawn on a micrograph, a slice through a
+          volume, or a mask at several thresholds. The agent is not given ready-made functions for the processing
+          steps or a list of the available job types. It queries the live instance for the job types and works
+          out how to drive each one.</p>
+        <p>Everything the agent does, it does by writing code in <code>run_python</code>. With it the model can
+          create a job and set its parameters, connect a job's inputs to the outputs of an earlier job, queue a
+          job on a GPU and poll until it finishes, and read a finished job's numbers and output files. It can
+          call an inspection helper to get an image of an intermediate result and look at it, then make the
+          curation decisions that have no single correct answer: which 2-D classes to keep, where to put the
+          particle-versus-junk threshold on a set of picks, what mask to apply, what symmetry to impose, and
+          which refinement to run. When a job fails or a result looks wrong, the model reads the traceback or the
+          metrics and submits revised code.</p>
+        <p>What the run produces, and what the grader scores, is the final sharpened 3-D density map together
+          with the complete job tree that built it. The map is scored for its quality, and the tree of jobs,
+          along with the decisions recorded in it, for the soundness of the procedure.</p>
+      </details>
+
+      <details class="group" id="group-task-overview" open>
+        <summary class="group-head"><h2>Task overview</h2></summary>
+        <p>The dataset the agent reconstructs, and the instructions and context it is given.</p>
+
+        <details class="csub" open>
+          <summary><h3>Data</h3></summary>
+          <p>Every core rollout runs on one dataset, the 20S proteasome (T20S), the standard specimen in the
+            public <a href="https://guide.cryosparc.com/processing-data/get-started-with-cryosparc-introductory-tutorial">cryoSPARC
+            introductory tutorial</a>. The raw data is EMPIAR-10025, and the rollouts use the tutorial's 20-movie
+            subset of it. T20S is a roughly 700 kDa proteasome with high (D7) symmetry, which makes it small,
+            rigid, and comparatively easy to reconstruct. The tutorial is cryoSPARC's step-by-step walkthrough
+            from these movies to a ~3 &Aring; map; we ran it by hand to produce the golden reference, and the same
+            recipe is what the agent is given. The deposited answer key is EMD-6287 for the map and PDB 6BDF for
+            the atomic model.</p>
+          <p>The benchmark is being extended to harder structures with a public deposit but no by-hand golden
+            trajectory, each chosen to span a difficulty the tutorial specimen avoids. The full T20S dataset adds
+            the rest of the movies to the one system that already has a golden trajectory, isolating the effect of
+            scale. &beta;-galactosidase, the standard RELION benchmark, is a larger, lower-symmetry particle on a
+            trusted reference, a controlled step up from T20S. The CB1&ndash;Gi and MRGPRX2 GPCR complexes are
+            small, flexible membrane proteins in detergent, where handedness, anisotropy, and a lower attainable
+            resolution become the hard parts. The encapsulin is a large icosahedral assembly that probes the
+            opposite extreme of very high symmetry. And the HIV Env BG505 trimer with a 44m Fab is the Scripps
+            pilot system itself: flexible, low in symmetry, and the structure where the right processing decisions
+            are genuinely uncertain rather than handed over by a recipe.</p>
+        </details>
+
+        <details class="csub" open>
+          <summary><h3>Agent inputs</h3></summary>
+          <p>Each rollout hands the model three things:</p>
+          <ul>
+            <li>a <b>system persona</b>: a senior structural biologist working autonomously;</li>
+            <li>a <b>task brief</b> stating the goal and the acquisition facts the work needs (pixel size,
+              voltage, dose, gain reference, and the molecule's symmetry and size);</li>
+            <li><b>reference material</b>: the public cryoSPARC tutorial and the cryosparc-tools API notes.</li>
+          </ul>
+          <p>It is given no pre-built job functions and no job catalog; it discovers the available job types from
+            the live instance and decides the workflow itself.</p>
+          <p>Difficulty is set by how much of the recipe the brief includes, with the data and the tools held
+            fixed. <b>Handheld</b> adds guidance distilled from the by-hand run on top of the tutorial: the job
+            catalog, parameter values, and explicit decision hints. <b>Tutorial</b> gives exactly the public
+            tutorial. <b>Realistic</b> gives a PI-style goal with the step-by-step recipe removed, so the model
+            has to supply the workflow and every curation decision from its own expertise. Each step up the
+            ladder removes scaffolding and moves more of the scientific judgment onto the model.</p>
+        </details>
+      </details>
+
+      <details class="group" id="group-rollouts" open>
+        <summary class="group-head"><h2>Rollouts</h2></summary>
+        <p>The benchmark is the set of rollouts below. Each rollout is one run of the reconstruction, by the
+          agent or by a reference actor, on a stated dataset. They fall into six kinds. The tables list every
+          rollout with a short description of what it is and how it was done; the
+          <a href="#group-catalogue">rollout catalogue</a> further down gives a summary card and, where
+          available, a full report for each. Per-run grader scores live on the
+          <a href="benchmark.html">benchmark</a> page.</p>
+        <ul>
+          <li><b>Golden path.</b> A human builds and runs the whole movies-to-map pipeline by hand, following the
+            tutorial. It defines the golden trajectory and answer keys, and sets the quality ceiling the agent is
+            measured against.</li>
+          <li><b>Performance floor.</b> A minimal pipeline that makes random choices at the interactive steps, a
+            no-skill lower bound that anchors the bottom of the score range.</li>
+          <li><b>Baseline (CryoWizard).</b> A non-agentic automated pipeline run on the same data, a comparison
+            point that is neither an expert nor an agent.</li>
+          <li><b>Agent rollouts.</b> The model driving the full reconstruction itself, run at three levels of
+            guidance: handheld, tutorial, and realistic.</li>
+          <li><b>Quality control (degraded data).</b> Deliberately corrupted maps (wrong-hand mirror, added
+            noise, half density) fed to the grader to confirm it separates good reconstructions from bad. Not a
+            model run.</li>
+          <li><b>Realistic datasets.</b> Reconstructions of structures other than the tutorial specimen, larger
+            and harder and lower in symmetry, graded on the reference-free and deposit-anchored subscores.</li>
+        </ul>
+
+        <details class="csub" open>
+          <summary><h3>T20S tutorial rollouts</h3></summary>
+          <p>All rows reconstruct the T20S tutorial subset
+            (<a href="https://www.ebi.ac.uk/empiar/entry/10025/">EMPIAR-10025</a>; deposit
+            <a href="https://www.ebi.ac.uk/emdb/entry/EMD-6287">EMD-6287</a> /
+            <a href="https://www.rcsb.org/structure/6BDF">6BDF</a>), where both a deposited map and a by-hand
+            golden trajectory exist, so a run is fully gradeable.</p>
+          <div class="tablewrap"><table>
+            <thead><tr><th>Rollout</th><th>What it is and how it was done</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><code>handheld</code> (agent)</td>
+                <td>Agent drives the full movies&rarr;map pipeline given the public tutorial plus extra guidance
+                  distilled from the by-hand run (the job catalog, parameter values, and decision hints).</td>
+                <td><span class="pill ok">built</span></td>
+              </tr>
+              <tr>
+                <td><code>tutorial</code> (agent)</td>
+                <td>Agent given exactly the public tutorial and nothing more, the apples-to-apples comparison
+                  against the by-hand run on identical information.</td>
+                <td><span class="pill partial">planned</span></td>
+              </tr>
+              <tr>
+                <td><code>realistic</code> (agent)</td>
+                <td>Agent given a PI-style brief plus the public tutorial and the API; it discovers the job types
+                  and decides the workflow and every curation call itself.</td>
+                <td><span class="pill ok">built</span><br><span style="font-size:12px;color:var(--muted)">current
+                  run bundles the tutorial; the recipe-removed variant is wired, not yet run</span></td>
+              </tr>
+              <tr>
+                <td>Golden path (by-hand)</td>
+                <td>A human builds and runs the pipeline by hand following the tutorial. Defines the golden
+                  trajectory, the answer keys, and the quality ceiling.</td>
+                <td><span class="pill ok">built</span></td>
+              </tr>
+              <tr>
+                <td>Performance floor</td>
+                <td>A minimal job tree with random choices at the interactive steps, the no-skill lower bound that
+                  sets the normalization floor.</td>
+                <td><span class="pill ok">built</span></td>
+              </tr>
+              <tr>
+                <td>Baseline (CryoWizard)</td>
+                <td>A non-agentic automated pipeline (CryoWizard, ported to cryoSPARC 5) run on T20S, a non-agent
+                  comparison point.</td>
+                <td><span class="pill ok">built</span></td>
+              </tr>
+              <tr>
+                <td>Quality control (degraded)</td>
+                <td>Synthetic corruptions of the answer map (mirror, noise, half density) fed to the grader. A
+                  negative control on the outcome metric, not a model run.</td>
+                <td><span class="pill ok">built</span><br><span style="font-size:12px;color:var(--muted)">grader
+                  QA</span></td>
+              </tr>
+            </tbody>
+          </table></div>
+        </details>
+
+        <details class="csub" open>
+          <summary><h3>Realistic Dataset Rollouts</h3></summary>
+          <p>Structures other than the tutorial specimen, each with a public deposit but no golden trajectory, so
+            they are graded on the deposit-anchored and reference-free subscores only. Scoped in a separate
+            session; rollouts not yet computed.</p>
+          <div class="tablewrap"><table>
+            <thead><tr><th>Dataset</th><th>What it is and why it is included</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>Full T20S<br><span style="font-size:12px;color:var(--muted)"><a href="https://www.ebi.ac.uk/empiar/entry/10025/">EMPIAR-10025</a>
+                  &middot; <a href="https://www.ebi.ac.uk/emdb/entry/EMD-6287">EMD-6287</a> &middot;
+                  <a href="https://www.rcsb.org/structure/6BDF">6BDF</a></span></td>
+                <td>The full T20S dataset, the same molecule as the tutorial subset with all movies. Scaling on
+                  the one system that has a golden trajectory.</td>
+                <td><span class="pill partial">rollout incomplete</span></td>
+              </tr>
+              <tr>
+                <td>&beta;-galactosidase<br><span style="font-size:12px;color:var(--muted)"><a href="https://www.ebi.ac.uk/empiar/entry/10204/">EMPIAR-10204</a>
+                  &middot; <a href="https://www.ebi.ac.uk/emdb/entry/EMD-6840">EMD-6840</a></span></td>
+                <td>The RELION benchmark specimen (~465 kDa, D2). Larger and lower in symmetry than T20S;
+                  map-only deposit.</td>
+                <td><span class="pill partial">rollout incomplete</span></td>
+              </tr>
+              <tr>
+                <td>CB1&ndash;Gi GPCR complex<br><span style="font-size:12px;color:var(--muted)"><a href="https://www.ebi.ac.uk/empiar/entry/10288/">EMPIAR-10288</a>
+                  &middot; <a href="https://www.ebi.ac.uk/emdb/entry/EMD-0339">EMD-0339</a> &middot;
+                  <a href="https://www.rcsb.org/structure/6N4B">6N4B</a></span></td>
+                <td>A cannabinoid receptor bound to a G protein in a detergent micelle. Small and flexible; tests
+                  handedness and anisotropy.</td>
+                <td><span class="pill partial">rollout incomplete</span></td>
+              </tr>
+              <tr>
+                <td>MRGPRX2 GPCR<br><span style="font-size:12px;color:var(--muted)"><a href="https://www.ebi.ac.uk/empiar/entry/10853/">EMPIAR-10853</a>
+                  &middot; <a href="https://www.ebi.ac.uk/emdb/entry/EMD-24896">EMD-24896</a> &middot;
+                  <a href="https://www.rcsb.org/structure/7S8L">7S8L</a></span></td>
+                <td>A ligand-bound GPCR. A harder, lower-resolution target where procedure matters more than
+                  resolution.</td>
+                <td><span class="pill partial">rollout incomplete</span></td>
+              </tr>
+              <tr>
+                <td>Encapsulin<br><span style="font-size:12px;color:var(--muted)"><a href="https://www.ebi.ac.uk/empiar/entry/10716/">EMPIAR-10716</a>
+                  &middot; <a href="https://www.ebi.ac.uk/emdb/entry/EMD-12853">EMD-12853</a> &middot;
+                  <a href="https://www.rcsb.org/structure/7ODW">7ODW</a></span></td>
+                <td>An encapsulated-ferritin nanocompartment with icosahedral symmetry. The I shell is graded.</td>
+                <td><span class="pill partial">rollout incomplete</span></td>
+              </tr>
+              <tr>
+                <td>HIV Env BG505 + 44m Fab<br><span style="font-size:12px;color:var(--muted)"><a href="https://www.ebi.ac.uk/empiar/entry/13456/">EMPIAR-13456</a>
+                  &middot; <a href="https://www.ebi.ac.uk/emdb/entry/EMD-36815">EMD-36815</a></span></td>
+                <td>The Scripps pilot system, an HIV-immunogen Env trimer with a Fab. Flexible and low in
+                  symmetry; map-only at ~4.4 &Aring;.</td>
+                <td><span class="pill partial">rollout incomplete</span></td>
+              </tr>
+            </tbody>
+          </table></div>
+        </details>
+      </details>
+
+      <details class="group" id="group-catalogue" open>
+        <summary class="group-head"><h2>Rollout catalogue</h2></summary>
+        <p>A summary card for every rollout in the tables above: its inputs, outputs, model behavior, and grade
+          status, with a link to the full per-run report where one has been published. Use the
+          <b>Show fields</b> toggles (left) to pick which aspects to show across all cards. Grades that are not
+          yet computed are flagged; per-subscore scores for the graded runs are on the
+          <a href="benchmark.html">benchmark</a> page.</p>
+        <div id="rollouts" class="show-inputs show-outputs show-behavior show-performance">
+          <details class="csub" open>
+            <summary><h3>T20S tutorial rollouts</h3></summary>
+            <div id="cat-tutorial"></div>
+          </details>
+          <details class="csub" open>
+            <summary><h3>Realistic Dataset Rollouts</h3></summary>
+            <div id="cat-realistic"></div>
+          </details>
+        </div>
+      </details>
+    </article>
+  </main>
+</div>
+
+<script>
+/* ============================================================================
+   ROLLOUT DATA — editable. Derived facts (resolution, job counts, token/turn
+   metadata, prompts) are read from the run artifacts + README/scorecard; the
+   behavior summaries are curated. Grades are NOT restated here — graded runs
+   point to the benchmark page, uncomputed ones are flagged.
+   ============================================================================ */
+
+const ROLLOUTS = {
+
+  /* ---- core agent rollouts (top of the tutorial list) ---- */
+
+  t20s_handheld: {
+    title: 'Handheld — easy scaffolding',
+    badge: { cls: 'reached', txt: 'reached map' },
+    stats: [['dataset', 'T20S / EMPIAR-10025'], ['resolution', '3.16 Å'], ['jobs', '21']],
+    inputs: {
+      kv: [
+        ['model', '<code>claude-opus-4-8</code>'],
+        ['task', 'public tutorial + guidance distilled from the by-hand run: full job catalog, parameter values, and decision hints'],
+        ['cryoSPARC', 'clean clone of the W1 golden (reference only)']
+      ]
+    },
+    outputs: {
+      kv: [['result', 'reached a final sharpened map at <b>3.16 Å</b> (GSFSC loose-mask)'], ['jobs', '21']]
+    },
+    behavior: [
+      'Followed the guided recipe and made the curation calls it was pointed to (≈2 templates at the first Select-2D), landing near the by-hand reference.'
+    ],
+    grade: '<p class="note">Graded. Full per-subscore breakdown on the <a href="benchmark.html">benchmark</a> page.</p>'
+  },
+
+  t20s_tutorial: {
+    title: 'Tutorial — verbatim recipe only',
+    badge: { cls: 'partial', txt: 'planned' },
+    stats: [['dataset', 'T20S / EMPIAR-10025'], ['status', 'not yet run']],
+    outputs: {
+      kv: [['result', 'the verbatim-tutorial-only agent run is wired but has not been run yet']]
+    },
+    grade: '<p class="note">Not yet computed — rollout not yet run.</p>'
+  },
+
+  t20s_realistic: {
+    title: 'Realistic — PI brief', star: true,
+    badge: { cls: 'reached', txt: 'reached map' },
+    stats: [['dataset', 'T20S / EMPIAR-10025'], ['resolution', '2.91 Å final · 3.16 Å loose'], ['jobs', '17'],
+            ['turns', '64'], ['wall', '58 min']],
+    inputs: {
+      kv: [
+        ['model', '<code>claude-opus-4-8</code>, max_tokens 32k'],
+        ['system', '1,451-char persona: a senior computational structural biologist working autonomously, choosing the workflow, the jobs, and every parameter, never asking questions, debugging from tracebacks, and continuing.'],
+        ['task', 'PI brief + <b>verbatim public T20S tutorial</b> + cryosparc-tools API notes (≈56.5k chars). No job list, no params, no wiring.'],
+        ['dataset', 'EMPIAR-10025, 20-movie subset · 0.6575 Å/px · 300 kV · Cs 2.7 mm · dose 53 e/Å² · gain norm-amibox05-0.mrc · D7'],
+        ['cryoSPARC', 'project P5 / workspace W7 (clean clone of the W1 golden, reference only)']
+      ],
+      quote: '“take it all the way to a refined, sharpened high-resolution 3D density map … I’m not going to spell out the individual jobs or their parameters; you know single-particle processing … aim to get close to the published resolution (~2.9 Å), and validate with a gold-standard FSC.”'
+    },
+    outputs: {
+      dag: 'import → patch-motion → patch-CTF → blob-pick → inspect → extract → 2D → select → template-pick → inspect → extract (full-res) → 2D → select → ab-initio (C1) → homo-refine (D7) → [mask-gen ✗] → validation',
+      kv: [
+        ['final map', 'J114 (Homogeneous Refinement, D7)'],
+        ['resolution', 'GSFSC@0.143 = <b>2.91 Å</b> final / 2.92 Å tight; independent Validation (FSC) = 3.02 Å; loose-mask 3.16 Å'],
+        ['sharpening', 'Guinier B-factor −75.3'],
+        ['note', 'Volume Tools mask-gen (J115) crashed on the master node during preview rendering; worked around with the refinement’s own FSC mask plus a GPU Validation job']
+      ],
+      report: '<a href="reports/raw-realistic-exec-v2.html">full per-run report ↗</a> · also <a href="reports/raw-realistic-exec-v1.html">partial v1</a> and <a href="reports/raw-realistic-build-v1.html">build-only</a>'
+    },
+    behavior: [
+      'Discovered job types from the live instance and built + ran the full single-particle pipeline unassisted in 64 turns / 58 min (3.46M input / 19k output tokens, 13 observation images).',
+      'Two-round curation: blob-pick → inspect (NCC 0.30) → extract (binned to 220) → 2D (K=50) → kept <b>14</b> templates; template-pick → inspect (NCC 0.42) → full-res extract (box 440) → 2D → kept <b>19</b> classes → 9,916 particles.',
+      'Ab-initio in C1, then imposed <b>D7</b> only at Homogeneous Refinement → 2.91 Å; validated with a gold-standard FSC.',
+      'Decisions vs the golden intent: 14 templates kept (golden ~2), 19 refine classes (golden ~15), intermediate extract binned, denoise + junk-detect skipped.',
+      'When mask-gen crashed it substituted the refinement’s FSC mask and a separate Validation job rather than retrying the failed job.'
+    ],
+    grade: '<p class="note">Graded. Full per-subscore breakdown on the <a href="benchmark.html">benchmark</a> page.</p>'
+  },
+
+  /* ---- reference / baseline / control rollouts ---- */
+
+  t20s_golden: {
+    title: 'Golden path — by-hand expert (W1)',
+    badge: { cls: 'build', txt: 'reference' },
+    stats: [['dataset', 'T20S / EMPIAR-10025'], ['resolution', '≈3.15 Å'], ['jobs', '25'], ['symmetry', 'D7']],
+    outputs: {
+      dag: 'import → motion → CTF → pick → 2D → select → ab-initio → homo-refine (D7) → sharpen',
+      kv: [['result', 'a human-built movies→map reconstruction at <b>≈3.15 Å</b> (GSFSC loose-mask), 25 jobs (J1–J25)']]
+    },
+    behavior: [
+      'Built by a human following the cryoSPARC tutorial. Used as the golden trajectory the agent runs are compared against, and the source of the answer keys.'
+    ],
+    grade: '<p class="note">Reference, not scored. Defines the quality ceiling (map quality 1.0) and the golden trajectory.</p>'
+  },
+
+  t20s_floor: {
+    title: 'Performance floor — random decisions',
+    badge: { cls: 'build', txt: 'reference (floor)' },
+    stats: [['dataset', 'T20S / EMPIAR-10025'], ['resolution', '4.35 Å'], ['jobs', '10']],
+    outputs: {
+      kv: [['result', 'a minimal 10-job pipeline with random choices at the interactive steps, reaching 4.35 Å']]
+    },
+    behavior: [
+      'Built deliberately badly: a minimal job tree with random selections at Select-2D and Inspect-Picks. A real actor running the pipeline with no judgment.'
+    ],
+    grade: '<p class="note">Reference, not scored. Defines the normalization floor (map quality 0.0); it self-scores ~0 on signal quality.</p>'
+  },
+
+  cryowizard: {
+    title: 'Baseline — CryoWizard (non-agentic)',
+    badge: { cls: 'reached', txt: 'reached map' },
+    stats: [['dataset', 'T20S / EMPIAR-10025'], ['resolution', '2.85 Å'], ['jobs', '101']],
+    outputs: {
+      kv: [
+        ['result', 'best map J109 at <b>2.85 Å</b> (101 jobs, 0 errors)'],
+        ['handedness', 'raw map is wrong-handed; the hand-flipped map is shown as primary']
+      ]
+    },
+    behavior: [
+      'CryoWizard, an automated non-agentic pipeline, ported to cryoSPARC 5 and run on T20S. A comparison point that is neither an expert nor an agent.'
+    ],
+    grade: '<p class="note">Provisional. Graded through the same pipeline, but the deposit-correlation normalizer needs verification on non-golden maps; not yet finalized.</p>'
+  },
+
+  degraded: {
+    title: 'Quality control — degraded maps',
+    badge: { cls: 'build', txt: 'grader control' },
+    stats: [['dataset', 'derived from EMD-6287 / W1'], ['variants', 'mirror · noise · half-density']],
+    outputs: {
+      kv: [['result', 'three deliberately corrupted versions of the answer map (wrong-hand mirror, added noise, half particle density) graded through the same outcome pipeline']]
+    },
+    behavior: [
+      'Not a model run. A negative control confirming the outcome metric and the handedness gate separate good maps from bad: the mirror collapses the outcome to 0, noise and half-density drop sharply.'
+    ],
+    grade: '<p class="note">Grader control, not a model run. See the degraded suite on the <a href="benchmark.html">benchmark</a> page.</p>'
+  },
+
+  /* ---- realistic datasets (other structures) ---- */
+
+  t20s_full: {
+    title: 'Full EMPIAR-10025 (T20S, all movies)',
+    badge: { cls: 'partial', txt: 'rollout incomplete' },
+    stats: [['EMPIAR', '10025'], ['EMDB', 'EMD-6287'], ['PDB', '6BDF']],
+    outputs: {
+      kv: [['what', 'the full T20S dataset, same molecule as the tutorial subset with all movies; the bridge to realistic-scale data on the one system that has a golden']]
+    },
+    grade: '<p class="note">Not yet computed — rollout incomplete.</p>'
+  },
+
+  betagal: {
+    title: 'β-galactosidase (RELION benchmark)',
+    badge: { cls: 'partial', txt: 'rollout incomplete' },
+    stats: [['EMPIAR', '10204'], ['EMDB', 'EMD-6840'], ['PDB', '—']],
+    outputs: {
+      kv: [['what', 'E. coli β-galactosidase (~465 kDa, D2), the RELION benchmark specimen. Larger and lower in symmetry than T20S; map-only deposit, so graded on map-to-map and reference-free subscores']]
+    },
+    grade: '<p class="note">Not yet computed — rollout incomplete.</p>'
+  },
+
+  cb1_gi: {
+    title: 'CB1–Gi GPCR complex',
+    badge: { cls: 'partial', txt: 'rollout incomplete' },
+    stats: [['EMPIAR', '10288'], ['EMDB', 'EMD-0339'], ['PDB', '6N4B']],
+    outputs: {
+      kv: [['what', 'a cannabinoid receptor (CB1) bound to a G protein, in a detergent micelle. Small and flexible; a test of handedness and of anisotropy from the flat micelle']]
+    },
+    grade: '<p class="note">Not yet computed — rollout incomplete.</p>'
+  },
+
+  mrgprx2: {
+    title: 'MRGPRX2 (ligand-bound GPCR)',
+    badge: { cls: 'partial', txt: 'rollout incomplete' },
+    stats: [['EMPIAR', '10853'], ['EMDB', 'EMD-24896'], ['PDB', '7S8L']],
+    outputs: {
+      kv: [['what', 'a ligand-bound GPCR. A harder, lower-resolution target where procedure should be weighted over resolution']]
+    },
+    grade: '<p class="note">Not yet computed — rollout incomplete.</p>'
+  },
+
+  encapsulin: {
+    title: 'Encapsulin (icosahedral)',
+    badge: { cls: 'partial', txt: 'rollout incomplete' },
+    stats: [['EMPIAR', '10716'], ['EMDB', 'EMD-12853'], ['PDB', '7ODW']],
+    outputs: {
+      kv: [['what', 'an encapsulated-ferritin nanocompartment with icosahedral (I) symmetry. The I shell is graded; the D5 cargo has no separate map']]
+    },
+    grade: '<p class="note">Not yet computed — rollout incomplete.</p>'
+  },
+
+  env_bg505: {
+    title: 'HIV Env BG505 + 44m Fab (Scripps pilot)',
+    badge: { cls: 'partial', txt: 'rollout incomplete' },
+    stats: [['EMPIAR', '13456'], ['EMDB', 'EMD-36815'], ['PDB', '—']],
+    outputs: {
+      kv: [['what', 'the Scripps pilot system: an HIV-1 BG505 Env trimer with a 44m Fab. Flexible and low in symmetry; map-only at ~4.4 Å, where resolution should not be used to rank. C1 deposit vs C3 assembly makes symmetry the gradeable call']]
+    },
+    grade: '<p class="note">Not yet computed — rollout incomplete.</p>'
+  }
+};
+
+/* card order per subsection */
+const TUTORIAL  = ['t20s_handheld', 't20s_tutorial', 't20s_realistic', 't20s_golden', 't20s_floor', 'cryowizard', 'degraded'];
+const REALISTIC = ['t20s_full', 'betagal', 'cb1_gi', 'mrgprx2', 'encapsulin', 'env_bg505'];
+
+/* ============================ render ============================ */
+function esc(s) { return String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])); }
+
+function fieldBlock(key, label, innerHTML) {
+  return `<div class="field field-${key}"><div class="field-label">${label}</div>${innerHTML}</div>`;
+}
+function kvList(kv) {
+  return '<dl class="kv">' + kv.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${v}</dd>`).join('') + '</dl>';
+}
+
+function rolloutCard(r) {
+  let h = `<details class="rollout"${r.star ? ' open' : ''}><summary class="rollout-head">
+      <h3>${esc(r.title)}${r.star ? ' <span class="star">★</span>' : ''}</h3>
+      <span class="badge ${r.badge.cls}">${esc(r.badge.txt)}</span></summary><div class="rollout-body">`;
+  if (r.stats) {
+    h += '<div class="statline">' + r.stats.map(([k, v]) => `<span>${esc(k)} <b>${v}</b></span>`).join('') + '</div>';
+  }
+  if (r.inputs) {
+    let inner = kvList(r.inputs.kv);
+    if (r.inputs.quote) inner += `<blockquote style="margin-top:12px">${r.inputs.quote}</blockquote>`;
+    h += fieldBlock('inputs', 'Inputs', inner);
+  }
+  if (r.outputs) {
+    let inner = '';
+    if (r.outputs.dag) inner += `<p style="font-size:13.5px;margin-top:0"><code>${r.outputs.dag}</code></p>`;
+    if (r.outputs.kv) inner += kvList(r.outputs.kv);
+    if (r.outputs.report) inner += `<p class="note">${r.outputs.report}</p>`;
+    h += fieldBlock('outputs', 'Outputs', inner);
+  }
+  if (r.behavior) {
+    h += fieldBlock('behavior', 'Model behavior', '<ul>' + r.behavior.map(b => `<li>${b}</li>`).join('') + '</ul>');
+  }
+  h += fieldBlock('performance', 'Grade', r.grade || '<p class="note">Not yet computed.</p>');
+  h += '</div></details>';
+  return h;
+}
+
+function renderInto(containerId, ids) {
+  const root = document.getElementById(containerId);
+  root.innerHTML = ids.map(id => ROLLOUTS[id] ? rolloutCard(ROLLOUTS[id]) : '').join('');
+}
+renderInto('cat-tutorial', TUTORIAL);
+renderInto('cat-realistic', REALISTIC);
+
+document.querySelectorAll('.toggle input[data-field]').forEach(cb => {
+  cb.addEventListener('change', () => {
+    const f = cb.dataset.field;
+    const root = document.getElementById('rollouts');
+    root.classList.toggle('show-' + f, cb.checked);
+    cb.closest('.toggle').classList.toggle('on', cb.checked);
+  });
+});
+</script>
+<script src="assets/site.js"></script>
+<script>Site.init({ active: 'rollouts' });</script>
+<script src="assets/edit.js"></script>
+</body>
+</html>

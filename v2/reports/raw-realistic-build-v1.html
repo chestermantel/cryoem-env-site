@@ -1,0 +1,1792 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Report — realistic · build-only · v1</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<div class="wrap">
+  <aside class="side"><div class="brand">Report</div><div id="toc">
+    <a class="toclink" href="../rollouts.html">← all rollouts</a>
+    <a class="toclink" href="#glance">0 · At a glance</a>
+    <a class="toclink" href="#metadata">1 · Run metadata</a>
+    <a class="toclink" href="#inputs">2 · Model inputs</a>
+    <a class="toclink" href="#surface">3 · Action surface</a>
+    <a class="toclink" href="#outputs">4 · Outputs</a>
+    <a class="toclink sub" href="#resolution">· result &amp; summary</a>
+    <a class="toclink sub" href="#dag">· DAG</a>
+    <a class="toclink sub" href="#trajectory">· trajectory</a>
+    <a class="toclink sub" href="#images">· images</a>
+  </div></aside>
+  <main><article class="report">
+<a class="backlink" href="../rollouts.html">← all rollouts</a>
+<h1>realistic · build-only · v1</h1>
+<p class="subtitle">The agent drives the whole reconstruction by writing <code>cryosparc-tools</code> Python (<code>run_python</code>), given only a PI brief, the verbatim public tutorial, and public API notes. This is the full run record: what it was given, the tools it had, and everything it produced — its code, the DAG, the trajectory, and every observation image.</p>
+<div class="docmeta">
+  <span class="tag stage">raw cryosparc-tools · realistic</span>
+  <span class="tag dot">2026-06-19 01:48Z</span>
+</div>
+
+<section class="glance" id="glance"><span class="badge build">build-only — nothing executed</span><div class="statline"><span>jobs <b>21</b></span><span>run_python blocks <b>37</b></span><span>turns <b>37</b></span><span>wall <b>3.4 min</b></span><span>tokens <b>1,149,956 in / 10,373 out</b></span><span>images <b>0</b></span></div><p class="verdict">Built and wired the complete T20S single-particle pipeline in workspace W5 (P5), following the cryoSPARC intro tutorial, entirely via cryosparc-tools.</p></section>
+
+<h2 id="metadata">1 · Run metadata</h2>
+<table class="meta"><colgroup><col style="width:230px"><col></colgroup><tr><td><b>Task / variant / phase</b></td><td><code>raw_tools</code> · <code>realistic</code> · <code>build</code> · run <code>v1</code></td></tr><tr><td><b>Run date</b></td><td>2026-06-19 01:48Z</td></tr><tr><td><b>cryoSPARC project / workspace</b></td><td>P5 / W5</td></tr><tr><td><b>Model</b></td><td><code>claude-opus-4-8</code> · max_tokens/turn 32,000</td></tr><tr><td><b>Stop reason</b></td><td>finished</td></tr><tr><td><b>Jobs</b></td><td>21</td></tr><tr><td><b>run_python blocks</b></td><td>37</td></tr><tr><td><b>Agent turns</b></td><td>37</td></tr><tr><td><b>Wall-clock</b></td><td>3.4 min</td></tr><tr><td><b>Observation images</b></td><td>0</td></tr><tr><td><b>Token usage</b></td><td>1,149,956 in · 10,373 out</td></tr><tr><td><b>Input-prompt size</b></td><td>system 1,451 + task 56,688 chars = 22,244 input tokens</td></tr></table>
+
+<h2 id="inputs">2 · Model inputs</h2>
+<p>The model gets a static start prompt — a <i>system</i> prompt (role + how <code>run_python</code> works)
+and a <i>task</i> message (the PI brief + the verbatim public tutorial + cryosparc-tools API notes). It is
+<b>not</b> given the golden answer key or fitted thresholds; the inspection helpers are non-leaking.</p>
+<details><summary><b>System prompt</b> (1,451 chars)</summary>
+<pre>You are a senior computational structural biologist working autonomously in a cryo-EM lab. Your PI has handed you a dataset and a goal and expects you to carry out the reconstruction end-to-end using your OWN scientific judgment — you choose the workflow, the jobs, every parameter, and every particle/class/mask curation decision yourself. You operate cryoSPARC entirely programmatically by writing Python with the cryosparc-tools API, through one tool, run_python, that executes your code in a persistent namespace on the workstation and returns stdout, the last expression&#x27;s value, and any traceback — so you work iteratively: write a little code, read the result or error, fix, continue. You are unattended: be decisive, never ask questions, debug from tracebacks yourself, and keep going until the goal is met. The cryoSPARC connection, the project, and a fresh empty workspace are already set up and pre-bound — do not reconnect or create a project/workspace; do all your work in the pre-bound workspace. Consult the materials your PI gave you (the introductory tutorial and the cryosparc-tools API notes) and the live system itself (e.g. query the available job types, introspect each job&#x27;s inputs/outputs/parameters) to work out how to proceed. There is no hand-holding beyond this: the tutorial conveys the intended approach in broad strokes, and the rest is your expertise. When you have produced and validated the final result, call finish.</pre></details>
+<details><summary><b>Task message</b> (56,688 chars — PI brief + tutorial + API notes)</summary><details><summary>PI brief (1,504 chars)</summary><pre>From: your PI
+Subject: T20S proteasome reconstruction
+
+We have a raw cryo-EM movie dataset of the T20S proteasome — the standard EMPIAR-10025 introductory subset (20 movies), already on the workstation in DATA_DIR. I&#x27;d like you to for this first pass, just construct and wire the complete pipeline of jobs — don&#x27;t queue or run anything yet; I want to review the plan before we spend compute: run the full single-particle analysis pipeline from raw movies onward, the way the cryoSPARC introductory tutorial lays it out. Reproduce that workflow using your own judgment — I&#x27;m not going to spell out the individual jobs or their parameters; you know single-particle processing, and the tutorial describes the intended approach. Drive everything programmatically through cryosparc-tools (no GUI). Make all the parameter and particle/class/mask curation calls yourself, impose the molecule&#x27;s symmetry where appropriate, aim to get close to the published resolution (~2.9 Å), and validate the result with a gold-standard FSC. I&#x27;ve pasted the tutorial and the cryosparc-tools API notes below; you can also query the live cryoSPARC instance for whatever else you need. Work autonomously and just get it done; show me the assembled pipeline when it&#x27;s wired up.
+
+Acquisition facts for the dataset (you&#x27;ll need these to import): movies are the *.frames.tif files in DATA_DIR with the gain reference norm-amibox05-0.mrc; pixel size 0.6575 Å, 300.0 kV, Cs 2.7 mm, total dose 53.0 e/Å². The proteasome has D7 symmetry.</pre></details><details><summary>cryosparc-tools API notes (4,026 chars)</summary><pre>## Supplementary material — cryosparc-tools API notes (public; tools.cryosparc.com)
+You operate cryoSPARC by writing Python with the `cryosparc-tools` package (public docs: tools.cryosparc.com).
+The connection and a project are already set up — see &quot;Your working environment&quot; below. Key API:
+
+- DISCOVER the available job types: `cs.print_job_types()` prints every job type — its category, its builder
+  TYPE STRING (the string you pass to create_job), and its GUI title (the names the tutorial uses). You can
+  filter by category, e.g. `cs.print_job_types(&quot;particle_picking&quot;)`. This is how you map a tutorial step to
+  the right job-type string.
+- CREATE + wire a job:
+      job = cs.create_job(project_uid, workspace, &quot;&lt;type_string&gt;&quot;,
+                          connections={&quot;&lt;input_group&gt;&quot;: (source_job_uid, &quot;&lt;source_output_group&gt;&quot;), ...},
+                          params={&quot;&lt;param&gt;&quot;: value, ...}, title=&quot;...&quot;)
+  After `job.refresh()`, introspect the job to learn its exact input groups, output groups, and parameters
+  (names + current/default values) so you know what to wire and what to set:
+      spec = job.model.model_dump()[&quot;spec&quot;]
+      spec[&quot;inputs&quot;].keys()    # input-group names to wire INTO
+      spec[&quot;outputs&quot;].keys()   # output-group names to wire FROM (and to load)
+      spec[&quot;params&quot;]           # all parameters with their current values
+  You can also set a parameter after creation with `job.set_param(name, value)`. Build jobs in dependency order.
+- RUN a job: `job.queue(lane=...)` then `status = job.wait_for_done(timeout=..., error_on_incomplete=False)`
+  (returns the status string; if it times out the server keeps running it — poll again, don&#x27;t block unbounded).
+  Compute lanes are `LANE_CPU` and `LANE_GPU`; lightweight / interactive jobs run on the master node with
+  `lane=None`. Output row counts: `len(job.load_output(&quot;&lt;output_group&gt;&quot;))`.
+- INTERACTIVE jobs: some jobs pause in a `&quot;waiting&quot;` state when queued (they expect interactive input) rather
+  than completing. Drive such a job headlessly via `job.interact(action, body)` and then finalize it, or
+  achieve the equivalent curation programmatically from the relevant outputs — your choice. (A `&quot;waiting&quot;`
+  job is not `&quot;completed&quot;`; don&#x27;t `wait_for_done` on it expecting completion.)
+- RESULTS: a finished refinement/volume job carries its resolution + diagnostics in its model, at
+  `job.model.model_dump()[&quot;spec&quot;][&quot;outputs&quot;][&quot;&lt;group&gt;&quot;][&quot;latest_summary_stats&quot;]` (e.g. gold-standard FSC
+  resolutions in Å and the Guinier B-factor). You can also `load_output` any result and read MRC maps off disk.
+
+
+## Your working environment
+You write code through one tool, `run_python(code)`, which executes it in a PERSISTENT Python namespace on the
+lab workstation and returns stdout + the value of the last expression + any traceback — so you iterate like a
+real coder: write a small block, read the result/error, fix, continue. Pre-bound (do NOT reconnect or create a
+project/workspace): `cs` (a connected cryosparc-tools client), `project`, `project_uid`, `workspace` (a fresh
+EMPTY workspace — build everything here), `project_dir`, `DATA_DIR` (the raw-movie directory), `LANE_CPU` /
+`LANE_GPU`, plus `np`, `os`, `json`, `time`, and `find_job(uid)`.
+To inspect intermediate results, lab visualization utilities are available in the namespace and return images
+you can see: `show_class_montage(job)` (2D class averages, labelled by class index), `show_picks(job, cut=None)`
+(pick score distribution + picks drawn on micrographs; pass cut=(ncc,power_min,power_max) to colour kept vs
+rejected), `show_volume(job)` (map orthoslices), `show_mask_sweep(job)` (mask-threshold sweep on a low-passed
+map). You may also load any output and plot your own diagnostics. Use whatever you need to make your judgments.
+
+
+Proceed now: discover the job types you need, then create and wire the complete pipeline (introspecting each job&#x27;s inputs/outputs to wire the next). Do NOT queue or run anything. When the whole pipeline is built and wired, call finish.</pre></details><details><summary>Verbatim public tutorial (51,153 chars)</summary><pre>## Supplementary material — the cryoSPARC T20S introductory tutorial (public)
+&gt; For the complete documentation index, see [llms.txt](https://guide.cryosparc.com/llms.txt). Markdown versions of documentation pages are available by appending `.md` to page URLs; this page is available as [Markdown](https://guide.cryosparc.com/processing-data/get-started-with-cryosparc-introductory-tutorial.md).
+
+# Get Started with CryoSPARC: Introductory Tutorial (v4.0+)
+
+{% hint style=&quot;warning&quot; %}
+The information in this section applies to CryoSPARC v4.0+.
+
+For CryoSPARC ≤v3.3, please see: [Get Started with CryoSPARC: Introductory Tutorial (v3)](/guides-for-v3/cryo-em-data-processing-in-cryosparc-introductory-tutorial.md)
+{% endhint %}
+
+## Cryo-EM Data Processing in CryoSPARC: Introductory Tutorial
+
+We recommend starting off with the T20S Tutorial to become familiar with the workflow in CryoSPARC. When you&#x27;re ready to learn more about cryoEM, you might move on to [our series of introductory videos](/processing-data/tutorial-videos.md#single-particle-analysis-with-cryosparc) or other [written tutorials](/processing-data/tutorials-and-case-studies.md).
+
+This dataset is a subset of 20 movies from the [EMPIAR-10025](https://www.ebi.ac.uk/pdbe/emdb/empiar/entry/10025/) T20S Proteasome dataset. While not a representative example of the complexity of most cryo-EM projects today, it is a good way to become familiar with the interface and software features and to [learn how CryoSPARC organizes jobs and projects](/application-guide/projects-workspaces-and-live-sessions.md).
+
+For a refresher on the interface, projects and jobs, please see the [Application Guide](https://guide.cryosparc.com/application-guide-v4.0+).
+
+![Overview of processing the T20S dataset from raw movie data to a high-resolution 3D structure.](/files/b16TFoFmnMvrUSHAA4v0)
+
+## Introduction: Dashboard, Projects, Workspaces and Jobs
+
+The **Dashboard** provides at-a-glance information on currently active jobs, and your instance&#x27;s processing history. It also displays links to various resources, including the [CryoSPARC guide](https://guide.cryosparc.com), [Data Processing Tutorials](/processing-data/tutorials-and-case-studies.md), the [Discussion Forum](https://discuss.cryosparc.com), and recent entries from the [Electron Microscopy Public Image Archive (EMPIAR)](https://www.ebi.ac.uk/empiar/) and [Electron Microscopy Data Bank (EMDB)](https://www.ebi.ac.uk/emdb/). As well, the dashboard displays the [change log](https://cryosparc.com/updates) for new versions of CryoSPARC. The navigation bar on the left side of the UI contains links to the Projects view, the [Resource Manager](/application-guide/managing-jobs.md), [currently running jobs](/application-guide/managing-jobs.md), [instance information](/application-guide/instance-management.md), job history, and more.
+
+CryoSPARC organizes your workflow by **Project**, e.g, P1, P2, etc. Projects contain one or more **Workspaces**, which in turn house **Jobs**.
+
+Projects are strict divisions. Files and jobs from different projects are stored in dedicated project directories and jobs cannot be connected from one project to another.
+
+Workspaces are soft divisions, and allow for logical separation of jobs and workflows so they can be more easily managed in a large project. Jobs may be connected across workspaces and each job may belong to more than one Workspace.
+
+&lt;figure&gt;&lt;img src=&quot;/files/rxAb49toqjFofL8tGetT&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;p&gt;The CryoSPARC dashboard&lt;/p&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+## Step 1: Create a Project
+
+* To create a project, click on the **New Project** button at the top right side of the header.
+
+&lt;figure&gt;&lt;img src=&quot;/files/NfGPyGyUjKmEiNPK10ql&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+* A dialog box will open to the right, prompting you for a project title, container directory, and optionally a description.
+
+&lt;figure&gt;&lt;img src=&quot;/files/gGJNULI3o7tL20Pn0qKn&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+* Enter a project title and browse for a location for the associated container directory with the file browser. The container directory should already exist. CryoSPARC will create a subdirectory within the container directory that will become the **project directory** for the new project, and will act as a root for all new files and directories created in the project. This includes job directories, imported jobs and result groups, and exported jobs and result groups.
+* You may also enter a description for your project.
+* Click **Create**. The new project now appears on the Projects page, accessible via the container icon on the navigation bar.
+
+## Step 2: Create a Workspace
+
+Use Workspaces to organize or separate portions of the cryo-EM workflow for convenience or experimentation. Create at least one Workspace within a Project before running a Job.
+
+* After creating a new project, you will be prompted to create a new workspace within the project. Enter a title, such as &quot;T20S Subset Processing&quot;, and click **Create Workspace**. Note that both the title and description can be modified later.
+
+&lt;figure&gt;&lt;img src=&quot;/files/FyOZzcIi1ptgm1EnCP82&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+* If you have exited the project view, you can always navigate back to it by clicking the container icon on the navigation bar, then clicking anywhere on your newly created project card (in this example, P35), and finally selecting **View Project** on the right-hand sidebar. The container icon and the **View Project** button are highlighted in purple boxes in the image below. Projects can also be navigated to using the search functionality, accessible via the magnifying glass in the lower left corner of the interface:
+
+&lt;figure&gt;&lt;img src=&quot;/files/P3TNbZCW1zl83AGCKmGH&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+* Once within the project, new workspaces can also be created at any time using the **New Workspace** button at the top right side of the header.
+
+## Step 3: Download the Tutorial Dataset
+
+* Log in to the machine where CryoSPARC is installed via command-line.
+* Navigate to or create a directory into which to download the test dataset (approx. 8 GB). **This location should have read permissions for** [**the linux user account running CryoSPARC**](https://guide.cryosparc.com/setup-configuration-and-management/cryosparc-installation-prerequisites#2.-common-unix-user-account)**.**
+* Run the command `cryosparcm downloadtest` while in this directory. This downloads a subset of the T20S dataset.
+* Unpack the downloaded data. The archive file names differ between CryoSPARC versions 4 and 5. In CryoSPARC version 4, run
+
+  ```
+  tar xvf empiar_10025_subset.tar
+  ```
+
+  In CryoSPARC version 5, run
+
+  ```
+  tar xvf empiar_10025_subset_v1.tar 
+  ```
+
+## Step 4: Import Movies
+
+* In CryoSPARC, navigate to the new Workspace. To do so, navigate to the project as described in step 2, then click on the workspace card, and hit **View Workspace** on the bottom right.
+* You will be greeted with a list of the various [***Import Jobs***](https://guide.cryosparc.com/processing-data/all-job-types-in-cryosparc/import)*,* with links to quickly build any of them. For this tutorial, we can get started with data processing by clicking to build an [***Import Movies***](https://guide.cryosparc.com/processing-data/all-job-types-in-cryosparc/import/job-import-movies) job.
+
+&lt;figure&gt;&lt;img src=&quot;/files/tVoMlm8vrbv5JmV3xwin&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+* This creates a new job within the current Workspace, displayed as a card. By default, new jobs are set to **Building** status, indicated on the job card in purple. To change parameters, select the job and ensure that the job is in Building status. A job&#x27;s status can be [toggled using the `B` key on your keyboard](https://guide.cryosparc.com/application-guide-v4.0+/creating-and-running-jobs#building-a-job), or by clicking the **Build** or **Stop Building** badges on the job card.
+
+&lt;figure&gt;&lt;img src=&quot;/files/FHN9govRAiXvVmS5KmBY&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+* Select the **Movies data path**: Click the file browse icon and select the movie files. Movies may have a `.tif`, `.eer`, `.mrc` or similar extension. To select multiple files, use an appropriate wildcard expression that matches all desired files. In the case of the specially prepared EMPIAR-10025 movie subset, `14sep05c_*.frames.tif` or simply `*.tif` selects all 20 of the subset&#x27;s movies. Ensure the wild card expression is both general and specific enough to include all desired an exclude all undesired files. The file browser displays the list of selected files along with the number of matches at the bottom.
+* Select the **Gain reference path** with the file browser: In case of the specially prepared EMPIAR-10025 data, select the `norm-amibox05-0.mrc` file in the folder that also contains the `*.tif` movies.
+* Edit Job parameters from the Builder; enter the following parameters (obtained from the original publication in [*eLife*](https://elifesciences.org/articles/06380)).
+  1. **Raw pixel size (Å)**: `0.6575`
+  2. **Accelerating voltage (kV)**: `300`
+  3. **Spherical abberation (mm)**: `2.7`
+  4. **Total exposure dose (e/Å^2)**: `53`
+* After changing a parameter, the parameter box and title changes colour from gray to green. This indicates the parameter is different from its default value:
+
+&lt;figure&gt;&lt;img src=&quot;/files/qjLMthsPd3HCU2f8D581&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;p&gt;Parameters with default values are marked in gray. Custom values are marked in green.&lt;/p&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+* Click **Queue Job** to start the import. Use the subsequent dialog to select a lane/node on which to run the job. The available lanes depend on your installation configuration. By default, import and interactive jobs will run on the master node as they are not resource intensive. Using this dialog box, you may set the job title and description, which may both be changed later. Press the **Queue** button.
+
+&lt;figure&gt;&lt;img src=&quot;/files/2IZr5Rw1mPkHzRMCJq9E&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+* The *Import Movies* job queues and starts running. Look for the Job card in the workspace to monitor its status.
+* To open a Job and view its progress, click on the header at the top of the Job card, where the job title is shown. Alternatively, select on the Job card and press the spacebar on your keyboard:
+
+&lt;figure&gt;&lt;img src=&quot;/files/UQqoFKLi9iWLcVVqHtyU&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+* This opens the [Inspect view](https://guide.cryosparc.com/application-guide-v4.0+/inspecting-data#event-log), which shows a streaming event log of the real-time progress for the Import Job. Scroll through the event log to view results. Select a checkpoint to find a specific location in the event log or click &#x27;Show from top&#x27; to return to the beginning. Additional actions and detailed information for the job are available in the details panel. The **Output** of the import job, i.e., the 20 imported movies, are available on the right hand side of the event log:
+
+&lt;figure&gt;&lt;img src=&quot;/files/pgV6QnGiY2BNHoUKs5Pk&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+* To exit the job/close the inspect view, press the spacebar again, or press the `×` button on the top-right of the dialog.
+* Once finished, the job&#x27;s status indicator at the top left changes to **&quot;Completed&quot;** in green.
+
+## Step 5: Motion Correction
+
+For our next stage of processing, we will be performing [***Motion Correction***](/processing-data/all-job-types-in-cryosparc/motion-correction.md) on the imported movies. Motion Correction refers to the alignment and averaging of input movies into single-frame micrographs, for use downstream.
+
+* Select the [**Job Builder**](https://guide.cryosparc.com/application-guide-v4.0+/creating-and-running-jobs) in the right sidebar by clicking on the **Builder** tab. The Job Builder displays all available job types by category (e.g., workflows, imports, motion correction, etc.). A tutorial on the Job Builder and other ways to build jobs in CryoSPARC (Quick Actions, Job Cart) is available [here](https://guide.cryosparc.com/application-guide-v4.0+/creating-and-running-jobs).
+* Select the [***Patch Motion Correction***](https://guide.cryosparc.com/processing-data/all-job-types-in-cryosparc/motion-correction/job-patch-motion-correction) job type in the Job builder. You can either scroll down and locate the job within the &quot;Motion Correction&quot; category, or you may search for it using the search too&amp;#x6C;*.* This creates a new job in building state so that its inputs and parameters are editable in the right side panel.
+
+&lt;figure&gt;&lt;img src=&quot;/files/PHOFMF37Vrk6P3AoGilH&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+* The *Patch Motion Correction* job requires raw movies as **Inputs**. First, ensure that the *Patch Motion Correction* job is in **Building** status. Open the previously completed **Import Movies** job by clicking on the header of the job card, then drag and drop the **Outputs** of the Import Movies job, to the **Movies** placeholder in the Job Builder.
+* Once dropped, the connected output name appears in the Job Builder as an Input:
+
+&lt;figure&gt;&lt;img src=&quot;/files/VD8U4naRsBmoPxhrgwHr&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+* If you have multiple GPUs available, you can speed up the processing time by setting the **Number of GPUs to parallelize** parameter within the **Compute settings** section to the number of GPUs you would like to assign to that job.
+* **Queue** the job and select a lane. It is generally not necessary to adjust the *Patch Motion Correction* job parameters; they are automatically tuned based on the data. Finally, click **Queue.**
+
+&lt;figure&gt;&lt;img src=&quot;/files/SLwUEjv63XViT0nX5Zwr&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;p&gt;The job queueing dialog displaying a list of lanes (configured via the CryoSPARC command-line interface) to choose from. Here, we have chosen to queue the job to the &lt;code&gt;cryoem2&lt;/code&gt; lane.&lt;/p&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+* Once the job starts to run the card will update with a preview image:
+
+&lt;figure&gt;&lt;img src=&quot;/files/2AmIYEq1aeM0kSc4yQ2s&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;p&gt;The blue icon next to the job ID (J2) indicates this job is running.&lt;/p&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+## Step 6: CTF Estimation
+
+Our next step is to perform [**Contrast Transfer Function (CTF) Estimation**](/processing-data/all-job-types-in-cryosparc/ctf-estimation.md). This stage involves the estimation of several CTF parameters in the dataset, including the defocus and astigmatism of each micrograph.
+
+* Select [***Patch CTF Estimation***](/processing-data/all-job-types-in-cryosparc/ctf-estimation/job-patch-ctf-estimation.md) in the Job Builder to create a new job.
+* This job type requires **micrographs** as the input. Open the previous *Patch Motion Correction* job, and drag and drop the output (20 micrographs) into the Micrograph placeholder in the Job Builder.
+
+{% hint style=&quot;info&quot; %}
+You can connect outputs of jobs that haven&#x27;t completed into the inputs of a building job. In this case, the newly created job will start to run automatically when all parent jobs have completed. This makes it easy to [queue up a series of jobs](https://guide.cryosparc.com/application-guide-v4.0+/creating-and-running-jobs#queuing-chains-of-jobs-that-run-automatically) to run without having to wait until they&#x27;re completed to queue them manually.
+{% endhint %}
+
+* As with *Patch Motion Correction*, the job will complete faster by allocating multiple GPUs. This can be configured with the **Number of GPUs to parallelize** parameter.
+* **Queue** the job to start. It is generally not necessary to adjust the *Patch CTF Estimation* job parameters; they are automatically tuned based on the data.
+
+&lt;figure&gt;&lt;img src=&quot;/files/zVEoRtw6Ho5qL8w9ntQy&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;p&gt;Connecting Patch Motion Correction job outputs to a building Patch CTF Estimation job and queuing it to a GPU-accelerated instance.&lt;/p&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+## Step 7: Micrograph Denoiser
+
+{% hint style=&quot;info&quot; %}
+The Micrograph Denoiser is available in CryoSPARC v4.5 and later. If you are using an older version of CryoSPARC, you can proceed to particle picking without performing Denoising.
+{% endhint %}
+
+The motion-corrected micrographs now have CTF estimates. The next step of the Single Particle Analysis pipeline is picking particles, in which each micrograph is scanned for positions which are likely to contain a particle (&quot;picks&quot;). However, cryo-EM micrographs often have very poor signal-to-noise ratio. This makes visual inspection of micrographs difficult, and also makes particle picking difficult, resulting in many off-target picks.
+
+The [Micrograph Denoiser](/processing-data/all-job-types-in-cryosparc/exposure-curation/job-micrograph-denoiser-beta.md) is a trained neural network that learns to flatten the background noise and increase contrast in particles, making picking more effective. This typically improves performance of all picking techniques, increasing the number of correct particles found and reducing the number of false positives.
+
+* Select *Micrograph Denoiser* in the Job Builder to create a job
+* Open the previous *Patch CTF Estimation* job and drag the Micrographs processed output to the exposures input.
+* Leave the optional Denoise model input empty, as we have not yet trained a model on this dataset.
+* Typically, the parameters of *Micrograph Denoiser* can be left as default. However, since this dataset contains fewer than the default 100 micrographs used for training, we must adjust the **Number of mics for training** parameter to **`20`**.
+* **Queue** the job to start.
+
+A denoiser model will be trained on all 20 micrographs of the dataset, and then automatically used to denoise the micrographs for downstream use. More information about how this job works and explanations of the various parameters are available in the [guide page](/processing-data/all-job-types-in-cryosparc/exposure-curation/job-micrograph-denoiser-beta.md).
+
+&lt;figure&gt;&lt;img src=&quot;/files/W1PIo17cCcIeV5VTCIHK&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;p&gt;Comparison between simple lowpass filtering (left) and denoising (right) of the same micrograph.&lt;/p&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+## Step 8: Particle Picking (Blob Picker)
+
+It is important to attain a large number of high-quality particles for an optimal reconstruction. The [***Blob Picker***](/processing-data/all-job-types-in-cryosparc/particle-picking/job-blob-picker.md) is a common starting point for particle picking as it is a quick way to obtain an initial set of particle images that can be used to refine picking techniques over time.
+
+Blob picking is a good idea because it verifies data quality and sets expectations for what particle images, projections, and structures should look like. We&#x27;ll use blob picks to generate a set of templates that can be used as an input to the [***Template Picker***](/processing-data/all-job-types-in-cryosparc/particle-picking/job-template-picker.md), which will generate a set of much higher-quality picks matching the two primary 2D views of the T20S structure.
+
+{% hint style=&quot;info&quot; %}
+For certain jobs, CryoSPARC has built-in [**Quick Actions**](https://guide.cryosparc.com/application-guide-v4.0+/creating-and-running-jobs#job-quick-actions). These are shortcuts that allow you to simultaneously build a downstream job while connecting an existing job&#x27;s outputs to it, all in one step.
+{% endhint %}
+
+* To create the *Blob Picker* job using Quick Actions, move your cursor over to the *Micrograph Denoiser* job card and click on the ellipsis (...) in the header of the job card. Alternatively, right click anywhere on the job card.
+* Scroll down and click on the **Build Blob Picker on Denoised Mics** button. This will create the *Blob Picker* job and connect the output **Denoised micrographs** from the *Micrograph Denoiser* job to the *Blob Picker* job, all in one click.
+
+&lt;figure&gt;&lt;img src=&quot;/files/7eD4mHwpoysZ23n0cE1g&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;p&gt;Example of building a &lt;em&gt;Blob Picker&lt;/em&gt; job from a &lt;em&gt;Micrograph Denoiser&lt;/em&gt; job, using Quick Actions.&lt;/p&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+* If you did not use the *Micrograph Denoiser*, select the **Build Blob Picker** option from the Quick Actions of the *Patch CTF Estimation* job instead.
+* Once built, enter the Job Builder of the *Blob Picker* job on the right sidebar, and set **Min. Particle Diameter** to **`100`** and **Max Particle Diameter** to **`200`**.
+* If you are using denoised micrographs, ensure that **Pick on denoised micrographs** is turned on.
+
+&lt;figure&gt;&lt;img src=&quot;/files/685iaABtoLTk4gpqA35e&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;p&gt;A portion of the &lt;em&gt;Blob Picker&lt;/em&gt; event log depicting the template the algorithm uses for picking and exposure image with pick selections plotted as magenta squares.&lt;/p&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+## Step 9: Micrograph Junk Detector
+
+{% hint style=&quot;info&quot; %}
+The Junk Detector is available in CryoSPARC v4.7 and later. If you are using an older version of CryoSPARC, you can proceed to Inspect Picks using the Blob Picker micrographs and particles.
+{% endhint %}
+
+Some contaminants, like carbon support or crystalline ice, are often labeled with many particle picks due to their high contrast. These off-target picks (&quot;junk picks&quot;) degrade performance of downstream analysis and should be removed. The Micrograph Junk Detector analyzes the input micrographs and annotates each micrograph with the location of various common types of junk and then removes particle picks from those locations.
+
+* Select *Micrograph Junk Detector* from the Job Builder.
+* Open the previous *Blob Picker* job.
+* Drag the Micrographs output from *Blob Picker* into the Exposures input of the *Micrograph Junk Detector* builder.
+* Drag the All particles output from *Blob Picker* into the Particles input of the *Micrograph Junk Detector* builder.
+* Leave all parameters at their default values and launch the job.
+
+The *Micrograph Junk Detector* produces diagnostic plots for the first 20 micrographs (which, for this dataset, is all of them). These plots show which regions of the micrograph have been marked as junk, as well as indicating which particles have been rejected because they are too close to junk.
+
+&lt;figure&gt;&lt;img src=&quot;/files/PzuuLaS8U0A49Lmc9BuW&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+## Step 10: Inspect Picks (Blob Picks)
+
+Use the [***Inspect Particle Picks***](https://guide.cryosparc.com/application-guide-v4.0+/interactive-jobs#interactive-job-inspect-particle-picks)[ ](/processing-data/all-job-types-in-cryosparc/particle-picking/interactive-job-inspect-particle-picks.md)job to view and interactively adjust the results of blob-based (and template-based) automatic particle picking. Once the previous *Junk Detector* job has completed, create an *Inspect Particle Picks* job by either:
+
+* Using quick actions from the *Junk Detector*, or
+* Creating an Inspect Particle Picks job using the builder, then dragging and dropping both the **Particles accepted** and **Labelled micrographs** outputs from the previously completed *Junk Detector* job outputs.
+
+Queue the job.
+
+&lt;figure&gt;&lt;img src=&quot;/files/8utu8CUESy8z3DHAh9mu&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;p&gt;Job details dialog for the &lt;em&gt;Blob Picker&lt;/em&gt; open while the &lt;em&gt;Inspect Particle Picks&lt;/em&gt; job details panel is active in build mode.&lt;/p&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+* Once the job is ready to interact with, it will be marked as &quot;Waiting&quot; and an &quot;Interactive&quot; tab will be available in the job details dialog:
+
+&lt;figure&gt;&lt;img src=&quot;/files/GpbCH2uL9ELM453BTLBO&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+* The left side of the interactive tab shows three sections. From top to bottom:
+  * The **Exposure Plot** displays a customizable scatter plot, allowing various statistics of the exposure dataset (e.g. number of picked particles, average defocus, etc.) to be plotted against each other.
+  * Below the **Exposure Plot** is the **Power Histogram**, which displays a 2D histogram of all picked particles. The y-axis measures the **Power Score**, and the x-axis measures the **Normalized Cross-Correlation (NCC)** Score for each particle pick. Note that the histogram includes both true particles, as well as false positives that were picked up during the blob picking. True particles generally have high **NCC** scores (indicating agreement in shape with the templates) and a moderate-to-high **Power** score (indicating the presence of significant signal). Picks that have too little power are false positives containing only ice, while picks with very high power are carbon edges, ice crystals, aggregate particles, etc.
+  * Finally, the **Micrographs** tab displays a list of each micrograph in the dataset, along with some statistics for each micrograph. Any micrograph row can be clicked on, to display it on the right panel along with the selected particle picks in green circles.
+* Make adjustments to the parameters below if needed. All adjustments are saved automatically. As parameters are adjusted, the selected particle picks on the displayed micrograph will be simultaneously updated.
+  * Adjust the Particle Diameter to make it easier to see the location of picks.
+  * Clicking the vertical ellipsis button on the top right allows for selection of colours, and whether to display the denoised micrograph or raw micrograph.
+  * If viewing raw micrographs, move your cursor over the micrograph display, and adjust the **lowpass filter** slider if needed to better view the picks. It may be easier to view the particles at a lowpass filter value between 20 to 30 Å.
+
+{% hint style=&quot;info&quot; %}
+The *particle diameter* and *box size* parameters are not used in computing the outputs of this job; Inspect Picks only outputs particle *(x, y)* location coordinates.
+{% endhint %}
+
+* Slowly increase the **NCC** slider and watch the particle pick locations on the right. Keep increasing it until empty ice picks stop disappearing and good particles begin to disappear, then reduce it to just below that point. For this example, with denoised micrographs, this value was around **`0.41`**.
+* If any picks on empty ice remain, slowly increase the lower **Power threshold** slider until the empty ice picks are removed, but without removing any good particles to do so.
+* If any picks remain on high-contrast contaminants, slowly reduce the higher **Power threshold** slider until these junk picks are removed, but without removing any good particles to do so.
+* Once satisfied with the picks, select &quot;**Done Picking | Output Locations&quot;** button. This completes the *Inspect Particle Picks* job and saves selected particle locations.
+
+&lt;figure&gt;&lt;img src=&quot;/files/nwBGRiBdevacCEHOAZqd&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;p&gt;Output result groups of the Inspect Picks job showing the resulting 20 micrographs and 12,700 selected particles.&lt;/p&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+## Step 11: Extract from Micrographs (Blob Picks)
+
+This job extracts particles from micrographs, and writes them out to disk for downstream jobs to read.
+
+* Select [***Extract From Micrographs***](/processing-data/all-job-types-in-cryosparc/extraction/job-extract-from-micrographs.md) in the Job Builder, or by using Quick Actions from the previously completed *Inspect Picks* job.
+* Open the recently-completed Inspect Picks job. Drag and drop both the **Micrographs accepted** and **Particles accepted** outputs into the corresponding inputs on the Job Builder.
+* In the Job Builder, look under the Particle Extraction section and change the **Extraction box size (pix)** to **`440`**. You may also parallelize the Extract From Micrographs over multiple CPU cores by altering the **Number of CPU cores** parameter, under **Compute settings**.
+
+{% hint style=&quot;info&quot; %}
+We generally recommend selecting a box size that is at least double the diameter of the particle. The box size controls how much of the micrograph is cropped around each particle location. Larger box sizes capture the most high-resolution signal that is spread out spatially due to the effect of defocus (CTF) in the microscope. However, larger box sizes significantly increase computation expense in further processing. To mitigate this, you can use the [***Downsample Particles*****&amp;#x20;job**](https://guide.cryosparc.com/processing-data/all-job-types-in-cryosparc/particle-picking/job-downsample-particles) to speed up processing for jobs that do not require the full spectrum of data such as 2D Classification.
+{% endhint %}
+
+&lt;figure&gt;&lt;img src=&quot;/files/Dpul4wfUMbegx97Ph5Vl&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;p&gt;Workspace with the Extract from Micrographs job builder active.&lt;/p&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+* **Queue** the job.
+* Once the job completes, you&#x27;ll notice the number of resulting particles is less than the input; this is due to the fact that particle extraction process excludes picks that are too close to the edge of the micrograph:
+
+&lt;figure&gt;&lt;img src=&quot;/files/8CVFhH3oFTlYXdNxPbIU&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;p&gt;Output result groups of the Extract from Micrographs job showing the resulting 20 micrographs and 11,129 extracted particles.&lt;/p&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+## Step 12: 2D Classification (To Generate Templates for the Template Picker)
+
+[***2D Classification***](/processing-data/all-job-types-in-cryosparc/particle-curation/job-2d-classification.md) is a commonly used job in cryo-EM processing to get a first look at the data, group particles by 2D view, remove false positive picks, and even to get early insights into potential heterogeneity present in the dataset. In this step, we will use *2D Classification* to group particles by 2D view, and then use the resulting class averages (also referred to as &quot;templates&quot;) to improve our particle picking.
+
+* Select [**2D Classification**](/processing-data/all-job-types-in-cryosparc/particle-curation/job-2d-classification.md) from the Job Builder, or by using Quick Actions.
+* Drag and drop the **Particles extracted** output from the previously completed *Extract from Micrographs*, into the input and queue the job.
+* In the event log, preview images of class averages appear after each iteration. Classification into 50 classes (the default number) takes about 15 minutes on a single GPU.
+
+&lt;figure&gt;&lt;img src=&quot;/files/CKoCV3IcPZbu64WwGIZ8&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;p&gt;Generated 2D classes from extracted blob picks.&lt;/p&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+* The quality of classes depends on the quality of input particles. While we could use these blob-picked particles directly for 3D Reconstruction, we can obtain better results by *repeating our particle picking* using these templates generated by 2D Classification. Thus, in this tutorial, we will use these classes to inform the *Template Picker* of the shape of our target structure. The next step in this workflow is the *Select 2D Classes* job.
+
+## Step 13: Select 2D Classes (To Select Templates for the Template Picker)
+
+[***Select 2D Classes***](https://guide.cryosparc.com/application-guide-v4.0+/interactive-jobs#interactive-job-select-2d-classes) allows us to select a subset of the generated templates from *2D Classification*, and to reject the rest.
+
+* Select [***Select 2D Classes***](https://guide.cryosparc.com/application-guide-v4.0+/interactive-jobs#interactive-job-select-2d-classes) from the Job Builder, or by using Quick Actions.
+* Drag and drop both the **All particles** and **2D class averages** outputs from the most recently completed *2D Classification* job.
+* Queue the job. Once the data is loaded, the job status changes to **Waiting** and Interactive class selection mode is ready.
+* Select a &quot;good&quot; class for each distinct view of the structure. In this case, a top view and side view are the most common views present in the dataset. Use both the number of particles and the provided class resolution score to identify good classes of particles. The interactive job provides several ways to sort the classes in ascending or descending order based on:
+  * **# of particles**: The total number of particles in each class
+  * **Resolution**: The relative resolution of all particles in the class (Å)
+  * **ECA**: Effective classes assigned. Classes with a higher ECA value have less confident particle assignments.
+* Use the sort and selection controls to quickly sort and filter the class selection. Each class has a right-click context menu that allows for selecting a set of classes above or below a particular criteria.
+
+{% hint style=&quot;warning&quot; %}
+Avoid selecting classes that contain only a partial particle or a non-particle junk image when creating templates, since these will result in off-center particle picks.
+{% endhint %}
+
+&lt;figure&gt;&lt;img src=&quot;/files/37YfJKoJX6erb0bqm6xm&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;p&gt;Interactive Select 2D job depicting two classes selected representing primary orientations.&lt;/p&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+* When finished, select **Done** at the top right side of the window. The job completes.
+
+&lt;figure&gt;&lt;img src=&quot;/files/H9RRjMDmvcbmKGlYcrd0&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;p&gt;Event log of the Select 2D job depicting the two classes selected and 48 classes excluded.&lt;/p&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+## Step 14: Template Picker
+
+The [***Template Picker***](/processing-data/all-job-types-in-cryosparc/particle-picking/job-template-picker.md) operates similarly to the Blob Picker but allows for an input set of templates to use to more precisely pick particles that match the shape of the target structure.
+
+{% hint style=&quot;info&quot; %}
+Note that the instructions below apply template picking to the raw micrographs, rather than to the denoised micrographs as we did with blob picking above. In practice, it is recommended to use the denoised micrographs with template picking as well.
+{% endhint %}
+
+* Create the *Template Picker* job using the Job Builder.
+* Connect the **Templates selected** output of the *Select 2D* into the template input
+* Connect the **Micrographs processed** output of the *Patch CTF Estimation* job into the micrographs input
+* Set the **Particle diameter (Å)** value to **`190`**
+* Queue the job. It should take around 15 seconds to process the dataset.
+
+&lt;figure&gt;&lt;img src=&quot;/files/v1EkfyYd5MtJBCJfHYQR&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;p&gt;Job details dialog depicting the completed Template Picker job with 18,410 picked particles.&lt;/p&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+## Step 15: Inspect Picks (Template Picks)
+
+As with the *Blob Picker*, use the *Inspect picks* job to view and interactively adjust the results of template-based automatic particle picking.
+
+{% hint style=&quot;info&quot; %}
+Note that you can also use the *Micrograph Junk Detector* job at this stage (as we did above with blob picks), to filter out template picks that are on contaminant regions. The filtered picks can then be used in *Inspect Particle Picks.*
+{% endhint %}
+
+* Select ***Inspect Particle Picks*** from the Job Builder, or by using Quick Actions from the previously completed *Template Picker* job.
+* Drag and drop both the **All particles** and **micrographs** outputs from the previously completed *Template Picker* job. Queue the job.
+* Set the **NCC** and **Power** thresholds using the same process as the previous *Inspect Picks* job. Slowly increase the **NCC** score until good particles start disappearing, then adjust the power scores as necessary.
+* Click **Done Picking | Output Locations** to complete the job as before.
+
+&lt;figure&gt;&lt;img src=&quot;/files/f5rWhYRKYzF16tE4VejQ&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;p&gt;Job details dialog depicting the completed Inspect Picks job with 13,808 resulting particles.&lt;/p&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+## Step 16: Extract from Micrographs (Template Picks)
+
+We will now repeat the extraction process given the new set of pick locations generated by the latest *Inspect Picks* job.
+
+* Select [***Extract from Micrographs***](/processing-data/all-job-types-in-cryosparc/extraction/job-extract-from-micrographs.md)***.***
+* Open the recently-completed *Inspect Picks* job. Drag and drop both the **micrographs** and **All particles** outputs into the corresponding inputs on the Job Builder.
+* In the Job Builder, look under the Particle Extraction section and change the **Extraction box size (pix)** to **`440`**.
+
+&lt;figure&gt;&lt;img src=&quot;/files/DOBezS1J2D5G4DJgEy3x&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;p&gt;Output result groups of the Extract from Micrographs job showing the resulting 20 micrographs and 12,501 extracted particles.&lt;/p&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+## Step 17: 2D Classification (Template Picks)
+
+* Select **2D Classification** from the Job Builder.
+* Drag and drop the **particles extracted** output from the previously completed *Extract from Micrographs*, into the input and queue the job.
+
+&lt;figure&gt;&lt;img src=&quot;/files/a8RkyWP2tg3Zh47gM706&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;p&gt;Generated 2D classes from the template picked particles.&lt;/p&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+* The particles extracted from the template picker result in much higher quality 2D classes. Proceed to the next step to filter out the highest quality classes for 3D reconstruction.
+
+## Step 18: Select 2D Classes
+
+* Select **Select 2D Classes** from the Job Builder.
+* Drag and drop both the **All particles** and **2D class averages** outputs from the most recently completed *2D Classification* job.
+* Once queued and running, switch to the **Interactive** tab and select all of the good quality classes.
+  * In this case, we want to keep all true particles in our dataset (rather than just selecting one top and one side view, as previously done in step 11), and reject all false positives.
+  * The visual quality of a 2D class, together with its resolution, number of particles, and ECA, can all provide proxy measurements of the quality of the underlying particles that comprise the class.
+  * Note that clear &quot;junk&quot; classes, corresponding to non-particle images, ice crystals, etc., should be rejected at this stage. Err on the side of keeping a 2D class — when a class looks like a blurry version of the particle, it should be kept at this stage. For example, the following shows one possible selection of 2D classes to retain:
+
+&lt;figure&gt;&lt;img src=&quot;/files/rBmqbw5UKCRhPXMHt1cR&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;p&gt;Interactive Select 2D job depicting good quality classes selected.&lt;/p&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+* Once clicking **Done**, the job will generate outputs for each group of classes and particles, one for the selected set and another for the excluded set:
+
+&lt;figure&gt;&lt;img src=&quot;/files/e2FP9gomfXCPBqBm5Iy5&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;p&gt;20 selected classes and 30 excluded classes.&lt;/p&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+## Step 19: Ab-initio Reconstruction
+
+Now that we have a set of good quality particle picks, we can proceed into [*3D Reconstruction*](/processing-data/all-job-types-in-cryosparc/3d-reconstruction.md)*.*
+
+* Select [***Ab-initio Reconstruction***](/processing-data/all-job-types-in-cryosparc/3d-reconstruction/job-ab-initio-reconstruction.md) from the Job Builder.
+* Drag and drop the **Particles selected** output from the most recently completed Select 2D classes job (classes selected from the result of the template picker) into the **Particle stacks** input in the Job Builder.
+* Note: You **do not** need to enforce symmetry during Ab-initio Reconstruction.
+* Queue the job. Results appear in real-time in the event log as iterations progress. *Ab-initio* *reconstruction* should generate a 3D density of the T20S structure at a coarse resolution, with no initial model required.
+
+&lt;figure&gt;&lt;img src=&quot;/files/DfLXbLy2Spl4sRDZSAiu&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;p&gt;Event log of the completed &lt;em&gt;Ab-initio Reconstruction&lt;/em&gt; job.&lt;/p&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+![Ab-initio volume visualized in UCSF ChimeraX](/files/QVtzAN8H3xMc1pZTRMOb)
+
+## Step 20: Homogeneous Refinement
+
+Now that we have a low-resolution 3D density, we can [*refine*](/processing-data/all-job-types-in-cryosparc/3d-refinement.md) the density to high-resolution using the [***Homogeneous Refinement***](/processing-data/all-job-types-in-cryosparc/3d-refinement/job-homogeneous-refinement.md) job.
+
+* Select *Homogeneous Refinement* from the Job Builder.
+* Drag and drop both the **All particles** and **Volume class 0** from the recently completed *Ab-initio Reconstruction* into the **Particle Stacks** and **Initial Volume** inputs, respectively. Leave the **Static mask** input empty.
+* Set the following parameter:
+  * **Symmetry:** `D7`
+* Queue the job. Results appear in real time in the stream log. The refinement job performs a rapid gold-standard refinement using the Expectation Maximization and branch-and-bound algorithms. The job displays the current the resolution, measured via [**Fourier Shell Correlation**](https://en.wikipedia.org/wiki/Fourier_shell_correlation), and other diagnostic information for each iteration.
+
+&lt;figure&gt;&lt;img src=&quot;/files/RBhTSe89s3wl9ISm1qMF&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;p&gt;Event log of the completed &lt;em&gt;Homogeneous Refinement&lt;/em&gt; job.&lt;/p&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+&lt;figure&gt;&lt;img src=&quot;/files/yNfQVMiIEr2mqPET29Oq&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;p&gt;&lt;em&gt;Gold Standard Fourier Shell Correlation&lt;/em&gt; (GSFSC) plot for the final refinement iteration.&lt;/p&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+Note that the GSFSC resolution is less than half of the Nyquist resolution for these particles. The particles could therefore be safely downsampled (using [***Downsample Particles***](/processing-data/all-job-types-in-cryosparc/extraction/job-downsample-particles.md)) to speed up subsequent jobs with no loss in resolution.
+
+Once complete, download the volume and/or mask directly from the **Outputs** section on the right hand side: Select the drop-down to choose the outputs you wish to download. A refinement job outputs a `map_sharp`, the final refined volume with automatic B-factor sharpening applied and filtered to the estimated FSC resolution.
+
+&lt;figure&gt;&lt;img src=&quot;/files/RblDnBIInXQk41vEicfE&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;p&gt;Within the job details dialog, output groups listed have a download menu with various options.&lt;/p&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+![Refined volume visualized in UCSF ChimeraX.](/files/xUdm7EnYd5citkRYiez2)
+
+## Step 21: Mask Generation
+
+{% hint style=&quot;info&quot; %}
+More information on mask design and creation in CryoSPARC is available in the dedicate [Mask Creation](/processing-data/tutorials-and-case-studies/mask-selection-and-generation-in-ucsf-chimera.md) tutorial.
+{% endhint %}
+
+CryoSPARC automatically generates masks for FSC calculation. However, it is generally good practice to generate your own FSC mask to ensure the calculation is repeatable across jobs, and to ensure the mask covers the entire relevant region of the protein.
+
+First, use *Volume Tools* to lowpass filter the refined volume. This step is important because masks themselves should generally be smooth to avoid introducing bias.
+
+* Create a [***Volume Tools***](https://guide.cryosparc.com/processing-data/all-job-types-in-cryosparc/utilities/job-volume-tools) job and connect the **Refined volume** output from the previous *Homogeneous Refinement* job to the **Input volume** input.
+* Set the **Lowpass filter (A)** value to **`10`**.
+* Launch the job.
+
+This job lowpass filters the volume, producing a smoothed version suitable for mask creation. Download and inspect the smoothed map in ChimeraX. Find the highest threshold for which no noise is visible in the smoothed map.
+
+&lt;figure&gt;&lt;img src=&quot;/files/8MKiI8kgCiSGyFmjo6T0&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;p&gt;The sharpened map (blue) is displayed with the lowpass filtered map (orange) at various thresholds. The threshold on the left is too high, resulting in too much of the underlying map to be outside the mask. The threshold on the right is too low, resulting in noise in the mask. The center threshold is good, because it preserves all of the information in the map while excluding noise.&lt;/p&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+* Create another *Volume Tools* job and connect the **Volume** output of the previous *Volume Tools* job to the **Input volume** input.
+* Set **Type of output volume** to **`mask`**.
+* Set **Threshold** to the value you found in ChimeraX.
+* Set the **Dilation radius (pix)** to **`4`**. This ensures that all information from the map is contained in the mask.
+* Set the **Soft padding width (pix)** to **`14`**. It is important that all masks in CryoSPARC have soft padding added to avoid artifacts.
+* Launch the job.
+
+This job creates a mask which can be used in an *Validation (FSC)* job.
+
+* Create a [***Validation (FSC)***](/processing-data/all-job-types-in-cryosparc/post-processing/job-validation-fsc.md) job from the job builder.
+* Connect the **Refined volume** output from Homogeneous Refinement to the **Input volume** input.
+* Connect the **Mask** output from the second *Volume Tools* job to the **Static mask** input.
+* Set **Compute facility** to **`GPU`**.
+* Launch the job.
+
+&lt;figure&gt;&lt;img src=&quot;/files/6DwAsouzVLaLlKwTbH6o&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;p&gt;The event log of a completed Validation (FSC) job.&lt;/p&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+This job produces similar outputs to the GSFSC plots produced by Homogeneous Refinement, but provides better control over the mask used to calculate the GSFSC and allows for repeatable, directly-comparable analysis of resolution.
+
+&lt;figure&gt;&lt;img src=&quot;/files/W6MvAvG78SdVCFVEJ2Sp&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;p&gt;A comparison of the Corrected and Tight FSC curves produced by Homogeneous Refinement (top) and Validation FSC (bottom). In this case, the two curves are very similar. However, the FSC calculated by Homogeneous Refinement has a dip away from the Tight curve, indicating that the mask may have been slightly too tight.&lt;/p&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+## Step 22: Sharpening (Optional)
+
+For optimal results in publications and for model-building, it is often necessary to re-sharpen and adjust the B-factor. This step is optional as Homogeneous Refinement already outputs a sharpened volume (`map_sharp`) with a B-factor reported within the Guinier plot.
+
+* Sharpen the result of the refinement with the [***Sharpening Tools***](/processing-data/all-job-types-in-cryosparc/post-processing/job-sharpening-tools.md) from the Utilities section in the Job Builder.
+* Drag and drop the **volume** output from the result of the previous refinement job, into the **volume** input.
+* Set a B-Factor. Get a good starting B-Factor value from the final **Guinier plot** in the stream log of the refinement job you previously ran. It is recommended to input a B-Factor (as a negative value) ±20 the reported value in the plot. In this case, `-56.7` and `-96.7`
+* Activate the **Generate new FSC mask** parameter, which will generate a new mask for the purposes of FSC calculation from the input volume. This is done by thresholding, dilating, and padding the input structure.
+
+&lt;figure&gt;&lt;img src=&quot;/files/y6ERMmLPOL51T9SqEdsg&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;p&gt;Guinier plot from the final refinement iteration depicting B-Factor value.&lt;/p&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+* Queue the job. Once complete, download the sharpened map (`map_sharp`) from the output.
+* After visually assessing the map, optionally run another sharpening job (clear or clone the existing one) with a different B-Factor.
+
+![Comparison of maps sharpened with different B-factor values. Visualized in UCSF ChimeraX.](/files/UYw4TScPZlrIUN8LTtMj)
+
+## Step 23: Inspect Workflows
+
+Once you have assembled a workflow of connected jobs within a project, you can switch to the [**Tree View**](https://guide.cryosparc.com/processing-data/user-interface-and-usage-guide/job-relationships) to understand how jobs are connected to obtain the final result. Click the flowchart icon in the top header:
+
+&lt;figure&gt;&lt;img src=&quot;/files/UKb0ER5jmht8UU2tpy5K&quot; alt=&quot;&quot;&gt;&lt;figcaption&gt;&lt;p&gt;Tree view of the full T20S processing workflow.&lt;/p&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+
+Within the Tree View, you can select jobs and modify/connect them in the same way as previously demonstrated in the Card view. For more information on the Tree view and other useful tips, see the [Application Guide](https://guide.cryosparc.com/application-guide-v4.0+).
+
+## Conclusion
+
+Now that you have refined the data to a high-resolution structure, you can apply more advanced processing techniques. Explore the job builder and other documentation to see the available job types and processing options. Common workflows include:
+
+* [*3D Variability Analysis*](/processing-data/tutorials-and-case-studies/tutorial-3d-variability-analysis-part-one.md) to explore both discrete and continuous heterogeneity in the dataset
+* [*Non-Uniform Refinement*](/processing-data/all-job-types-in-cryosparc/3d-refinement/job-non-uniform-refinement-new.md) to improve resolutions by accounting for disordered regions and local variations in a structure
+* [*Heterogeneous Refinement*](/processing-data/all-job-types-in-cryosparc/3d-refinement/job-heterogeneous-refinement.md) or [*3D Classification*](/processing-data/all-job-types-in-cryosparc/variability/job-3d-classification-beta.md) to refine multiple conformations and simultaneously classify particles
+  * Sub-classification to identify small, slightly differing populations
+* Heterogeneous [*Ab-initio Reconstruction*](/processing-data/all-job-types-in-cryosparc/3d-reconstruction/job-ab-initio-reconstruction.md) to find multiple unexpected conformational states or multiple distinct particles in the data
+* Multiple rounds of [*2D Classification*](/processing-data/all-job-types-in-cryosparc/particle-curation/job-2d-classification.md) to remove more junk particles
+* [*Masked/Local Refinements*](/processing-data/all-job-types-in-cryosparc/local-refinement.md) to focus on sub-regions of a structure
+* Re-pick with multiple higher quality 2D classes
+* [*Global*](/processing-data/all-job-types-in-cryosparc/ctf-refinement/job-global-ctf-refinement.md) (per-exposure-group) or [*Local*](/processing-data/all-job-types-in-cryosparc/ctf-refinement/job-local-ctf-refinement.md) (per-particle) [*CTF Refinement*](/processing-data/all-job-types-in-cryosparc/ctf-refinement.md)
+
+For detailed explanations on all available job types and commonly adjusted parameters, see:
+
+{% content-ref url=&quot;/pages/-M9xp2LSL4k5GWdrsiL1&quot; %}
+[All Job Types in CryoSPARC](/processing-data/all-job-types-in-cryosparc.md)
+{% endcontent-ref %}
+
+{% content-ref url=&quot;/pages/-M9yo1eKmRIPG41FztLk&quot; %}
+[Tutorial Videos](/processing-data/tutorial-videos.md)
+{% endcontent-ref %}
+
+{% content-ref url=&quot;/pages/-MM2IBiuxac1opXNykwH&quot; %}
+[Data Processing Tutorials](/processing-data/tutorials-and-case-studies.md)
+{% endcontent-ref %}
+
+Check back to see updates to this guide, as new features and algorithms are in constant development within CryoSPARC.
+
+
+---
+
+# Agent Instructions
+This documentation is published with GitBook. GitBook is the documentation platform designed so that both humans and AI agents can read, navigate, and reason over technical content effectively. Learn more at gitbook.com.
+
+## Querying This Documentation
+If you need additional information that is not directly available in this page, you can query the documentation dynamically by asking a question.
+
+Perform an HTTP GET request on the current page URL with the `ask` query parameter:
+
+```
+GET https://guide.cryosparc.com/processing-data/get-started-with-cryosparc-introductory-tutorial.md?ask=&lt;question&gt;
+```
+
+The question should be specific, self-contained, and written in natural language.
+The response will contain a direct answer to the question and relevant excerpts and sources from the documentation.
+
+Use this mechanism when the answer is not explicitly present in the current page, you need clarification or additional context, or you want to retrieve related documentation sections.</pre></details></details>
+<details><summary><b>Dataset / acquisition</b></summary>
+<pre>{
+  &quot;sample&quot;: &quot;T20S proteasome (EMPIAR-10025 tutorial subset, 20 movies)&quot;,
+  &quot;data_dir&quot;: &quot;/shared/data/empiar_10025_subset_v1/&quot;,
+  &quot;blob_paths&quot;: &quot;/shared/data/empiar_10025_subset_v1/*.frames.tif&quot;,
+  &quot;gainref_path&quot;: &quot;/shared/data/empiar_10025_subset_v1/norm-amibox05-0.mrc&quot;,
+  &quot;skip_header_check&quot;: true,
+  &quot;psize_A&quot;: 0.6575,
+  &quot;accel_kv&quot;: 300.0,
+  &quot;cs_mm&quot;: 2.7,
+  &quot;total_dose_e_per_A2&quot;: 53.0,
+  &quot;blob_diameter_min_A&quot;: 100,
+  &quot;blob_diameter_max_A&quot;: 200,
+  &quot;template_diameter_A&quot;: 190,
+  &quot;use_denoised_for_blob&quot;: true,
+  &quot;use_denoised_for_template&quot;: false,
+  &quot;extract_box_pix&quot;: 440,
+  &quot;n_2d_classes&quot;: 50,
+  &quot;abinit_K&quot;: 1,
+  &quot;abinit_symmetry&quot;: &quot;C1&quot;,
+  &quot;refine_symmetry&quot;: &quot;D7&quot;,
+  &quot;mask_lowpass_A&quot;: 10,
+  &quot;mask_dilation_pix&quot;: 4,
+  &quot;mask_soft_pad_pix&quot;: 14,
+  &quot;note&quot;: &quot;num_train_mics for the denoiser = the micrograph count (the full 20-mic set).&quot;
+}</pre></details>
+
+<h2 id="surface">3 · Action surface</h2>
+<p>Orchestration is a bounded streaming tool-use loop. The action surface is arbitrary code execution in a
+persistent box-side namespace: the agent writes <code>cryosparc-tools</code> Python and the harness returns
+stdout / the last expression / tracebacks / any images the inspection helpers emit.</p>
+<h3><code>run_python</code></h3><p>Execute Python in a PERSISTENT namespace on the cryoSPARC box and get back stdout + the value of the last expression + any traceback (write → run → read error → fix, like a real coder; variables and job handles persist across calls). PRE-BOUND in the namespace (do NOT reconnect or create a project — use these): `cs` (a connected cryosparc-tools CryoSPARC client), `project` (the target project controller) and `project_uid`, `workspace` (the fresh workspace uid to build everything in), `project_dir` (the project&#x27;s dir on disk), `DATA_DIR` (the raw-movie dir), `LANE_CPU` / `LANE_GPU` (queue lane names; interactive jobs queue to lane=None on the master node), plus `np`, `os`, `json`, `time`, and `find_job(uid)`. ALSO pre-bound: the inspection helpers show_class_montage(job), show_picks(job, cut=None), show_volume(job), show_mask_sweep(job) — each renders a NON-LEAKING observation image (passed back to you, multimodal) so you can SEE a 2D-class montage / picks on micrographs / a volume&#x27;s orthoslices / a mask-threshold sweep and make the interactive decisions. Write cryosparc-tools code (cs.create_job / job.queue / job.wait_for_done / job.interact / job.load_output / …) to build (then run) the pipeline; keep waits bounded (wait_for_done(timeout=…, error_on_incomplete=False) and poll).</p><ul><li><code>code</code> (string, required) — Python source to run in the namespace</li></ul><h3><code>finish</code></h3><p>Call when the task is complete: (BUILD phase) the entire DAG has been created and wired (nothing queued/run); (EXECUTE phase) the pipeline has RUN all the way to a final sharpened map. Report what you built/ran and the resolution you observed.</p><ul><li><code>summary</code> (string, required) — what you built (+ ran) and the key decisions made</li><li><code>final_map_uid</code> (string) — uid of the final sharpened-map job (execute)</li><li><code>resolution_note</code> (string) — the GSFSC resolution you observed (execute)</li></ul>
+
+<h2 id="outputs">4 · Outputs</h2>
+<h3 id="resolution">Result, resolution &amp; summary</h3>
+<p><b>Final-map resolution (GSFSC, Å)</b></p>
+<pre class="outputs-res">—</pre>
+<p class="note">Golden reference: W1 by-hand ≈ 3.15 Å loose-mask GSFSC on the same 20-movie subset (published full-dataset T20S ≈ 2.9 Å). Resolution alone does not rank runs — see the grader.</p>
+<p><b>Agent summary</b></p>
+<blockquote>Built and wired the complete T20S single-particle pipeline in workspace W5 (P5), following the cryoSPARC intro tutorial, entirely via cryosparc-tools. Nothing was queued/run — all 21 jobs are in &#x27;building&#x27; state for PI review.
+
+DAG (job → key params/wiring):
+- J73 import_movies: *.frames.tif + gain norm-amibox05-0.mrc, psize 0.6575 Å, 300 kV, Cs 2.7 mm, dose 53 e/Å².
+- J74 patch_motion_correction_multi ← J73.imported_movies.
+- J75 patch_ctf_estimation_multi ← J74.micrographs.
+- J76 denoise_train (Micrograph Denoiser) ← J75.exposures, num_train_mics=20 (dataset has only 20 mics).
+- J77 blob_picker_gpu ← J76.exposures, diameter 100–200 Å, use_denoised=True.
+- J78 junk_detector_v1 ← J77 micrographs+particles (removes carbon/ice junk picks).
+- J79 inspect_picks_v2 ← J78.particles_accepted + exposures (blob pick curation).
+- J80 extract_micrographs_multi ← J79, box 440 px.
+- J81 class_2D_new ← J80 (K=50).
+- J82 select_2D ← J81 (pick top/side templates).
+- J83 template_picker_gpu ← J82.templates_selected + J76 denoised mics, diameter 190 Å, use_denoised=True.
+- J84 inspect_picks_v2 ← J83.
+- J85 extract_micrographs_multi ← J84, box 440 px.
+- J86 class_2D_new ← J85.
+- J87 select_2D ← J86 (keep all good classes).
+- J88 homo_abinit ← J87.particles_selected (C1, K=1 — no symmetry, per tutorial).
+- J89 homo_refine_new ← J88 particles_all_classes + volume_class_0, refine_symmetry=D7.
+- J90 volume_tools ← J89.volume, lowpass 10 Å (smooth map for mask).
+- J91 volume_tools ← J90.volume, output mask, threshold 0.5 (to be tuned via mask sweep at run time), dilation 4 px, soft pad 14 px.
+- J93 validation (FSC) ← J89.volume + J91.mask, compute facility GPU (gold-standard FSC validation).
+- J94 sharpen ← J89.volume, B-factor −77 (tutorial range −56.7…−96.7), generate new FSC mask.
+
+Symmetry (D7) imposed at refinement; ab-initio left at C1 as recommended. Resolution target ~2.9 Å will be assessed from J89 GSFSC and J93 validation when executed. The two interactive jobs (inspect picks, select 2D) are wired and would be driven headlessly/curated at execute time.</blockquote>
+<details><summary><b>Finish payload</b> (raw)</summary>
+<pre>{
+  &quot;summary&quot;: &quot;Built and wired the complete T20S single-particle pipeline in workspace W5 (P5), following the cryoSPARC intro tutorial, entirely via cryosparc-tools. Nothing was queued/run \u2014 all 21 jobs are in &#x27;building&#x27; state for PI review.\n\nDAG (job \u2192 key params/wiring):\n- J73 import_movies: *.frames.tif + gain norm-amibox05-0.mrc, psize 0.6575 \u00c5, 300 kV, Cs 2.7 mm, dose 53 e/\u00c5\u00b2.\n- J74 patch_motion_correction_multi \u2190 J73.imported_movies.\n- J75 patch_ctf_estimation_multi \u2190 J74.micrographs.\n- J76 denoise_train (Micrograph Denoiser) \u2190 J75.exposures, num_train_mics=20 (dataset has only 20 mics).\n- J77 blob_picker_gpu \u2190 J76.exposures, diameter 100\u2013200 \u00c5, use_denoised=True.\n- J78 junk_detector_v1 \u2190 J77 micrographs+particles (removes carbon/ice junk picks).\n- J79 inspect_picks_v2 \u2190 J78.particles_accepted + exposures (blob pick curation).\n- J80 extract_micrographs_multi \u2190 J79, box 440 px.\n- J81 class_2D_new \u2190 J80 (K=50).\n- J82 select_2D \u2190 J81 (pick top/side templates).\n- J83 template_picker_gpu \u2190 J82.templates_selected + J76 denoised mics, diameter 190 \u00c5, use_denoised=True.\n- J84 inspect_picks_v2 \u2190 J83.\n- J85 extract_micrographs_multi \u2190 J84, box 440 px.\n- J86 class_2D_new \u2190 J85.\n- J87 select_2D \u2190 J86 (keep all good classes).\n- J88 homo_abinit \u2190 J87.particles_selected (C1, K=1 \u2014 no symmetry, per tutorial).\n- J89 homo_refine_new \u2190 J88 particles_all_classes + volume_class_0, refine_symmetry=D7.\n- J90 volume_tools \u2190 J89.volume, lowpass 10 \u00c5 (smooth map for mask).\n- J91 volume_tools \u2190 J90.volume, output mask, threshold 0.5 (to be tuned via mask sweep at run time), dilation 4 px, soft pad 14 px.\n- J93 validation (FSC) \u2190 J89.volume + J91.mask, compute facility GPU (gold-standard FSC validation).\n- J94 sharpen \u2190 J89.volume, B-factor \u221277 (tutorial range \u221256.7\u2026\u221296.7), generate new FSC mask.\n\nSymmetry (D7) imposed at refinement; ab-initio left at C1 as recommended. Resolution target ~2.9 \u00c5 will be assessed from J89 GSFSC and J93 validation when executed. The two interactive jobs (inspect picks, select 2D) are wired and would be driven headlessly/curated at execute time.&quot;
+}</pre></details>
+
+<h3 id="dag">The DAG the agent authored (21 jobs · P5 / W5)</h3>
+<table class="dag"><colgroup><col style="width:64px"><col style="width:22%"><col style="width:30%"><col style="width:90px"><col></colgroup><tr><th>uid</th><th>type / title</th><th>inputs (wiring)</th><th>status</th><th>params</th></tr><tr><td><code>J73</code></td><td><b>import_movies</b><br><span class='dag-title'>Import Movies</span></td><td class='dag-meta'>—</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;blob_paths&quot;: &quot;/shared/data/empiar_10025_subset_v1/*.frames.tif&quot;,
+  &quot;gainref_path&quot;: &quot;/shared/data/empiar_10025_subset_v1/norm-amibox05-0.mrc&quot;,
+  &quot;defect_path&quot;: null,
+  &quot;gainref_flip_x&quot;: false,
+  &quot;gainref_flip_y&quot;: false,
+  &quot;gainref_rotate_num&quot;: 0,
+  &quot;psize_A&quot;: 0.6575,
+  &quot;accel_kv&quot;: 300.0,
+  &quot;cs_mm&quot;: 2.7,
+  &quot;total_dose_e_per_A2&quot;: 53.0,
+  &quot;negative_stain_data&quot;: false,
+  &quot;phase_plate_data&quot;: false,
+  &quot;override_exp_group_id&quot;: null,
+  &quot;skip_header_check&quot;: true,
+  &quot;output_constant_ctf&quot;: false,
+  &quot;eer_num_fractions&quot;: 40,
+  &quot;eer_upsamp_factor&quot;: 2.0,
+  &quot;parse_xml_files&quot;: false,
+  &quot;xml_paths&quot;: null,
+  &quot;mov_cut_prefix_xml&quot;: null,
+  &quot;mov_cut_suffix_xml&quot;: null,
+  &quot;xml_cut_prefix_xml&quot;: null,
+  &quot;xml_cut_suffix_xml&quot;: 4,
+  &quot;compute_num_cpus&quot;: 4
+}</pre></details></td></tr><tr><td><code>J74</code></td><td><b>patch_motion_correction_multi</b><br><span class='dag-title'>Patch Motion Correction</span></td><td class='dag-meta'>movies←J73.imported_movies</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;do_plots&quot;: true,
+  &quot;num_plots&quot;: 10,
+  &quot;random_num&quot;: null,
+  &quot;output_f16&quot;: false,
+  &quot;output_half_mics&quot;: true,
+  &quot;random_num_half_mics&quot;: 200,
+  &quot;memoryfix&quot;: true,
+  &quot;memoryfix2&quot;: false,
+  &quot;res_max_align&quot;: 5.0,
+  &quot;bfactor&quot;: 500.0,
+  &quot;frame_start&quot;: 0,
+  &quot;frame_end&quot;: null,
+  &quot;output_fcrop_factor&quot;: 1.0,
+  &quot;override_total_exp&quot;: null,
+  &quot;variable_dose&quot;: false,
+  &quot;smooth_lambda_cal&quot;: 0.5,
+  &quot;override_K_Z&quot;: null,
+  &quot;override_K_Y&quot;: null,
+  &quot;override_K_X&quot;: null,
+  &quot;num_std_hot&quot;: 10.0,
+  &quot;random_seed&quot;: 604725073,
+  &quot;random_seed_default&quot;: 604725073,
+  &quot;compute_num_gpus&quot;: 1
+}</pre></details></td></tr><tr><td><code>J75</code></td><td><b>patch_ctf_estimation_multi</b><br><span class='dag-title'>Patch CTF Estimation</span></td><td class='dag-meta'>exposures←J74.micrographs</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;do_plots&quot;: true,
+  &quot;num_plots&quot;: 10,
+  &quot;random_num&quot;: null,
+  &quot;classic_mode&quot;: false,
+  &quot;amp_contrast&quot;: 0.1,
+  &quot;res_min_align&quot;: 25,
+  &quot;res_max_align&quot;: 4.0,
+  &quot;df_search_min&quot;: 1000,
+  &quot;df_search_max&quot;: 40000,
+  &quot;phase_shift_min&quot;: 0,
+  &quot;phase_shift_max&quot;: 3.141592653589793,
+  &quot;do_phase_shift_refine_only&quot;: false,
+  &quot;override_K_Y&quot;: null,
+  &quot;override_K_X&quot;: null,
+  &quot;compute_num_gpus&quot;: 1
+}</pre></details></td></tr><tr><td><code>J76</code></td><td><b>denoise_train</b><br><span class='dag-title'>Micrograph Denoiser</span></td><td class='dag-meta'>exposures←J75.exposures</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;use_pretrained&quot;: false,
+  &quot;norm_recompute&quot;: false,
+  &quot;norm_scale_factor&quot;: 1.0,
+  &quot;overlap_frac&quot;: 0.1,
+  &quot;num_train_mics&quot;: 20,
+  &quot;train_from_scratch&quot;: true,
+  &quot;train_num_epochs&quot;: 200,
+  &quot;pre_crop&quot;: 10,
+  &quot;pre_crop_frac&quot;: 0.01,
+  &quot;net_lr&quot;: 0.0002,
+  &quot;val_frac&quot;: 0.2,
+  &quot;psize_des&quot;: 3.0,
+  &quot;N_crop&quot;: 512,
+  &quot;theta_min&quot;: 5,
+  &quot;theta_max&quot;: 400,
+  &quot;num_thetas&quot;: 30,
+  &quot;theta_offset&quot;: 8,
+  &quot;infilt_thetai&quot;: -1,
+  &quot;val_do_rand_crops&quot;: false,
+  &quot;train_do_rand_crops&quot;: true,
+  &quot;train_do_rand_rotflip&quot;: true,
+  &quot;net_model_name&quot;: &quot;FCN_v5&quot;,
+  &quot;net_num_chan&quot;: 32,
+  &quot;loss_type&quot;: &quot;L2&quot;,
+  &quot;penalty_lam_l1&quot;: 0.1,
+  &quot;penalty_lam_tv&quot;: 0.1,
+  &quot;penalty_lam_tv_type&quot;: &quot;tvv&quot;,
+  &quot;train_batch_size&quot;: 1,
+  &quot;clip_min&quot;: -3.0,
+  &quot;clip_max&quot;: 2.0,
+  &quot;mic_norm&quot;: null,
+  &quot;compute_num_cpus&quot;: 8
+}</pre></details></td></tr><tr><td><code>J77</code></td><td><b>blob_picker_gpu</b><br><span class='dag-title'>Blob Picker</span></td><td class='dag-meta'>micrographs←J76.exposures</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;diameter&quot;: 100.0,
+  &quot;diameter_max&quot;: 200.0,
+  &quot;use_circle&quot;: true,
+  &quot;use_ellipse&quot;: false,
+  &quot;ellipse_generation_mode&quot;: &quot;Stretch&quot;,
+  &quot;use_ring&quot;: false,
+  &quot;blob_size_spacing&quot;: null,
+  &quot;use_denoised&quot;: true,
+  &quot;lowpass_res_template&quot;: 20.0,
+  &quot;lowpass_res&quot;: 20.0,
+  &quot;angular_spacing_deg&quot;: 5.0,
+  &quot;use_ctf&quot;: false,
+  &quot;min_distance&quot;: 1.0,
+  &quot;num_process&quot;: null,
+  &quot;num_plot&quot;: 10,
+  &quot;max_num_hits&quot;: 4000
+}</pre></details></td></tr><tr><td><code>J78</code></td><td><b>junk_detector_v1</b><br><span class='dag-title'>Micrograph Junk Detector</span></td><td class='dag-meta'>exposures←J77.micrographs; particles←J77.particles</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;min_dist&quot;: 150.0,
+  &quot;enable_cat1&quot;: true,
+  &quot;min_dist_cat1&quot;: null,
+  &quot;enable_cat2&quot;: true,
+  &quot;min_dist_cat2&quot;: null,
+  &quot;enable_cat3&quot;: true,
+  &quot;min_dist_cat3&quot;: null,
+  &quot;min_label_area&quot;: 0.0
+}</pre></details></td></tr><tr><td><code>J79</code></td><td><b>inspect_picks_v2</b><br><span class='dag-title'>Inspect Picks (Blob)</span></td><td class='dag-meta'>particles←J78.particles_accepted; micrographs←J78.exposures</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;n_mic_to_plot&quot;: 10,
+  &quot;checkpoint_freq&quot;: 10,
+  &quot;calibrate_ncc&quot;: true,
+  &quot;calibrate_pow&quot;: true,
+  &quot;ncc_score_thresh&quot;: null,
+  &quot;lpower_thresh_min&quot;: null,
+  &quot;lpower_thresh_max&quot;: null,
+  &quot;curv_thresh&quot;: null,
+  &quot;sinu_thresh&quot;: null,
+  &quot;do_auto_cluster&quot;: false,
+  &quot;lpower_target&quot;: 50.0,
+  &quot;dilation_bins&quot;: 1,
+  &quot;keep_threshold&quot;: 0.3
+}</pre></details></td></tr><tr><td><code>J80</code></td><td><b>extract_micrographs_multi</b><br><span class='dag-title'>Extract From Micrographs (Blob)</span></td><td class='dag-meta'>micrographs←J79.micrographs; particles←J79.particles</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;compute_num_gpus&quot;: 1,
+  &quot;box_size_pix&quot;: 440,
+  &quot;bin_size_pix&quot;: null,
+  &quot;output_f16&quot;: false,
+  &quot;force_reextract_CTF&quot;: false,
+  &quot;recenter_using_shifts&quot;: true,
+  &quot;recenter_key&quot;: &quot;alignments3D&quot;,
+  &quot;num_extract&quot;: null,
+  &quot;flip_x&quot;: false,
+  &quot;flip_y&quot;: false,
+  &quot;scale_const_override&quot;: null,
+  &quot;overall_normalizer_override&quot;: null,
+  &quot;update_alignments2D&quot;: false,
+  &quot;update_alignments3D&quot;: false,
+  &quot;do_recenter&quot;: false
+}</pre></details></td></tr><tr><td><code>J81</code></td><td><b>class_2D_new</b><br><span class='dag-title'>2D Classification (Blob)</span></td><td class='dag-meta'>particles←J80.particles</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;prepare_window_dataset&quot;: true,
+  &quot;prepare_window_inner_radius&quot;: 0.85,
+  &quot;prepare_window_outer_radius&quot;: 0.99,
+  &quot;class2D_K&quot;: 50,
+  &quot;class2D_max_res&quot;: 6.0,
+  &quot;class2D_max_res_align&quot;: null,
+  &quot;class2D_sigma_init_factor&quot;: 2.0,
+  &quot;class2D_window&quot;: true,
+  &quot;class2D_window_inner_A&quot;: null,
+  &quot;class2D_window_outer_A&quot;: null,
+  &quot;class2D_recenter&quot;: true,
+  &quot;class2D_recenter_thresh&quot;: 0.2,
+  &quot;class2D_recenter_binary&quot;: false,
+  &quot;class2D_estimate_in_plane_pose&quot;: false,
+  &quot;class2D_output_filaments&quot;: false,
+  &quot;class2D_remove_duplicate_particles&quot;: true,
+  &quot;class2D_min_dist_A&quot;: 20.0,
+  &quot;class2D_mic_psize_A&quot;: null,
+  &quot;class2D_clamp&quot;: false,
+  &quot;class2D_do_ctf&quot;: true,
+  &quot;class2D_min_res_align&quot;: null,
+  &quot;class2D_sort_classes_by_size&quot;: true,
+  &quot;class2D_sort_method&quot;: &quot;similarity&quot;,
+  &quot;class2D_similarity_allow_shift&quot;: false,
+  &quot;class2D_hard_class_last_iter&quot;: false,
+  &quot;class2D_do_alignment&quot;: true,
+  &quot;class2D_force_max&quot;: true,
+  &quot;class2D_ctf_phase_flip_only&quot;: false,
+  &quot;class2D_random_perturb_rs&quot;: null,
+  &quot;class2D_num_full_iter&quot;: 1,
+  &quot;class2D_num_full_iter_batch&quot;: 20,
+  &quot;class2D_num_full_iter_batchsize_per_class&quot;: 100,
+  &quot;class2D_init_scale&quot;: 1.0,
+  &quot;class2D_zp_factor&quot;: 2.0,
+  &quot;class2D_ignore_dc&quot;: true,
+  &quot;class2D_min_over_scale&quot;: false,
+  &quot;class2D_nonneg&quot;: false,
+  &quot;class2D_use_frc_reg&quot;: true,
+  &quot;class2D_use_frc_reg_full&quot;: true,
+  &quot;class2D_sigma_init_iter&quot;: 2,
+  &quot;class2D_sigma_num_anneal_iters&quot;: 15,
+  &quot;class2D_sigma_use_white&quot;: false,
+  &quot;intermediate_plots&quot;: true,
+  &quot;class2D_scale_bars&quot;: true,
+  &quot;random_seed&quot;: 311538945,
+  &quot;random_seed_default&quot;: 311538945,
+  &quot;compute_use_ssd&quot;: true,
+  &quot;compute_num_gpus&quot;: 1,
+  &quot;generate_intermediate_results&quot;: false
+}</pre></details></td></tr><tr><td><code>J82</code></td><td><b>select_2D</b><br><span class='dag-title'>Select 2D Classes (Templates)</span></td><td class='dag-meta'>particles←J81.particles; templates←J81.class_averages</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;transpose_templates&quot;: false,
+  &quot;selected_templates&quot;: null,
+  &quot;resolution_better_than&quot;: null,
+  &quot;particle_count_above&quot;: null
+}</pre></details></td></tr><tr><td><code>J83</code></td><td><b>template_picker_gpu</b><br><span class='dag-title'>Template Picker</span></td><td class='dag-meta'>templates←J82.templates_selected; micrographs←J76.exposures</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;diameter&quot;: 190.0,
+  &quot;use_denoised&quot;: true,
+  &quot;lowpass_res_template&quot;: 20.0,
+  &quot;lowpass_res&quot;: 20.0,
+  &quot;angular_spacing_deg&quot;: 5.0,
+  &quot;use_ctf&quot;: false,
+  &quot;min_distance&quot;: 0.5,
+  &quot;recenter_templates&quot;: true,
+  &quot;num_process&quot;: null,
+  &quot;num_plot&quot;: 10,
+  &quot;max_num_hits&quot;: 4000
+}</pre></details></td></tr><tr><td><code>J84</code></td><td><b>inspect_picks_v2</b><br><span class='dag-title'>Inspect Picks (Template)</span></td><td class='dag-meta'>particles←J83.particles; micrographs←J83.micrographs</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;n_mic_to_plot&quot;: 10,
+  &quot;checkpoint_freq&quot;: 10,
+  &quot;calibrate_ncc&quot;: true,
+  &quot;calibrate_pow&quot;: true,
+  &quot;ncc_score_thresh&quot;: null,
+  &quot;lpower_thresh_min&quot;: null,
+  &quot;lpower_thresh_max&quot;: null,
+  &quot;curv_thresh&quot;: null,
+  &quot;sinu_thresh&quot;: null,
+  &quot;do_auto_cluster&quot;: false,
+  &quot;lpower_target&quot;: 50.0,
+  &quot;dilation_bins&quot;: 1,
+  &quot;keep_threshold&quot;: 0.3
+}</pre></details></td></tr><tr><td><code>J85</code></td><td><b>extract_micrographs_multi</b><br><span class='dag-title'>Extract From Micrographs (Template)</span></td><td class='dag-meta'>micrographs←J84.micrographs; particles←J84.particles</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;compute_num_gpus&quot;: 1,
+  &quot;box_size_pix&quot;: 440,
+  &quot;bin_size_pix&quot;: null,
+  &quot;output_f16&quot;: false,
+  &quot;force_reextract_CTF&quot;: false,
+  &quot;recenter_using_shifts&quot;: true,
+  &quot;recenter_key&quot;: &quot;alignments3D&quot;,
+  &quot;num_extract&quot;: null,
+  &quot;flip_x&quot;: false,
+  &quot;flip_y&quot;: false,
+  &quot;scale_const_override&quot;: null,
+  &quot;overall_normalizer_override&quot;: null,
+  &quot;update_alignments2D&quot;: false,
+  &quot;update_alignments3D&quot;: false,
+  &quot;do_recenter&quot;: false
+}</pre></details></td></tr><tr><td><code>J86</code></td><td><b>class_2D_new</b><br><span class='dag-title'>2D Classification (Template)</span></td><td class='dag-meta'>particles←J85.particles</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;prepare_window_dataset&quot;: true,
+  &quot;prepare_window_inner_radius&quot;: 0.85,
+  &quot;prepare_window_outer_radius&quot;: 0.99,
+  &quot;class2D_K&quot;: 50,
+  &quot;class2D_max_res&quot;: 6.0,
+  &quot;class2D_max_res_align&quot;: null,
+  &quot;class2D_sigma_init_factor&quot;: 2.0,
+  &quot;class2D_window&quot;: true,
+  &quot;class2D_window_inner_A&quot;: null,
+  &quot;class2D_window_outer_A&quot;: null,
+  &quot;class2D_recenter&quot;: true,
+  &quot;class2D_recenter_thresh&quot;: 0.2,
+  &quot;class2D_recenter_binary&quot;: false,
+  &quot;class2D_estimate_in_plane_pose&quot;: false,
+  &quot;class2D_output_filaments&quot;: false,
+  &quot;class2D_remove_duplicate_particles&quot;: true,
+  &quot;class2D_min_dist_A&quot;: 20.0,
+  &quot;class2D_mic_psize_A&quot;: null,
+  &quot;class2D_clamp&quot;: false,
+  &quot;class2D_do_ctf&quot;: true,
+  &quot;class2D_min_res_align&quot;: null,
+  &quot;class2D_sort_classes_by_size&quot;: true,
+  &quot;class2D_sort_method&quot;: &quot;similarity&quot;,
+  &quot;class2D_similarity_allow_shift&quot;: false,
+  &quot;class2D_hard_class_last_iter&quot;: false,
+  &quot;class2D_do_alignment&quot;: true,
+  &quot;class2D_force_max&quot;: true,
+  &quot;class2D_ctf_phase_flip_only&quot;: false,
+  &quot;class2D_random_perturb_rs&quot;: null,
+  &quot;class2D_num_full_iter&quot;: 1,
+  &quot;class2D_num_full_iter_batch&quot;: 20,
+  &quot;class2D_num_full_iter_batchsize_per_class&quot;: 100,
+  &quot;class2D_init_scale&quot;: 1.0,
+  &quot;class2D_zp_factor&quot;: 2.0,
+  &quot;class2D_ignore_dc&quot;: true,
+  &quot;class2D_min_over_scale&quot;: false,
+  &quot;class2D_nonneg&quot;: false,
+  &quot;class2D_use_frc_reg&quot;: true,
+  &quot;class2D_use_frc_reg_full&quot;: true,
+  &quot;class2D_sigma_init_iter&quot;: 2,
+  &quot;class2D_sigma_num_anneal_iters&quot;: 15,
+  &quot;class2D_sigma_use_white&quot;: false,
+  &quot;intermediate_plots&quot;: true,
+  &quot;class2D_scale_bars&quot;: true,
+  &quot;random_seed&quot;: 1652051200,
+  &quot;random_seed_default&quot;: 1652051200,
+  &quot;compute_use_ssd&quot;: true,
+  &quot;compute_num_gpus&quot;: 1,
+  &quot;generate_intermediate_results&quot;: false
+}</pre></details></td></tr><tr><td><code>J87</code></td><td><b>select_2D</b><br><span class='dag-title'>Select 2D Classes (Final)</span></td><td class='dag-meta'>particles←J86.particles; templates←J86.class_averages</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;transpose_templates&quot;: false,
+  &quot;selected_templates&quot;: null,
+  &quot;resolution_better_than&quot;: null,
+  &quot;particle_count_above&quot;: null
+}</pre></details></td></tr><tr><td><code>J88</code></td><td><b>homo_abinit</b><br><span class='dag-title'>Ab-Initio Reconstruction</span></td><td class='dag-meta'>particles←J87.particles_selected</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;prepare_window_dataset&quot;: true,
+  &quot;prepare_window_inner_radius&quot;: 0.85,
+  &quot;prepare_window_outer_radius&quot;: 0.99,
+  &quot;abinit_K&quot;: 1,
+  &quot;abinit_num_particles&quot;: null,
+  &quot;abinit_max_res&quot;: 12.0,
+  &quot;abinit_min_res&quot;: null,
+  &quot;abinit_init_res&quot;: 35.0,
+  &quot;abinit_num_init_iters&quot;: 200,
+  &quot;abinit_num_final_iters&quot;: 300,
+  &quot;abinit_radwn_step&quot;: 0.04,
+  &quot;abinit_window&quot;: true,
+  &quot;abinit_window_mode&quot;: &quot;spherical&quot;,
+  &quot;abinit_window_inner&quot;: null,
+  &quot;abinit_window_outer&quot;: null,
+  &quot;abinit_center&quot;: true,
+  &quot;abinit_scale_mg_correct&quot;: false,
+  &quot;abinit_scale_compute&quot;: false,
+  &quot;abinit_mom&quot;: 0.0,
+  &quot;abinit_sparsity&quot;: 0,
+  &quot;abinit_minisize_init&quot;: 90,
+  &quot;abinit_minisize&quot;: 300,
+  &quot;abinit_minisize_epsilon&quot;: 0.05,
+  &quot;abinit_minisize_minp&quot;: 0.01,
+  &quot;abinit_minisize_num_init_iters&quot;: 300,
+  &quot;abinit_noise_model&quot;: &quot;symmetric&quot;,
+  &quot;abinit_noise_priorw&quot;: 50,
+  &quot;abinit_noise_initw&quot;: 5000,
+  &quot;abinit_noise_init_sigmascale&quot;: null,
+  &quot;abinit_class_anneal_beta&quot;: 0.1,
+  &quot;abinit_class_anneal_start&quot;: 300,
+  &quot;abinit_class_anneal_end&quot;: 350,
+  &quot;abinit_target_initial_ess_fraction&quot;: 0.011,
+  &quot;abinit_symmetry&quot;: &quot;C1&quot;,
+  &quot;abinit_r_grid&quot;: 25,
+  &quot;abinit_high_lr_duration&quot;: 100,
+  &quot;abinit_high_lr&quot;: 0.4,
+  &quot;abinit_nonneg&quot;: true,
+  &quot;abinit_ignore_dc&quot;: true,
+  &quot;abinit_seed_init&quot;: null,
+  &quot;abinit_init_radwn_cutoff&quot;: 7,
+  &quot;abinit_search_start_iter&quot;: 200,
+  &quot;abinit_use_engine&quot;: true,
+  &quot;intermediate_plots&quot;: true,
+  &quot;random_seed&quot;: 2134516414,
+  &quot;random_seed_default&quot;: 2134516414,
+  &quot;compute_use_ssd&quot;: true,
+  &quot;generate_intermediate_results&quot;: false
+}</pre></details></td></tr><tr><td><code>J89</code></td><td><b>homo_refine_new</b><br><span class='dag-title'>Homogeneous Refinement (D7)</span></td><td class='dag-meta'>particles←J88.particles_all_classes; volume←J88.volume_class_0</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;prepare_window_dataset&quot;: true,
+  &quot;prepare_window_inner_radius&quot;: 0.85,
+  &quot;prepare_window_outer_radius&quot;: 0.99,
+  &quot;refine_N_cmp&quot;: null,
+  &quot;refine_N_p_zp&quot;: null,
+  &quot;refine_N_p_bp&quot;: null,
+  &quot;refine_N_v&quot;: null,
+  &quot;refine_N_v_zp_factor&quot;: 1.0,
+  &quot;refine_interp_kernel&quot;: &quot;linear10&quot;,
+  &quot;refine_scale_min&quot;: true,
+  &quot;refine_scale_reset&quot;: true,
+  &quot;refine_scale_start_iter&quot;: 0.0,
+  &quot;refine_symmetry&quot;: &quot;D7&quot;,
+  &quot;refine_relax_symmetry&quot;: &quot;none&quot;,
+  &quot;refine_symmetry_do_align&quot;: true,
+  &quot;refine_do_init_scale_est&quot;: true,
+  &quot;refine_num_final_iterations&quot;: 0,
+  &quot;refine_res_align_max&quot;: null,
+  &quot;refine_res_init&quot;: 30.0,
+  &quot;refine_res_gsfsc_split&quot;: 20.0,
+  &quot;refine_gs_resplit&quot;: false,
+  &quot;refine_highpass_res&quot;: null,
+  &quot;refine_do_marg&quot;: false,
+  &quot;refine_marg_num_rs&quot;: 5,
+  &quot;refine_marg_num_ss&quot;: 5,
+  &quot;refine_marg_extent_deg&quot;: 2.0,
+  &quot;refine_marg_extent_A&quot;: 2.0,
+  &quot;refine_nu_enable&quot;: false,
+  &quot;refine_nu_filtertype&quot;: &quot;butterworth&quot;,
+  &quot;refine_nu_order&quot;: 8,
+  &quot;refine_nu_awf&quot;: 3.0,
+  &quot;refine_nu_res_limit&quot;: null,
+  &quot;refine_FSC_weight&quot;: &quot;fsc_resmask&quot;,
+  &quot;refine_bnb_params&quot;: &quot;3D&quot;,
+  &quot;refine_clip&quot;: false,
+  &quot;refine_window&quot;: true,
+  &quot;refine_skip_premult&quot;: true,
+  &quot;refine_ignore_dc&quot;: true,
+  &quot;refine_ignore_tilt&quot;: false,
+  &quot;refine_ignore_trefoil&quot;: false,
+  &quot;refine_ignore_tetra&quot;: false,
+  &quot;refine_ignore_anisomag&quot;: false,
+  &quot;refine_batch_random&quot;: true,
+  &quot;refine_batchsize_init&quot;: 0,
+  &quot;refine_batchsize_no_auto&quot;: false,
+  &quot;refine_batchsize_epsilon&quot;: 0.001,
+  &quot;refine_batchsize_snrfactor&quot;: 50.0,
+  &quot;refine_noise_model&quot;: &quot;symmetric&quot;,
+  &quot;refine_noise_priorw&quot;: 50,
+  &quot;refine_noise_initw&quot;: 200,
+  &quot;refine_noise_init_sigmascale&quot;: 3.0,
+  &quot;refine_noise_init_from_imgs&quot;: false,
+  &quot;refine_mask&quot;: &quot;dynamic&quot;,
+  &quot;do_dynamic_mask&quot;: true,
+  &quot;refine_dynamic_mask_thresh_factor&quot;: 0.2,
+  &quot;refine_dynamic_mask_near_ang&quot;: 6.0,
+  &quot;refine_dynamic_mask_far_ang&quot;: 14.0,
+  &quot;refine_dynamic_mask_near_multiplier&quot;: 2.0,
+  &quot;refine_dynamic_mask_far_multiplier&quot;: 5.0,
+  &quot;refine_dynamic_mask_start_res&quot;: 12.0,
+  &quot;refine_dynamic_mask_use_abs&quot;: false,
+  &quot;intermediate_plots&quot;: true,
+  &quot;refine_compute_batch_size&quot;: null,
+  &quot;refine_defocus_refine&quot;: false,
+  &quot;crl_min_res_A&quot;: 20.0,
+  &quot;crl_num_plots&quot;: 10,
+  &quot;crl_df_range&quot;: 2000.0,
+  &quot;crl_compute_batch_size&quot;: null,
+  &quot;refine_ctf_global_refine&quot;: false,
+  &quot;crg_min_res_A&quot;: 10.0,
+  &quot;crg_num_plots&quot;: 10,
+  &quot;crg_plot_binfactor&quot;: 1,
+  &quot;crg_do_tilt&quot;: true,
+  &quot;crg_do_trefoil&quot;: true,
+  &quot;crg_do_spherical&quot;: false,
+  &quot;crg_do_tetrafoil&quot;: false,
+  &quot;crg_do_anisomag&quot;: false,
+  &quot;crg_compute_batch_size&quot;: null,
+  &quot;refine_do_ews_correct&quot;: false,
+  &quot;refine_do_ews_correct_align&quot;: false,
+  &quot;refine_ews_zsign&quot;: -1,
+  &quot;refine_ews_simple&quot;: 1,
+  &quot;random_seed&quot;: 87929967,
+  &quot;random_seed_default&quot;: 87929967,
+  &quot;compute_use_ssd&quot;: true
+}</pre></details></td></tr><tr><td><code>J90</code></td><td><b>volume_tools</b><br><span class='dag-title'>Volume Tools (Lowpass 10A)</span></td><td class='dag-meta'>volume←J89.volume</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;vol_resample_N&quot;: null,
+  &quot;vol_crop_N&quot;: null,
+  &quot;vol_lpf_A&quot;: 10.0,
+  &quot;vol_lpf_type&quot;: &quot;butterworth&quot;,
+  &quot;vol_lpf_order&quot;: 8,
+  &quot;vol_flip&quot;: false,
+  &quot;volume_in_type&quot;: &quot;map&quot;,
+  &quot;volume_out_type&quot;: &quot;map&quot;,
+  &quot;invert&quot;: false,
+  &quot;threshold&quot;: null,
+  &quot;fill_holes&quot;: true,
+  &quot;dilator&quot;: 0.0,
+  &quot;pad&quot;: 12.0,
+  &quot;z_clip_frac&quot;: 1.0,
+  &quot;output_fname&quot;: null
+}</pre></details></td></tr><tr><td><code>J91</code></td><td><b>volume_tools</b><br><span class='dag-title'>Volume Tools (Mask)</span></td><td class='dag-meta'>volume←J90.volume</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;vol_resample_N&quot;: null,
+  &quot;vol_crop_N&quot;: null,
+  &quot;vol_lpf_A&quot;: null,
+  &quot;vol_lpf_type&quot;: &quot;butterworth&quot;,
+  &quot;vol_lpf_order&quot;: 8,
+  &quot;vol_flip&quot;: false,
+  &quot;volume_in_type&quot;: &quot;map&quot;,
+  &quot;volume_out_type&quot;: &quot;mask&quot;,
+  &quot;invert&quot;: false,
+  &quot;threshold&quot;: 0.5,
+  &quot;fill_holes&quot;: true,
+  &quot;dilator&quot;: 4.0,
+  &quot;pad&quot;: 14.0,
+  &quot;z_clip_frac&quot;: 1.0,
+  &quot;output_fname&quot;: null
+}</pre></details></td></tr><tr><td><code>J93</code></td><td><b>validation</b><br><span class='dag-title'>Validation (FSC)</span></td><td class='dag-meta'>volume←J89.volume; mask←J91.mask</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;validate_generate_new_mask&quot;: false,
+  &quot;validate_mask_thresh_rel&quot;: true,
+  &quot;validate_mask_thresh&quot;: 0.5,
+  &quot;validate_mask_near_multiplier&quot;: 2.0,
+  &quot;validate_mask_far_multiplier&quot;: 5.0,
+  &quot;validate_mask_near_A&quot;: 6.0,
+  &quot;validate_mask_far_A&quot;: 12.0,
+  &quot;validate_do_noisesub&quot;: false,
+  &quot;validate_optimize_fsc_mask&quot;: false,
+  &quot;validate_override_psize_A&quot;: null,
+  &quot;validate_compute_facility&quot;: &quot;GPU&quot;
+}</pre></details></td></tr><tr><td><code>J94</code></td><td><b>sharpen</b><br><span class='dag-title'>Sharpening Tools</span></td><td class='dag-meta'>volume←J89.volume</td><td class='dag-meta'>building</td><td><details><summary>params</summary><pre>{
+  &quot;sharp_bfactor&quot;: -77.0,
+  &quot;sharp_use_FSC_full&quot;: true,
+  &quot;sharp_which_FSC&quot;: &quot;full&quot;,
+  &quot;sharp_falloff_order&quot;: 8,
+  &quot;sharp_falloff_corner_res&quot;: null,
+  &quot;sharp_falloff_offset&quot;: 0.0,
+  &quot;sharp_generate_new_mask&quot;: true,
+  &quot;sharp_mask_thresh&quot;: 0.5,
+  &quot;sharp_mask_near_A&quot;: 6.0,
+  &quot;sharp_mask_far_A&quot;: 12.0,
+  &quot;sharp_do_spherical_mask&quot;: true,
+  &quot;sharp_do_expand_mask&quot;: false,
+  &quot;sharp_bfactor_use_mask&quot;: true,
+  &quot;sharp_fsc_weighting&quot;: false
+}</pre></details></td></tr></table>
+
+<h3 id="trajectory">Trajectory — every tool call + the model's reasoning</h3>
+<p class="note">The agent's code lives here, in order, with each call's result. Code scrolls horizontally; long results are capped with a marker.</p>
+<details><summary>Trajectory — 58 rows (38 tool calls + 20 reasoning)</summary>
+<table class="traj"><colgroup><col style="width:44px"><col style="width:96px"><col style="width:46%"><col></colgroup><tr><th>turn</th><th>tool</th><th>code / input</th><th>result</th></tr><tr><td>1</td><td><i>reasoning</i></td><td colspan=2>I&#x27;ll start by exploring the environment and the available job types.</td></tr><tr><td>1</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>print(project_uid, workspace)
+print(DATA_DIR)
+print(LANE_CPU, LANE_GPU)
+import glob
+print(len(glob.glob(os.path.join(DATA_DIR, &quot;*.tif&quot;))))
+print(glob.glob(os.path.join(DATA_DIR, &quot;*.mrc&quot;))[:3])
+</pre></div></td><td class='result'>P5 W5
+/shared/data/empiar_10025_subset_v1/
+cpu-queue single-gpu-queue
+20
+[&#x27;/shared/data/empiar_10025_subset_v1/batch_0_restacked.mrc&#x27;, &#x27;/shared/data/empiar_10025_subset_v1/templates.mrc&#x27;, &#x27;/shared/data/empiar_10025_subset_v1/abinitio_volume.mrc&#x27;]</td></tr><tr><td>1</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>cs.print_job_types()</pre></div></td><td class='result'>Category          | Job                              | Title                             | Stability
+====================================================================================================
+import            | import_movies                    | Import Movies                     | stable   
+                  | import_micrographs               | Import Micrographs                | stable   
+                  | import_particles                 | Import Particle Stack             | stable   
+                  | import_volumes                   | Import 3D Volumes                 | stable   
+                  | import_templates                 | Import Templates                  | stable   
+                  | import_result_group              | Import Result Groups              | stable   
+                  | import_beam_shift                | Import Beam Shift                 | stable   
+motion_correction | patch_motion_correction_multi    | Patch Motion Correction           | stable   
+                  | rigid_motion_correction_multi    | Full-frame Motion Correction      | stable   
+                  | rigid_motion_correction          | Full-frame Motion Correction      | develop  
+                  | local_motion_correction          | Local Motion Correction           | stable   
+                  | local_motion_correction_multi    | Local Motion Correction           | stable   
+                  | motion_correction_motioncor2     | MotionCor2                        | stable   
+                  | reference_motion_correction      | Reference Based Motion Correction | stable   
+                  | local_applytraj                  | Apply Trajectories                | stable   
+                  | patch_to_local                   | Patch Motion to Local Motion      | develop  
+                  | recenter_trajectories            | Recenter Trajectories             | develop  
+ctf_estimation    | patch_ctf_estimation_multi       | Patch CTF Estimation      <span class="trunc">…(truncated, 7,039 chars)</span></td></tr><tr><td>2</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>cs.print_job_types(&quot;postprocessing&quot;)
+print(&quot;====UTILITIES====&quot;)
+cs.print_job_types(&quot;utilities&quot;)</pre></div></td><td class='result'>Category       | Job                     | Title                       | Stability
+==================================================================================
+postprocessing | sharpen                 | Sharpening Tools            | stable   
+               | deepemhancer            | DeepEMhancer                | stable   
+               | validation              | Validation (FSC)            | stable   
+               | orientation_diagnostics | Orientation Diagnostics     | stable   
+               | local_resolution        | Local Resolution Estimation | stable   
+               | local_filter            | Local Filtering             | stable   
+               | reslog                  | ResLog Analysis             | stable   
+====UTILITIES====
+Category  | Job                        | Title                             | Stability
+======================================================================================
+utilities | exposure_sets              | Exposure Sets Tool                | stable   
+          | exposure_tools             | Exposure Tools                    | stable   
+          | generate_thumbs            | Generate Micrograph Thumbnails    | stable   
+          | cache_particles            | Cache Particles on SSD            | stable   
+          | check_corrupt_particles    | Check For Corrupt Particles       | stable   
+          | check_corrupt_micrographs  | Check For Corrupt Micrographs     | stable   
+          | particle_sets              | Particle Sets Tool                | stable   
+          | reassign_particles_mics    | Reassign Particles to Micrographs | stable   
+          | remove_duplicate_particles | Remove Duplicate Particles        | stable   
+          | select_volume              | Select Volume                     | stable   
+          | sym_expand                 | Symmetry Expansion                | stable   
+          | volume_tools               | Volume Tools                      | stable   
+          | volum<span class="trunc">…(truncated, 2,240 chars)</span></td></tr><tr><td>3</td><td><i>reasoning</i></td><td colspan=2>I have all the job types. Now let me build the pipeline in dependency order. Let me start with import movies and introspect its inputs/outputs as I go.</td></tr><tr><td>3</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>imp = cs.create_job(project_uid, workspace, &quot;import_movies&quot;,
+    params={
+        &quot;blob_paths&quot;: os.path.join(DATA_DIR, &quot;*.frames.tif&quot;),
+        &quot;gainref_path&quot;: os.path.join(DATA_DIR, &quot;norm-amibox05-0.mrc&quot;),
+        &quot;psize_A&quot;: 0.6575,
+        &quot;accel_kv&quot;: 300.0,
+        &quot;cs_mm&quot;: 2.7,
+        &quot;total_dose_e_per_A2&quot;: 53.0,
+    },
+    title=&quot;Import Movies&quot;)
+imp.refresh()
+spec = imp.model.model_dump()[&quot;spec&quot;]
+print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
+print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
+</pre></div></td><td class='result'>inputs: []
+outputs: [&#x27;imported_movies&#x27;, &#x27;failed_movies&#x27;]</td></tr><tr><td>4</td><td><i>reasoning</i></td><td colspan=2>The import movies job is set up. Now Patch Motion Correction.</td></tr><tr><td>4</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>motion = cs.create_job(project_uid, workspace, &quot;patch_motion_correction_multi&quot;,
+    connections={&quot;movies&quot;: (imp.uid, &quot;imported_movies&quot;)},
+    title=&quot;Patch Motion Correction&quot;)
+motion.refresh()
+spec = motion.model.model_dump()[&quot;spec&quot;]
+print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
+print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
+</pre></div></td><td class='result'>inputs: [&#x27;movies&#x27;, &#x27;doseweights&#x27;]
+outputs: [&#x27;micrographs&#x27;, &#x27;micrographs_incomplete&#x27;]</td></tr><tr><td>5</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>ctf = cs.create_job(project_uid, workspace, &quot;patch_ctf_estimation_multi&quot;,
+    connections={&quot;exposures&quot;: (motion.uid, &quot;micrographs&quot;)},
+    title=&quot;Patch CTF Estimation&quot;)
+ctf.refresh()
+spec = ctf.model.model_dump()[&quot;spec&quot;]
+print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
+print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
+</pre></div></td><td class='result'>inputs: [&#x27;exposures&#x27;]
+outputs: [&#x27;exposures&#x27;, &#x27;exposures_incomplete&#x27;]</td></tr><tr><td>6</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>denoise = cs.create_job(project_uid, workspace, &quot;denoise_train&quot;,
+    connections={&quot;exposures&quot;: (ctf.uid, &quot;exposures&quot;)},
+    title=&quot;Micrograph Denoiser&quot;)
+denoise.refresh()
+spec = denoise.model.model_dump()[&quot;spec&quot;]
+print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
+print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
+# find training param
+for k,v in spec[&quot;params&quot;].items():
+    if &quot;train&quot; in k.lower() or &quot;num&quot; in k.lower() or &quot;mic&quot; in k.lower():
+        print(k, v)
+</pre></div></td><td class='result'>inputs: [&#x27;exposures&#x27;, &#x27;denoise_model&#x27;]
+outputs: [&#x27;exposures&#x27;, &#x27;denoise_model&#x27;]
+use_pretrained False
+num_train_mics 100
+train_from_scratch True
+train_num_epochs 200
+num_thetas 30
+train_do_rand_crops True
+train_do_rand_rotflip True
+net_num_chan 32
+train_batch_size 1
+mic_norm None
+compute_num_cpus 8</td></tr><tr><td>7</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>denoise.set_param(&quot;num_train_mics&quot;, 20)
+print(denoise.model.model_dump()[&quot;spec&quot;][&quot;params&quot;][&quot;num_train_mics&quot;])</pre></div></td><td class='result'>20</td></tr><tr><td>8</td><td><i>reasoning</i></td><td colspan=2>Now the Blob Picker on denoised micrographs.</td></tr><tr><td>8</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>blob = cs.create_job(project_uid, workspace, &quot;blob_picker_gpu&quot;,
+    connections={&quot;micrographs&quot;: (denoise.uid, &quot;exposures&quot;)},
+    title=&quot;Blob Picker&quot;)
+blob.refresh()
+spec = blob.model.model_dump()[&quot;spec&quot;]
+print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
+print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
+for k,v in spec[&quot;params&quot;].items():
+    if &quot;diameter&quot; in k.lower() or &quot;denois&quot; in k.lower():
+        print(k, v)
+</pre></div></td><td class='result'>inputs: [&#x27;micrographs&#x27;]
+outputs: [&#x27;particles&#x27;, &#x27;micrographs&#x27;, &#x27;templates&#x27;]
+diameter None
+diameter_max None
+use_denoised False</td></tr><tr><td>9</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>blob.set_param(&quot;diameter&quot;, 100)
+blob.set_param(&quot;diameter_max&quot;, 200)
+blob.set_param(&quot;use_denoised&quot;, True)
+p = blob.model.model_dump()[&quot;spec&quot;][&quot;params&quot;]
+print(p[&quot;diameter&quot;], p[&quot;diameter_max&quot;], p[&quot;use_denoised&quot;])</pre></div></td><td class='result'>100.0 200.0 True</td></tr><tr><td>10</td><td><i>reasoning</i></td><td colspan=2>Now the Micrograph Junk Detector.</td></tr><tr><td>10</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>junk = cs.create_job(project_uid, workspace, &quot;junk_detector_v1&quot;,
+    connections={&quot;exposures&quot;: (blob.uid, &quot;micrographs&quot;),
+                 &quot;particles&quot;: (blob.uid, &quot;particles&quot;)},
+    title=&quot;Micrograph Junk Detector&quot;)
+junk.refresh()
+spec = junk.model.model_dump()[&quot;spec&quot;]
+print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
+print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
+</pre></div></td><td class='result'>inputs: [&#x27;exposures&#x27;, &#x27;particles&#x27;]
+outputs: [&#x27;exposures&#x27;, &#x27;particles_accepted&#x27;, &#x27;particles_rejected&#x27;]</td></tr><tr><td>11</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>inspect1 = cs.create_job(project_uid, workspace, &quot;inspect_picks_v2&quot;,
+    connections={&quot;particles&quot;: (junk.uid, &quot;particles_accepted&quot;),
+                 &quot;micrographs&quot;: (junk.uid, &quot;exposures&quot;)},
+    title=&quot;Inspect Picks (Blob)&quot;)
+inspect1.refresh()
+spec = inspect1.model.model_dump()[&quot;spec&quot;]
+print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
+print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
+</pre></div></td><td class='result'>inputs: [&#x27;particles&#x27;, &#x27;micrographs&#x27;]
+outputs: [&#x27;micrographs&#x27;, &#x27;particles&#x27;]</td></tr><tr><td>12</td><td><i>reasoning</i></td><td colspan=2>Now Extract from Micrographs (blob picks), box size 440.</td></tr><tr><td>12</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>extract1 = cs.create_job(project_uid, workspace, &quot;extract_micrographs_multi&quot;,
+    connections={&quot;micrographs&quot;: (inspect1.uid, &quot;micrographs&quot;),
+                 &quot;particles&quot;: (inspect1.uid, &quot;particles&quot;)},
+    title=&quot;Extract From Micrographs (Blob)&quot;)
+extract1.refresh()
+spec = extract1.model.model_dump()[&quot;spec&quot;]
+print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
+print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
+for k,v in spec[&quot;params&quot;].items():
+    if &quot;box&quot; in k.lower():
+        print(k, v)
+</pre></div></td><td class='result'>inputs: [&#x27;micrographs&#x27;, &#x27;particles&#x27;]
+outputs: [&#x27;micrographs&#x27;, &#x27;micrographs_incomplete&#x27;, &#x27;particles&#x27;]
+box_size_pix 256</td></tr><tr><td>13</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>extract1.set_param(&quot;box_size_pix&quot;, 440)
+print(extract1.model.model_dump()[&quot;spec&quot;][&quot;params&quot;][&quot;box_size_pix&quot;])</pre></div></td><td class='result'>440</td></tr><tr><td>14</td><td><i>reasoning</i></td><td colspan=2>Now 2D Classification on blob picks.</td></tr><tr><td>14</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>class2d_1 = cs.create_job(project_uid, workspace, &quot;class_2D_new&quot;,
+    connections={&quot;particles&quot;: (extract1.uid, &quot;particles&quot;)},
+    title=&quot;2D Classification (Blob)&quot;)
+class2d_1.refresh()
+spec = class2d_1.model.model_dump()[&quot;spec&quot;]
+print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
+print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
+for k,v in spec[&quot;params&quot;].items():
+    if &quot;class&quot; in k.lower() and &quot;num&quot; in k.lower():
+        print(k, v)
+</pre></div></td><td class='result'>inputs: [&#x27;particles&#x27;]
+outputs: [&#x27;particles&#x27;, &#x27;particles_rejected&#x27;, &#x27;class_averages&#x27;]
+class2D_num_full_iter 1
+class2D_num_full_iter_batch 20
+class2D_num_full_iter_batchsize_per_class 100
+class2D_sigma_num_anneal_iters 15</td></tr><tr><td>15</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>for k,v in class2d_1.model.model_dump()[&quot;spec&quot;][&quot;params&quot;].items():
+    if &quot;K&quot; == k or &quot;num_K&quot; in k or &quot;classes&quot; in k.lower():
+        print(k, v)</pre></div></td><td class='result'>class2D_sort_classes_by_size True</td></tr><tr><td>16</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>for k,v in class2d_1.model.model_dump()[&quot;spec&quot;][&quot;params&quot;].items():
+    print(k, v)</pre></div></td><td class='result'>prepare_window_dataset True
+prepare_window_inner_radius 0.85
+prepare_window_outer_radius 0.99
+class2D_K 50
+class2D_max_res 6.0
+class2D_max_res_align None
+class2D_sigma_init_factor 2.0
+class2D_window True
+class2D_window_inner_A None
+class2D_window_outer_A None
+class2D_recenter True
+class2D_recenter_thresh 0.2
+class2D_recenter_binary False
+class2D_estimate_in_plane_pose False
+class2D_output_filaments False
+class2D_remove_duplicate_particles True
+class2D_min_dist_A 20.0
+class2D_mic_psize_A None
+class2D_clamp False
+class2D_do_ctf True
+class2D_min_res_align None
+class2D_sort_classes_by_size True
+class2D_sort_method similarity
+class2D_similarity_allow_shift False
+class2D_hard_class_last_iter False
+class2D_do_alignment True
+class2D_force_max True
+class2D_ctf_phase_flip_only False
+class2D_random_perturb_rs None
+class2D_num_full_iter 1
+class2D_num_full_iter_batch 20
+class2D_num_full_iter_batchsize_per_class 100
+class2D_init_scale 1.0
+class2D_zp_factor 2.0
+class2D_ignore_dc True
+class2D_min_over_scale False
+class2D_nonneg False
+class2D_use_frc_reg True
+class2D_use_frc_reg_full True
+class2D_sigma_init_iter 2
+class2D_sigma_num_anneal_iters 15
+class2D_sigma_use_white False
+intermediate_plots True
+class2D_scale_bars True
+random_seed 311538945
+random_seed_default 311538945
+compute_use_ssd True
+compute_num_gpus 1
+generate_intermediate_results False</td></tr><tr><td>17</td><td><i>reasoning</i></td><td colspan=2>50 classes default is fine. Now Select 2D Classes (for templates).</td></tr><tr><td>17</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>select1 = cs.create_job(project_uid, workspace, &quot;select_2D&quot;,
+    connections={&quot;particles&quot;: (class2d_1.uid, &quot;particles&quot;),
+                 &quot;templates&quot;: (class2d_1.uid, &quot;class_averages&quot;)},
+    title=&quot;Select 2D Classes (Templates)&quot;)
+select1.refresh()
+spec = select1.model.model_dump()[&quot;spec&quot;]
+print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
+print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
+</pre></div></td><td class='result'>inputs: [&#x27;particles&#x27;, &#x27;templates&#x27;]
+outputs: [&#x27;templates_selected&#x27;, &#x27;templates_excluded&#x27;, &#x27;particles_excluded&#x27;, &#x27;particles_selected&#x27;]</td></tr><tr><td>18</td><td><i>reasoning</i></td><td colspan=2>Now Template Picker — templates from select1, micrographs from CTF (denoised recommended, but tutorial wires from Patch CTF; I&#x27;ll use denoised mics with use_denoised on). Let me check params.</td></tr><tr><td>18</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>tpick = cs.create_job(project_uid, workspace, &quot;template_picker_gpu&quot;,
+    connections={&quot;templates&quot;: (select1.uid, &quot;templates_selected&quot;),
+                 &quot;micrographs&quot;: (denoise.uid, &quot;exposures&quot;)},
+    title=&quot;Template Picker&quot;)
+tpick.refresh()
+spec = tpick.model.model_dump()[&quot;spec&quot;]
+print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
+print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
+for k,v in spec[&quot;params&quot;].items():
+    if &quot;diameter&quot; in k.lower() or &quot;denois&quot; in k.lower():
+        print(k, v)
+</pre></div></td><td class='result'>inputs: [&#x27;templates&#x27;, &#x27;micrographs&#x27;]
+outputs: [&#x27;particles&#x27;, &#x27;micrographs&#x27;]
+diameter None
+use_denoised False</td></tr><tr><td>19</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>tpick.set_param(&quot;diameter&quot;, 190)
+tpick.set_param(&quot;use_denoised&quot;, True)
+p = tpick.model.model_dump()[&quot;spec&quot;][&quot;params&quot;]
+print(p[&quot;diameter&quot;], p[&quot;use_denoised&quot;])</pre></div></td><td class='result'>190.0 True</td></tr><tr><td>20</td><td><i>reasoning</i></td><td colspan=2>Now Inspect Picks (template picks).</td></tr><tr><td>20</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>inspect2 = cs.create_job(project_uid, workspace, &quot;inspect_picks_v2&quot;,
+    connections={&quot;particles&quot;: (tpick.uid, &quot;particles&quot;),
+                 &quot;micrographs&quot;: (tpick.uid, &quot;micrographs&quot;)},
+    title=&quot;Inspect Picks (Template)&quot;)
+inspect2.refresh()
+spec = inspect2.model.model_dump()[&quot;spec&quot;]
+print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
+print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
+</pre></div></td><td class='result'>inputs: [&#x27;particles&#x27;, &#x27;micrographs&#x27;]
+outputs: [&#x27;micrographs&#x27;, &#x27;particles&#x27;]</td></tr><tr><td>21</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>extract2 = cs.create_job(project_uid, workspace, &quot;extract_micrographs_multi&quot;,
+    connections={&quot;micrographs&quot;: (inspect2.uid, &quot;micrographs&quot;),
+                 &quot;particles&quot;: (inspect2.uid, &quot;particles&quot;)},
+    params={&quot;box_size_pix&quot;: 440},
+    title=&quot;Extract From Micrographs (Template)&quot;)
+extract2.refresh()
+class2d_2 = cs.create_job(project_uid, workspace, &quot;class_2D_new&quot;,
+    connections={&quot;particles&quot;: (extract2.uid, &quot;particles&quot;)},
+    title=&quot;2D Classification (Template)&quot;)
+class2d_2.refresh()
+select2 = cs.create_job(project_uid, workspace, &quot;select_2D&quot;,
+    connections={&quot;particles&quot;: (class2d_2.uid, &quot;particles&quot;),
+                 &quot;templates&quot;: (class2d_2.uid, &quot;class_averages&quot;)},
+    title=&quot;Select 2D Classes (Final)&quot;)
+select2.refresh()
+print(&quot;extract2 box:&quot;, extract2.model.model_dump()[&quot;spec&quot;][&quot;params&quot;][&quot;box_size_pix&quot;])
+print(extract2.uid, class2d_2.uid, select2.uid)</pre></div></td><td class='result'>extract2 box: 440
+J85 J86 J87</td></tr><tr><td>22</td><td><i>reasoning</i></td><td colspan=2>Now Ab-initio Reconstruction (no symmetry).</td></tr><tr><td>22</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>abinit = cs.create_job(project_uid, workspace, &quot;homo_abinit&quot;,
+    connections={&quot;particles&quot;: (select2.uid, &quot;particles_selected&quot;)},
+    title=&quot;Ab-Initio Reconstruction&quot;)
+abinit.refresh()
+spec = abinit.model.model_dump()[&quot;spec&quot;]
+print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
+print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
+for k,v in spec[&quot;params&quot;].items():
+    if &quot;sym&quot; in k.lower() or &quot;num_classes&quot; in k.lower() or k==&quot;abinit_K&quot;:
+        print(k, v)
+</pre></div></td><td class='result'>inputs: [&#x27;particles&#x27;]
+outputs: [&#x27;particles_all_classes&#x27;, &#x27;volumes_all_classes&#x27;, &#x27;particles_class_0&#x27;, &#x27;volume_class_0&#x27;, &#x27;particles_unused&#x27;]
+abinit_K 1
+abinit_symmetry C1</td></tr><tr><td>23</td><td><i>reasoning</i></td><td colspan=2>Ab-initio uses C1, K=1 by default — correct. Now Homogeneous Refinement with D7.</td></tr><tr><td>23</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>refine = cs.create_job(project_uid, workspace, &quot;homo_refine_new&quot;,
+    connections={&quot;particles&quot;: (abinit.uid, &quot;particles_all_classes&quot;),
+                 &quot;volume&quot;: (abinit.uid, &quot;volume_class_0&quot;)},
+    params={&quot;refine_symmetry&quot;: &quot;D7&quot;},
+    title=&quot;Homogeneous Refinement (D7)&quot;)
+refine.refresh()
+spec = refine.model.model_dump()[&quot;spec&quot;]
+print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
+print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
+print(&quot;sym:&quot;, spec[&quot;params&quot;].get(&quot;refine_symmetry&quot;))
+</pre></div></td><td class='result'>inputs: [&#x27;particles&#x27;, &#x27;volume&#x27;, &#x27;mask&#x27;]
+outputs: [&#x27;particles&#x27;, &#x27;particles_rejected&#x27;, &#x27;volume&#x27;, &#x27;mask&#x27;, &#x27;mask_fsc&#x27;, &#x27;mask_fsc_auto&#x27;]
+sym: D7</td></tr><tr><td>24</td><td><i>reasoning</i></td><td colspan=2>Refinement wired with D7. Now the mask generation chain: Volume Tools lowpass.</td></tr><tr><td>24</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>vt_lp = cs.create_job(project_uid, workspace, &quot;volume_tools&quot;,
+    connections={&quot;volume&quot;: (refine.uid, &quot;volume&quot;)},
+    title=&quot;Volume Tools (Lowpass 10A)&quot;)
+vt_lp.refresh()
+spec = vt_lp.model.model_dump()[&quot;spec&quot;]
+print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
+print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
+for k,v in spec[&quot;params&quot;].items():
+    print(k, v)
+</pre></div></td><td class='result'>inputs: [&#x27;volume&#x27;, &#x27;mask&#x27;]
+outputs: [&#x27;volume&#x27;]
+vol_resample_N None
+vol_crop_N None
+vol_lpf_A None
+vol_lpf_type butterworth
+vol_lpf_order 8
+vol_flip False
+volume_in_type map
+volume_out_type map
+invert False
+threshold None
+fill_holes True
+dilator 0.0
+pad 12.0
+z_clip_frac 1.0
+output_fname None</td></tr><tr><td>25</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>vt_lp.set_param(&quot;vol_lpf_A&quot;, 10.0)
+# Second volume tools: mask generation
+vt_mask = cs.create_job(project_uid, workspace, &quot;volume_tools&quot;,
+    connections={&quot;volume&quot;: (vt_lp.uid, &quot;volume&quot;)},
+    params={&quot;volume_out_type&quot;: &quot;mask&quot;, &quot;threshold&quot;: 0.5, &quot;dilator&quot;: 4.0, &quot;pad&quot;: 14.0},
+    title=&quot;Volume Tools (Mask)&quot;)
+vt_mask.refresh()
+spec = vt_mask.model.model_dump()[&quot;spec&quot;][&quot;params&quot;]
+print(&quot;lp:&quot;, vt_lp.model.model_dump()[&quot;spec&quot;][&quot;params&quot;][&quot;vol_lpf_A&quot;])
+print(&quot;mask params:&quot;, spec[&quot;volume_out_type&quot;], spec[&quot;threshold&quot;], spec[&quot;dilator&quot;], spec[&quot;pad&quot;])</pre></div></td><td class='result'>lp: 10.0
+mask params: mask 0.5 4.0 14.0</td></tr><tr><td>26</td><td><i>reasoning</i></td><td colspan=2>Now Validation (FSC).</td></tr><tr class='errrow'><td>26</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>val = cs.create_job(project_uid, workspace, &quot;validation&quot;,
+    connections={&quot;volume&quot;: (refine.uid, &quot;volume&quot;),
+                 &quot;mask&quot;: (vt_mask.uid, &quot;volume&quot;)},
+    title=&quot;Validation (FSC)&quot;)
+val.refresh()
+spec = val.model.model_dump()[&quot;spec&quot;]
+print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
+print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
+for k,v in spec[&quot;params&quot;].items():
+    if &quot;facil&quot; in k.lower() or &quot;gpu&quot; in k.lower() or &quot;compute&quot; in k.lower():
+        print(k, v)
+</pre></div></td><td class='result'>Traceback (your code raised):
+Traceback (most recent call last):
+  File &quot;/home/ec2-user/recon-venv/lib64/python3.9/site-packages/cryosparc/api.py&quot;, line 230, in _call
+    return self._handle_response(_schema, res)
+  File &quot;/home/ec2-user/recon-venv/lib64/python3.9/site-packages/cryosparc/api.py&quot;, line 150, in _handle_response
+    res.raise_for_status()
+  File &quot;/home/ec2-user/recon-venv/lib64/python3.9/site-packages/httpx/_models.py&quot;, line 829, in raise_for_status
+    raise HTTPStatusError(message, request=request, response=self)
+httpx.HTTPStatusError: Client error &#x27;404 Not Found&#x27; for url &#x27;http://localhost:45000/api/cmd/projects/P5/jobs/J92/inputs/mask?source_output_name=volume&amp;source_job_uid=J91&#x27;
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File &quot;&lt;agent_code&gt;&quot;, line 1, in &lt;module&gt;
+  File &quot;/home/ec2-user/recon-venv/lib64/python3.9/site-packages/cryosparc/tools.py&quot;, line 575, in create_job
+    job = self.api.jobs.connect(
+  File &quot;/home/ec2-user/recon-venv/lib64/python3.9/site-packages/cryosparc/api.py&quot;, line 316, in endpoint
+    return namespace._call(method, path, schema, *args, **kwargs)
+  File &quot;/home/ec2-user/recon-venv/lib64/python3.9/site-packages/cryosparc/api.py&quot;, line 232, in _call
+    raise APIError(&quot;received error response&quot;, res=err.response) from err
+cryosparc.errors.APIError: *** [API] (POST http://localhost:45000/api/cmd/projects/P5/jobs/J92/inputs/mask?source_output_name=volume&amp;source_job_uid=J91, code 404) received error response
+Response data:
+{
+    &quot;detail&quot;: &quot;Unknown Job P5-J91 (Volume Tools) output \&quot;volume\&quot;&quot;
+}
+</td></tr><tr><td>27</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>print(&quot;vt_mask uid:&quot;, vt_mask.uid)
+print(&quot;vt_mask outputs:&quot;, list(vt_mask.model.model_dump()[&quot;spec&quot;][&quot;outputs&quot;].keys()))
+# the created J92 maybe partially exists; check validation input names
+try:
+    find_job(&quot;J92&quot;)
+    print(&quot;J92 exists&quot;)
+except Exception as e:
+    print(&quot;J92:&quot;, e)</pre></div></td><td class='result'>vt_mask uid: J91
+vt_mask outputs: [&#x27;mask&#x27;]
+J92 exists</td></tr><tr class='errrow'><td>28</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>cs.delete_job(project_uid, &quot;J92&quot;)
+val = cs.create_job(project_uid, workspace, &quot;validation&quot;,
+    connections={&quot;volume&quot;: (refine.uid, &quot;volume&quot;),
+                 &quot;mask&quot;: (vt_mask.uid, &quot;mask&quot;)},
+    title=&quot;Validation (FSC)&quot;)
+val.refresh()
+spec = val.model.model_dump()[&quot;spec&quot;]
+print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
+print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
+for k,v in spec[&quot;params&quot;].items():
+    if &quot;facil&quot; in k.lower() or &quot;use_gpu&quot; in k.lower():
+        print(k, v)</pre></div></td><td class='result'>Traceback (your code raised):
+Traceback (most recent call last):
+  File &quot;&lt;agent_code&gt;&quot;, line 1, in &lt;module&gt;
+AttributeError: &#x27;CryoSPARC&#x27; object has no attribute &#x27;delete_job&#x27;
+</td></tr><tr><td>29</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>print([m for m in dir(cs) if &quot;delete&quot; in m.lower() or &quot;job&quot; in m.lower()])
+print([m for m in dir(cs.api.jobs) if &quot;delete&quot; in m.lower()])</pre></div></td><td class='result'>[&#x27;create_external_job&#x27;, &#x27;create_job&#x27;, &#x27;find_external_job&#x27;, &#x27;find_job&#x27;, &#x27;find_jobs&#x27;, &#x27;get_job_sections&#x27;, &#x27;job_register&#x27;, &#x27;print_job_types&#x27;]
+[&#x27;delete&#x27;, &#x27;delete_many&#x27;, &#x27;delete_output_result_files&#x27;]</td></tr><tr><td>30</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>cs.api.jobs.delete(project_uid, &quot;J92&quot;)
+val = cs.create_job(project_uid, workspace, &quot;validation&quot;,
+    connections={&quot;volume&quot;: (refine.uid, &quot;volume&quot;),
+                 &quot;mask&quot;: (vt_mask.uid, &quot;mask&quot;)},
+    title=&quot;Validation (FSC)&quot;)
+val.refresh()
+spec = val.model.model_dump()[&quot;spec&quot;]
+print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
+print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
+for k,v in spec[&quot;params&quot;].items():
+    if &quot;facil&quot; in k.lower() or &quot;use_gpu&quot; in k.lower():
+        print(k, v)</pre></div></td><td class='result'>inputs: [&#x27;volume&#x27;, &#x27;mask&#x27;]
+outputs: [&#x27;volume&#x27;, &#x27;mask&#x27;]
+validate_compute_facility GPU</td></tr><tr><td>31</td><td><i>reasoning</i></td><td colspan=2>Validation set to GPU by default. Now the final Sharpening Tools job.</td></tr><tr><td>31</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>sharpen = cs.create_job(project_uid, workspace, &quot;sharpen&quot;,
+    connections={&quot;volume&quot;: (refine.uid, &quot;volume&quot;)},
+    title=&quot;Sharpening Tools&quot;)
+sharpen.refresh()
+spec = sharpen.model.model_dump()[&quot;spec&quot;]
+print(&quot;inputs:&quot;, list(spec[&quot;inputs&quot;].keys()))
+print(&quot;outputs:&quot;, list(spec[&quot;outputs&quot;].keys()))
+for k,v in spec[&quot;params&quot;].items():
+    if &quot;bfactor&quot; in k.lower() or &quot;fsc&quot; in k.lower() or &quot;mask&quot; in k.lower():
+        print(k, v)</pre></div></td><td class='result'>inputs: [&#x27;volume&#x27;, &#x27;mask&#x27;]
+outputs: [&#x27;volume&#x27;, &#x27;mask&#x27;]
+sharp_bfactor None
+sharp_use_FSC_full True
+sharp_which_FSC full
+sharp_generate_new_mask False
+sharp_mask_thresh 0.5
+sharp_mask_near_A 6.0
+sharp_mask_far_A 12.0
+sharp_do_spherical_mask True
+sharp_do_expand_mask False
+sharp_bfactor_use_mask True
+sharp_fsc_weighting False</td></tr><tr><td>32</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>sharpen.set_param(&quot;sharp_generate_new_mask&quot;, True)
+# B-factor: typical T20S ~ -77; tutorial range -56.7 to -96.7. Use ~ -77.
+sharpen.set_param(&quot;sharp_bfactor&quot;, -77.0)
+p = sharpen.model.model_dump()[&quot;spec&quot;][&quot;params&quot;]
+print(p[&quot;sharp_generate_new_mask&quot;], p[&quot;sharp_bfactor&quot;])</pre></div></td><td class='result'>True -77.0</td></tr><tr><td>33</td><td><i>reasoning</i></td><td colspan=2>Now let me verify the entire wired pipeline by listing all jobs in the workspace and their connections.</td></tr><tr><td>33</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>jobs = [imp, motion, ctf, denoise, blob, junk, inspect1, extract1, class2d_1, select1,
+        tpick, inspect2, extract2, class2d_2, select2, abinit, refine, vt_lp, vt_mask, val, sharpen]
+for j in jobs:
+    j.refresh()
+    spec = j.model.model_dump()[&quot;spec&quot;]
+    conns = {}
+    for gname, g in spec[&quot;inputs&quot;].items():
+        srcs = []
+        for c in g.get(&quot;connections&quot;, []):
+            srcs.append(f&quot;{c.get(&#x27;source_job_uid&#x27;)}.{c.get(&#x27;source_output_name&#x27;)}&quot;)
+        if srcs:
+            conns[gname] = srcs
+    print(f&quot;{j.uid:5} {spec[&#x27;type&#x27;]:28} &lt;- {conns}&quot;)</pre></div></td><td class='result'>J73   import_movies                &lt;- {}
+J74   patch_motion_correction_multi &lt;- {&#x27;movies&#x27;: [&#x27;None.None&#x27;]}
+J75   patch_ctf_estimation_multi   &lt;- {&#x27;exposures&#x27;: [&#x27;None.None&#x27;]}
+J76   denoise_train                &lt;- {&#x27;exposures&#x27;: [&#x27;None.None&#x27;]}
+J77   blob_picker_gpu              &lt;- {&#x27;micrographs&#x27;: [&#x27;None.None&#x27;]}
+J78   junk_detector_v1             &lt;- {&#x27;exposures&#x27;: [&#x27;None.None&#x27;], &#x27;particles&#x27;: [&#x27;None.None&#x27;]}
+J79   inspect_picks_v2             &lt;- {&#x27;particles&#x27;: [&#x27;None.None&#x27;], &#x27;micrographs&#x27;: [&#x27;None.None&#x27;]}
+J80   extract_micrographs_multi    &lt;- {&#x27;micrographs&#x27;: [&#x27;None.None&#x27;], &#x27;particles&#x27;: [&#x27;None.None&#x27;]}
+J81   class_2D_new                 &lt;- {&#x27;particles&#x27;: [&#x27;None.None&#x27;]}
+J82   select_2D                    &lt;- {&#x27;particles&#x27;: [&#x27;None.None&#x27;], &#x27;templates&#x27;: [&#x27;None.None&#x27;]}
+J83   template_picker_gpu          &lt;- {&#x27;templates&#x27;: [&#x27;None.None&#x27;], &#x27;micrographs&#x27;: [&#x27;None.None&#x27;]}
+J84   inspect_picks_v2             &lt;- {&#x27;particles&#x27;: [&#x27;None.None&#x27;], &#x27;micrographs&#x27;: [&#x27;None.None&#x27;]}
+J85   extract_micrographs_multi    &lt;- {&#x27;micrographs&#x27;: [&#x27;None.None&#x27;], &#x27;particles&#x27;: [&#x27;None.None&#x27;]}
+J86   class_2D_new                 &lt;- {&#x27;particles&#x27;: [&#x27;None.None&#x27;]}
+J87   select_2D                    &lt;- {&#x27;particles&#x27;: [&#x27;None.None&#x27;], &#x27;templates&#x27;: [&#x27;None.None&#x27;]}
+J88   homo_abinit                  &lt;- {&#x27;particles&#x27;: [&#x27;None.None&#x27;]}
+J89   homo_refine_new              &lt;- {&#x27;particles&#x27;: [&#x27;None.None&#x27;], &#x27;volume&#x27;: [&#x27;None.None&#x27;]}
+J90   volume_tools                 &lt;- {&#x27;volume&#x27;: [&#x27;None.None&#x27;]}
+J91   volume_tools                 &lt;- {&#x27;volume&#x27;: [&#x27;None.None&#x27;]}
+J93   validation                   &lt;- {&#x27;volume&#x27;: [&#x27;None.None&#x27;], &#x27;mask&#x27;: [&#x27;None.None&#x27;]}
+J94   sharpen                      &lt;- {&#x27;volume&#x27;: [&#x27;None.None&#x27;]}</td></tr><tr><td>34</td><td><i>reasoning</i></td><td colspan=2>Connections exist but the source fields parse differently. Let me inspect the actual connection structure.</td></tr><tr><td>34</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>g = refine.model.model_dump()[&quot;spec&quot;][&quot;inputs&quot;][&quot;particles&quot;]
+print(json.dumps(g, indent=1, default=str)[:1500])</pre></div></td><td class='result'>{
+ &quot;type&quot;: &quot;particle&quot;,
+ &quot;title&quot;: &quot;Particle stacks&quot;,
+ &quot;description&quot;: &quot;Particle stacks to use. Multiple stacks will be concatenated.&quot;,
+ &quot;slots&quot;: [
+  {
+   &quot;name&quot;: &quot;blob&quot;,
+   &quot;dtype&quot;: &quot;blob&quot;,
+   &quot;required&quot;: true
+  },
+  {
+   &quot;name&quot;: &quot;ctf&quot;,
+   &quot;dtype&quot;: &quot;ctf&quot;,
+   &quot;required&quot;: true
+  },
+  {
+   &quot;name&quot;: &quot;alignments3D&quot;,
+   &quot;dtype&quot;: &quot;alignments3D&quot;,
+   &quot;required&quot;: false
+  }
+ ],
+ &quot;count_min&quot;: 1,
+ &quot;count_max&quot;: &quot;inf&quot;,
+ &quot;repeat_allowed&quot;: false,
+ &quot;connections&quot;: [
+  {
+   &quot;job_uid&quot;: &quot;J88&quot;,
+   &quot;output&quot;: &quot;particles_all_classes&quot;,
+   &quot;results&quot;: [
+    {
+     &quot;name&quot;: &quot;blob&quot;,
+     &quot;dtype&quot;: &quot;blob&quot;,
+     &quot;job_uid&quot;: &quot;J88&quot;,
+     &quot;output&quot;: &quot;particles_all_classes&quot;,
+     &quot;result&quot;: &quot;blob&quot;,
+     &quot;version&quot;: &quot;F&quot;
+    },
+    {
+     &quot;name&quot;: &quot;ctf&quot;,
+     &quot;dtype&quot;: &quot;ctf&quot;,
+     &quot;job_uid&quot;: &quot;J88&quot;,
+     &quot;output&quot;: &quot;particles_all_classes&quot;,
+     &quot;result&quot;: &quot;ctf&quot;,
+     &quot;version&quot;: &quot;F&quot;
+    },
+    {
+     &quot;name&quot;: null,
+     &quot;dtype&quot;: &quot;alignments3D_multi&quot;,
+     &quot;job_uid&quot;: &quot;J88&quot;,
+     &quot;output&quot;: &quot;particles_all_classes&quot;,
+     &quot;result&quot;: &quot;alignments3D_multi&quot;,
+     &quot;version&quot;: &quot;F&quot;
+    },
+    {
+     &quot;name&quot;: null,
+     &quot;dtype&quot;: &quot;alignments2D&quot;,
+     &quot;job_uid&quot;: &quot;J88&quot;,
+     &quot;output&quot;: &quot;particles_all_classes&quot;,
+     &quot;result&quot;: &quot;alignments2D&quot;,
+     &quot;version&quot;: &quot;F&quot;
+    },
+    {
+     &quot;name&quot;: null,
+     &quot;dtype&quot;: &quot;pick_stats&quot;,
+     &quot;job_uid&quot;: &quot;J88&quot;,
+     &quot;output&quot;: &quot;particles_all_classes&quot;,
+     &quot;result&quot;: &quot;pick_stats&quot;,
+     &quot;version&quot;: &quot;F&quot;
+    },
+    {
+     &quot;name&quot;: null,
+     &quot;dtype&quot;: &quot;location&quot;,
+     &quot;job_uid&quot;: &quot;J88&quot;,
+     &quot;output&quot;: &quot;particles_all_classes&quot;,</td></tr><tr><td>35</td><td><i>reasoning</i></td><td colspan=2>The connection keys are `job_uid` and `output`. Let me re-verify the full DAG correctly.</td></tr><tr><td>35</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>for j in jobs:
+    spec = j.model.model_dump()[&quot;spec&quot;]
+    conns = {}
+    for gname, g in spec[&quot;inputs&quot;].items():
+        srcs = [f&quot;{c[&#x27;job_uid&#x27;]}.{c[&#x27;output&#x27;]}&quot; for c in g.get(&quot;connections&quot;, [])]
+        if srcs:
+            conns[gname] = srcs
+    print(f&quot;{j.uid:5} {spec[&#x27;type&#x27;]:28} &lt;- {conns}&quot;)</pre></div></td><td class='result'>J73   import_movies                &lt;- {}
+J74   patch_motion_correction_multi &lt;- {&#x27;movies&#x27;: [&#x27;J73.imported_movies&#x27;]}
+J75   patch_ctf_estimation_multi   &lt;- {&#x27;exposures&#x27;: [&#x27;J74.micrographs&#x27;]}
+J76   denoise_train                &lt;- {&#x27;exposures&#x27;: [&#x27;J75.exposures&#x27;]}
+J77   blob_picker_gpu              &lt;- {&#x27;micrographs&#x27;: [&#x27;J76.exposures&#x27;]}
+J78   junk_detector_v1             &lt;- {&#x27;exposures&#x27;: [&#x27;J77.micrographs&#x27;], &#x27;particles&#x27;: [&#x27;J77.particles&#x27;]}
+J79   inspect_picks_v2             &lt;- {&#x27;particles&#x27;: [&#x27;J78.particles_accepted&#x27;], &#x27;micrographs&#x27;: [&#x27;J78.exposures&#x27;]}
+J80   extract_micrographs_multi    &lt;- {&#x27;micrographs&#x27;: [&#x27;J79.micrographs&#x27;], &#x27;particles&#x27;: [&#x27;J79.particles&#x27;]}
+J81   class_2D_new                 &lt;- {&#x27;particles&#x27;: [&#x27;J80.particles&#x27;]}
+J82   select_2D                    &lt;- {&#x27;particles&#x27;: [&#x27;J81.particles&#x27;], &#x27;templates&#x27;: [&#x27;J81.class_averages&#x27;]}
+J83   template_picker_gpu          &lt;- {&#x27;templates&#x27;: [&#x27;J82.templates_selected&#x27;], &#x27;micrographs&#x27;: [&#x27;J76.exposures&#x27;]}
+J84   inspect_picks_v2             &lt;- {&#x27;particles&#x27;: [&#x27;J83.particles&#x27;], &#x27;micrographs&#x27;: [&#x27;J83.micrographs&#x27;]}
+J85   extract_micrographs_multi    &lt;- {&#x27;micrographs&#x27;: [&#x27;J84.micrographs&#x27;], &#x27;particles&#x27;: [&#x27;J84.particles&#x27;]}
+J86   class_2D_new                 &lt;- {&#x27;particles&#x27;: [&#x27;J85.particles&#x27;]}
+J87   select_2D                    &lt;- {&#x27;particles&#x27;: [&#x27;J86.particles&#x27;], &#x27;templates&#x27;: [&#x27;J86.class_averages&#x27;]}
+J88   homo_abinit                  &lt;- {&#x27;particles&#x27;: [&#x27;J87.particles_selected&#x27;]}
+J89   homo_refine_new              &lt;- {&#x27;particles&#x27;: [&#x27;J88.particles_all_classes&#x27;], &#x27;volume&#x27;: [&#x27;J88.volume_class_0&#x27;]}
+J90   volume_tools                 &lt;- {&#x27;volume&#x27;: [&#x27;J89.volume&#x27;]}
+J91   volume_tools                 &lt;- {&#x27;volume&#x27;: [&#x27;J90.volume&#x27;]}
+J93   validation                   &lt;- {&#x27;volume&#x27;: [&#x27;J89.volume&#x27;], &#x27;mask&#x27;: [&#x27;J91.mask&#x27;]}
+J94   sharpen                      &lt;- {&#x27;volume&#x27;: [&#x27;J89.volume&#x27;]}</td></tr><tr><td>36</td><td><i>reasoning</i></td><td colspan=2>The full pipeline is wired correctly in dependency order. Let me confirm key parameters and that nothing is queued.</td></tr><tr><td>36</td><td><b>run_python</b></td><td class='code'><div class='codecell'><pre>ip = imp.model.model_dump()[&quot;spec&quot;][&quot;params&quot;]
+print(&quot;Import:&quot;, ip[&quot;psize_A&quot;], ip[&quot;accel_kv&quot;], ip[&quot;cs_mm&quot;], ip[&quot;total_dose_e_per_A2&quot;])
+print(&quot;Import blob_paths:&quot;, ip[&quot;blob_paths&quot;])
+for j in jobs:
+    print(j.uid, j.model.model_dump()[&quot;status&quot;])</pre></div></td><td class='result'>Import: 0.6575 300.0 2.7 53.0
+Import blob_paths: /shared/data/empiar_10025_subset_v1/*.frames.tif
+J73 building
+J74 building
+J75 building
+J76 building
+J77 building
+J78 building
+J79 building
+J80 building
+J81 building
+J82 building
+J83 building
+J84 building
+J85 building
+J86 building
+J87 building
+J88 building
+J89 building
+J90 building
+J91 building
+J93 building
+J94 building</td></tr><tr><td>37</td><td><i>reasoning</i></td><td colspan=2>The complete pipeline is assembled and wired, all jobs in &quot;building&quot; status (nothing queued or run). Let me present the final plan.</td></tr><tr><td>37</td><td><b>finish</b></td><td class='code'><div class='codecell'><pre>{&quot;summary&quot;: &quot;Built and wired the complete T20S single-particle pipeline in workspace W5 (P5), following the cryoSPARC intro tutorial, entirely via cryosparc-tools. Nothing was queued/run \u2014 all 21 jobs are in &#x27;building&#x27; state for PI review.\n\nDAG (job \u2192 key params/wiring):\n- J73 import_movies: *.frames.tif + gain norm-amibox05-0.mrc, psize 0.6575 \u00c5, 300 kV, Cs 2.7 mm, dose 53 e/\u00c5\u00b2.\n- J74 patch_motion_correction_multi \u2190 J73.imported_movies.\n- J75 patch_ctf_estimation_multi \u2190 J74.micrographs.\n- J76 denoise_train (Micrograph Denoiser) \u2190 J75.exposures, num_train_mics=20 (dataset has only 20 mics).\n- J77 blob_picker_gpu \u2190 J76.exposures, diameter 100\u2013200 \u00c5, use_denoised=True.\n- J78 junk_detector_v1 \u2190 J77 micrographs+particles (removes carbon/ice junk picks).\n- J79 inspect_picks_v2 \u2190 J78.particles_accepted + exposures (blob pick curation).\n- J80 extract_micrographs_multi \u2190 J79, box 440 px.\n- J81 class_2D_new \u2190 J80 (K=50).\n- J82 select_2D \u2190 J81 (pick top/side templates).\n- J83 template_picker_gpu \u2190 J82.templates_selected + J76 denoised mics, diameter 190 \u00c5, use_denoised=True.\n- J84 inspect_picks_v2 \u2190 J83.\n- J85 extract_micrographs_multi \u2190 J84, box 440 px.\n- J86 class_2D_new \u2190 J85.\n- J87 select_2D \u2190 J86 (keep all good classes).\n- J88 homo_abinit \u2190 J87.particles_selected (C1, K=1 \u2014 no symmetry, per tutorial).\n- J89 homo_refine_new \u2190 J88 particles_all_classes + volume_class_0, refine_symmetry=D7.\n- J90 volume_tools \u2190 J89.volume, lowpass 10 \u00c5 (smooth map for mask).\n- J91 volume_tools \u2190 J90.volume, output mask, threshold 0.5 (to be tuned via mask sweep at run time), dilation 4 px, soft pad 14 px.\n- J93 validation (FSC) \u2190 J89.volume + J91.mask, compute facility GPU (gold-standard FSC validation).\n- J94 sharpen \u2190 J89.volume, B-factor \u221277 (tutorial range \u221256.7\u2026\u221296.7), generate new FSC mask.\n\nSymmetry (D7) imposed at refinement; ab-initio left at C1 as recommended. Resolution target ~2.9 \u00c5 will be assessed from J89 GSFSC and J93 validation when executed. The two interactive jobs (inspect picks, select 2D) are wired and would be driven headlessly/curated at execute time.&quot;}</pre></div></td><td class='result'></td></tr></table></details>
+
+<h3 id="images">Observation images returned to the model (0)</h3>
+<p class='note'>No observation images were rendered for this run.</p>
+</article></main>
+</div>
+<script src="../assets/site.js"></script>
+<script>Site.nav('rollouts', '../');</script>
+</body>
+</html>

@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>cryo-EM reconstruction benchmark — New Atlantic</title>
+<meta name="description" content="An execution-graded evaluation environment for single-particle cryo-EM reconstruction: raw movies → 3D density map, scored subscore by subscore against deposited ground truth.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<div class="wrap solo">
+  <main>
+    <article>
+
+      <section class="hero">
+        <p class="kicker">Scientific evaluation environment</p>
+        <h1>An execution-graded benchmark for cryo-EM reconstruction</h1>
+        <p class="lead">A live environment in which an AI agent drives a complete single-particle cryo-EM pipeline — raw electron-microscope movies in, a 3-D density map out — and a grader that scores the run subscore by subscore against deposited ground truth and an expert workflow. Presented as a benchmark, in three parts: what the model does, how it is graded, and the results.</p>
+        <div class="docmeta">
+          <span class="tag stage">tutorial MVP · T20S</span>
+          <span class="tag dot">public data only</span>
+          <span class="tag dot">updated 2026-06-25</span>
+        </div>
+
+        <figure class="herofig">
+          <svg viewBox="0 0 980 196" role="img" aria-label="The reconstruction pipeline: raw movies through motion correction, CTF estimation, particle picking, 2-D classification, ab-initio 3-D, and refinement, to a final 3-D density map">
+          <style>
+          #hero-pipe text{font-family:var(--sans);fill:var(--ink)}
+          #hero-pipe .nl{font-size:12.5px;font-weight:600}
+          #hero-pipe .ns{font-size:10px;fill:var(--muted)}
+          #hero-pipe .box{fill:var(--surface);stroke:var(--line-strong);stroke-width:1.1}
+          #hero-pipe .ln{stroke:var(--line-strong);stroke-width:1.4;fill:none}
+          #hero-pipe .leg{font-size:11px;fill:var(--muted)}
+          </style>
+          <g id="hero-pipe">
+          <defs>
+            <marker id="ah" markerWidth="9" markerHeight="9" refX="6.5" refY="3" orient="auto"><path d="M0,0 L6.5,3 L0,6 z" style="fill:var(--line-strong)"/></marker>
+          </defs>
+          <!-- connectors -->
+          <line class="ln" x1="122" y1="93" x2="142" y2="93" marker-end="url(#ah)"/>
+          <line class="ln" x1="240" y1="93" x2="260" y2="93" marker-end="url(#ah)"/>
+          <line class="ln" x1="358" y1="93" x2="378" y2="93" marker-end="url(#ah)"/>
+          <line class="ln" x1="476" y1="93" x2="496" y2="93" marker-end="url(#ah)"/>
+          <line class="ln" x1="594" y1="93" x2="614" y2="93" marker-end="url(#ah)"/>
+          <line class="ln" x1="712" y1="93" x2="732" y2="93" marker-end="url(#ah)"/>
+          <line class="ln" x1="830" y1="93" x2="850" y2="93" marker-end="url(#ah)"/>
+          <!-- nodes -->
+          <rect class="box" x="24"  y="70" width="98" height="46" rx="11"/><text class="nl" x="73"  y="91" text-anchor="middle">movies</text><text class="ns" x="73"  y="107" text-anchor="middle">EMPIAR import</text>
+          <rect class="box" x="142" y="70" width="98" height="46" rx="11"/><text class="nl" x="191" y="91" text-anchor="middle">motion</text><text class="ns" x="191" y="107" text-anchor="middle">correction</text>
+          <rect class="box" x="260" y="70" width="98" height="46" rx="11"/><text class="nl" x="309" y="91" text-anchor="middle">CTF</text><text class="ns" x="309" y="107" text-anchor="middle">estimation</text>
+          <rect class="box" x="378" y="70" width="98" height="46" rx="11"/><text class="nl" x="427" y="91" text-anchor="middle">pick ◆</text><text class="ns" x="427" y="107" text-anchor="middle">particles</text>
+          <rect class="box" x="496" y="70" width="98" height="46" rx="11"/><text class="nl" x="545" y="91" text-anchor="middle">2-D ◆</text><text class="ns" x="545" y="107" text-anchor="middle">classify</text>
+          <rect class="box" x="614" y="70" width="98" height="46" rx="11"/><text class="nl" x="663" y="91" text-anchor="middle">ab-initio</text><text class="ns" x="663" y="107" text-anchor="middle">3-D model</text>
+          <rect class="box" x="732" y="70" width="98" height="46" rx="11"/><text class="nl" x="781" y="91" text-anchor="middle">refine ◆</text><text class="ns" x="781" y="107" text-anchor="middle">+ mask · sharpen</text>
+          <rect x="850" y="70" width="106" height="46" rx="11" style="fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.3"/><text class="nl" x="903" y="91" text-anchor="middle" style="fill:var(--accent)">3-D map</text><text class="ns" x="903" y="107" text-anchor="middle" style="fill:var(--accent)">the artifact</text>
+          <!-- legend -->
+          <text class="leg" x="24" y="160">◆ = one of the 5 interactive judgments the agent owns (two pick cuts, two 2-D selections, one mask level)</text>
+          </g>
+          </svg>
+          <figcaption class="cap">raw movies → motion correction → CTF → particle picking → 2-D classification → ab-initio 3-D → refinement → final density map</figcaption>
+        </figure>
+      </section>
+
+      <div class="stats">
+        <div class="stat"><div class="num" style="font-size:24px">movies → map</div><div class="lbl">the task</div></div>
+        <div class="stat"><div class="num" style="font-size:24px">T20S</div><div class="lbl">EMPIAR-10025 · public</div></div>
+        <div class="stat accent"><div class="num tnum">4</div><div class="lbl">graded runs + floor</div></div>
+        <div class="stat"><div class="num tnum">≈3.1&nbsp;Å</div><div class="lbl">subset resolution ceiling</div></div>
+      </div>
+
+      <h2>Overview</h2>
+      <p>Single-particle cryo-EM turns hundreds of thousands of noisy movie frames of a frozen protein into a three-dimensional density map. Getting there is a long, judgment-heavy workflow: align and average the movies, estimate each micrograph's defocus, pick particles out of the noise, sort them into 2-D classes, throw out the junk, build an initial 3-D model, and refine it to high resolution. Most steps carry decisions an expert makes by eye and by experience, and a poor call early silently caps the quality of everything downstream. Our goal is to measure how well an AI agent runs that entire loop. We build an environment in which the agent operates a live cryoSPARC pipeline end to end — its action space and the full per-run rollouts are laid out on the <a href="rollouts.html">Tasks</a> page — and a grader that scores the procedural correctness of the run and the quality of its outcome relative to an expert workflow and the published 3D reconstruction, defined subscore by subscore on the <a href="grader.html">Grader</a> page.</p>
+
+      <p>The proving ground is <strong>T20S</strong>, the 20S proteasome (EMPIAR-10025): the standard public cryoSPARC tutorial dataset, with a published map and atomic model (EMD-6287 / PDB 6BDF) to grade against. The cryoSPARC tutorial supplies a publicly available, expert-verified workflow for this dataset; we ran the T20S reconstruction ourselves by hand, following that tutorial, and use the result as a proxy for the expert workflow the agent is graded against. T20S lets us build and validate every piece — the agent's action space, the reconstruction rollouts, and each grader metric — against a known, public answer key. It is also deliberately easy: the particle is small, highly symmetric, and well-behaved, and the tutorial hands the agent several decisions that are genuinely hard in real work. The per-run, per-subscore scores on this dataset are reported on the <a href="benchmark.html">Benchmark</a> page, and the <a href="rfp.html">Env spec</a> page casts the whole environment as a response to Anthropic's scientific-evaluation-environments RFP — its task, data, signals, difficulty, and access.</p>
+
+      <p>T20S is a precursor to the dataset the pilot targets: research-grade data from the Ward lab at Scripps. There the specimens are antibody–antigen complexes (HIV-immunogen structures) — larger, flexible, lower-symmetry particles where the reconstruction is materially harder, the right decisions are genuinely uncertain rather than handed over by a tutorial, and a poor early call visibly degrades the final map. These structures are published, so the same kind of deposited ground truth the grader already uses carries over; what is non-public is the full reconstruction pipeline behind each paper — the raw movies, particle selections, intermediate maps, and the model-building and refinement logs with their parameter choices and reasoning. Because the public anchor and that non-public pipeline are the same structural system, the environment scales from the public tutorial to research data on one continuous workflow — the same action space and the same grader, pointed at a problem with real room to separate good science from bad. The <a href="next-phase.html">Next phase</a> page details that scale-up.</p>
+
+      <h2>Read in order</h2>
+      <div class="hubcards">
+        <a class="hubcard" href="rollouts.html">
+          <span class="idx">01</span>
+          <h3>Tasks</h3>
+          <p>The action space, a catalog of every task and why it's included, and the per-run rollouts — system + task prompts, job DAG, maps, reports, decisions, grades.</p>
+          <span class="arrow">Open →</span>
+        </a>
+        <a class="hubcard" href="grader.html">
+          <span class="idx">02</span>
+          <h3>Grader</h3>
+          <p>The grading scheme — every subscore and exactly how it's computed.</p>
+          <span class="arrow">Open →</span>
+        </a>
+        <a class="hubcard" href="benchmark.html">
+          <span class="idx">03</span>
+          <h3>Benchmark</h3>
+          <p>Per-run × per-subscore results across the graded runs — the scoreboard, as data.</p>
+          <span class="arrow">Open →</span>
+        </a>
+        <a class="hubcard" href="rfp.html">
+          <span class="idx">04</span>
+          <h3>Env spec</h3>
+          <p>A living version of the Anthropic RFP on the T20S MVP — task, data, signals, integrity, difficulty, access.</p>
+          <span class="arrow">Open →</span>
+        </a>
+        <a class="hubcard" href="next-phase.html">
+          <span class="idx">05</span>
+          <h3>Next phase</h3>
+          <p>How the proof of concept on the public tutorial data scales to research-grade Scripps data.</p>
+          <span class="arrow">Open →</span>
+        </a>
+      </div>
+
+    </article>
+  </main>
+</div>
+<script src="assets/site.js"></script>
+<script>Site.init({ active: 'index' });</script>
+<script src="assets/edit.js"></script>
+</body>
+</html>
