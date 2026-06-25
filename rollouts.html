@@ -40,20 +40,61 @@
 
       <details class="group" id="group-action-space" open>
         <summary class="group-head"><h2>Action space</h2></summary>
-        <p>The agent operates cryoSPARC entirely by writing its own <code>cryosparc-tools</code> Python — it is
-          given no pre-built job tools and no job catalog. Two tools: <code>run_python</code> executes code in a
-          persistent namespace on the cryoSPARC box (returns stdout, the last expression, and any traceback; a
-          connected <code>cs</code> client and non-leaking inspection helpers are pre-bound so the agent can
-          render and see the observations it needs for interactive decisions), and <code>finish</code> is called
-          once the pipeline reaches a final sharpened map. The tools the agent should use are made clear — the
-          cryoSPARC API and the public tutorial — but predefined domain functions are not provided; the agent
-          works out how to drive the tools itself.</p>
-        <p>An earlier constrained-tool surface — pre-built <code>create_job</code> / <code>run_job</code> /
-          <code>inspect_*</code> wrappers — is not part of the eval; it was a first-iteration scaffold,
-          superseded by the raw surface above. Across the core T20S tasks the action surface is held fixed; the
-          controlled variable is how much of the tutorial information the agent is given —
-          <b>handheld</b> (tutorial + distilled hints) → <b>tutorial</b> (the tutorial verbatim) →
-          <b>realistic</b> (a PI-style goal with the step-by-step recipe removed).</p>
+        <p>The task is a single-particle cryo-EM reconstruction: raw electron-microscope movies go in, a 3-D
+          density map comes out. The input movies are short stacks of frames, each stack recording the same field
+          of frozen particles over the few seconds of exposure; they are sourced from <b>EMPIAR</b>, the Electron
+          Microscopy Public Image Archive of raw cryo-EM data. The output is a 3-D density map, a voxel grid
+          giving the reconstructed electron density of the particle. Finished maps are deposited in the
+          <b>EMDB</b> (Electron Microscopy Data Bank) and the atomic models later built into them in the
+          <b>PDB</b> (Protein Data Bank); those two archives are where the grader's reference structures come
+          from. <b>cryoSPARC</b> is the software that performs the reconstruction. It is one of the two standard
+          suites for single-particle cryo-EM (RELION is the other), and it covers the whole pipeline the task
+          needs: motion correction, CTF estimation, particle picking, 2-D classification, ab-initio 3-D
+          reconstruction, and refinement. That makes it the only tool in the loop here. The software on either
+          side is out of scope: the microscope produces the movies, and once the map exists, atomic-model
+          building and refinement (fitting a protein structure into the density) happen in Phenix and Coot, with
+          ChimeraX or PyMOL for visualization.</p>
+        <p>Work in cryoSPARC is organized as a graph of <b>jobs</b>. Each job is one processing step, such as
+          import, Patch Motion Correction, Patch CTF, a particle picker, 2-D Classification, Ab-initio
+          Reconstruction, or Homogeneous Refinement. A job takes typed inputs (sets of micrographs, particles, or
+          volumes), exposes parameters, and produces outputs that become the inputs of later jobs. A scientist
+          normally assembles this graph in cryoSPARC's web interface: create a job, connect its inputs to an
+          upstream job's outputs, set its parameters, queue it on a GPU, look at the result, and move on. A few
+          steps are <b>interactive</b>. They cannot be set once and left alone, because they require looking at an
+          intermediate result and making a judgment call: which 2-D class averages are real particles rather than
+          junk, where to set the threshold that separates particles from contamination in a set of picks, and
+          what level to contour a mask at. The agent drives this same machinery through code rather than the web
+          interface. It connects to a live cryoSPARC instance over the official <code>cryosparc-tools</code>
+          Python API, creates and queues jobs on the GPU cluster, reads their outputs back, and for the
+          interactive steps requests a rendered image of the intermediate result and decides from it.</p>
+        <p>The agent begins from a fresh cryoSPARC workspace that contains only the raw input for this structure
+          (the EMPIAR-10025 movies and their acquisition metadata: pixel size, voltage, dose) and a short brief
+          stating the goal. It acts through exactly two tools:</p>
+        <ul>
+          <li><code>run_python(code)</code>: the agent submits a string of Python. The harness runs it in one
+            namespace on the cryoSPARC server that persists across calls, then returns whatever the code printed,
+            the value of its last expression, and any error traceback. This is the only way the agent can do
+            anything; it writes code that drives cryoSPARC through the cryosparc-tools API.</li>
+          <li><code>finish(summary)</code>: the agent calls this once a final map exists, to end the run and
+            report the resolution it reached.</li>
+        </ul>
+        <p>That namespace is pre-loaded with a connected cryoSPARC client (<code>cs</code>), the names of the
+          workspace and the GPU lanes, the location of the raw data, and a set of inspection helpers that render
+          an intermediate result as an image: a 2-D class montage, picks drawn on a micrograph, a slice through a
+          volume, or a mask at several thresholds. The agent is not given ready-made functions for the processing
+          steps or a list of the available job types. It queries the live instance for the job types and works
+          out how to drive each one.</p>
+        <p>Everything the agent does, it does by writing code in <code>run_python</code>. With it the model can
+          create a job and set its parameters, connect a job's inputs to the outputs of an earlier job, queue a
+          job on a GPU and poll until it finishes, and read a finished job's numbers and output files. It can
+          call an inspection helper to get an image of an intermediate result and look at it, then make the
+          curation decisions that have no single correct answer: which 2-D classes to keep, where to put the
+          particle-versus-junk threshold on a set of picks, what mask to apply, what symmetry to impose, and
+          which refinement to run. When a job fails or a result looks wrong, the model reads the traceback or the
+          metrics and submits revised code.</p>
+        <p>What the run produces, and what the grader scores, is the final sharpened 3-D density map together
+          with the complete job tree that built it. The map is scored for its quality, and the tree of jobs,
+          along with the decisions recorded in it, for the soundness of the procedure.</p>
       </details>
 
       <details class="group" id="group-task-overview" open>

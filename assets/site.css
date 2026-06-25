@@ -147,22 +147,22 @@ details.surface .surface-body p{margin:10px 0;}
 .show-behavior .field-behavior{display:block;}
 .show-performance .field-performance{display:block;}
 
-/* collapsible sections + cards on the Tasks (rollouts) page */
-article details.group{scroll-margin-top:70px;}
-article details.group>summary.group-head{cursor:pointer; user-select:none; list-style:none; align-items:center;}
-article details.group>summary.group-head::-webkit-details-marker{display:none;}
-article details.group>summary.group-head::before{content:"\25B8"; order:-1; color:var(--faint); font-size:12px; transition:transform .12s;}
-article details.group[open]>summary.group-head::before{transform:rotate(90deg);}
-article details.csub{margin:20px 0;}
-article details.csub>summary{cursor:pointer; user-select:none; list-style:none; display:flex; align-items:center; gap:9px; scroll-margin-top:70px;}
-article details.csub>summary::-webkit-details-marker{display:none;}
-article details.csub>summary::before{content:"\25B8"; flex:0 0 auto; color:var(--faint); font-size:12px; transition:transform .12s;}
-article details.csub[open]>summary::before{transform:rotate(90deg);}
-article details.csub>summary>h3{margin:0;}
-article details.rollout>summary.rollout-head{cursor:pointer; user-select:none; list-style:none;}
+/* collapsible sections + cards on the Tasks page — mirrors the grader (#doc-out details) style */
+article details.group{margin:30px 0 6px; scroll-margin-top:70px;}
+article details.group>summary.group-head,
+article details.csub>summary,
+article details.rollout>summary.rollout-head{cursor:pointer; list-style:none; user-select:none; display:flex; align-items:center; gap:9px; padding:2px 0;}
+article details.group>summary.group-head::-webkit-details-marker,
+article details.csub>summary::-webkit-details-marker,
 article details.rollout>summary.rollout-head::-webkit-details-marker{display:none;}
-article details.rollout>summary.rollout-head::before{content:"\25B8"; order:-1; color:var(--faint); font-size:12px; transition:transform .12s;}
-article details.rollout[open]>summary.rollout-head::before{transform:rotate(90deg);}
+article details.group>summary.group-head::before,
+article details.csub>summary::before,
+article details.rollout>summary.rollout-head::before{content:"\25B8"; color:var(--faint); font-size:.72em; flex:0 0 auto;}
+article details.group[open]>summary.group-head::before,
+article details.csub[open]>summary::before,
+article details.rollout[open]>summary.rollout-head::before{content:"\25BE";}
+article details.csub{margin:18px 0; border-left:2px solid var(--line); padding-left:18px;}
+article details.csub>summary>h3{margin:0;}
 
 /* grader score bars */
 .scorebars{margin:8px 0 2px;}
