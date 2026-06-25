@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Rollouts — cryo-EM env</title>
+<title>Tasks — cryo-EM env</title>
 <link rel="stylesheet" href="assets/site.css">
 </head>
 <body>
@@ -18,26 +18,145 @@
       <label class="toggle on"><input type="checkbox" data-field="performance" checked> Performance</label>
     </div>
     <div class="jump">
-      <div class="lbl">Groups</div>
-      <div id="jump"></div>
+      <div class="lbl">Sections</div>
+      <div id="jump">
+        <a class="toclink" href="#group-action-space">Action space</a>
+        <a class="toclink" href="#group-task-overview">Task overview</a>
+      </div>
     </div>
   </aside>
   <main>
     <article>
-      <h1>Rollouts</h1>
-      <p class="subtitle">The action space and the per-run inputs and outputs, grouped by agent action surface.
-        Each rollout lists the model inputs (system + task prompt, dataset), the outputs (job DAG, final map,
-        full report), the model's decisions, and the grader scores. Starting with the maximally-realistic
-        end-to-end agents; the other end-to-end and single-decision families will be added here. Per-run ×
-        per-subscore results across all graded runs: <a href="benchmark.html">benchmark</a>. The scoring
-        scheme: <a href="grader.html">grader</a>.</p>
+      <h1>Tasks</h1>
+      <p class="subtitle">The benchmark tasks: the action space they share, a catalog of every task and why it
+        is included, and the per-run rollouts — model inputs, outputs, decisions, grader scores — that realize
+        them. Per-run × per-subscore results: <a href="benchmark.html">benchmark</a>. The scoring scheme:
+        <a href="grader.html">grader</a>.</p>
       <div class="docmeta">
-        <span class="tag stage">raw cryosparc-tools · realistic</span>
+        <span class="tag stage">task catalog + raw cryosparc-tools</span>
         <span class="tag dot">grader = grades.json</span>
         <span class="tag dot">updated 2026-06-24</span>
       </div>
-      <p style="font-size:14px;color:var(--muted)">Use the <b>Show fields</b> toggles (left) to pick any subset of
-        the five display aspects across every rollout.</p>
+
+      <section class="group">
+        <div class="group-head" id="group-action-space"><h2>Action space</h2></div>
+        <p>The agent operates cryoSPARC entirely by writing its own <code>cryosparc-tools</code> Python — it is
+          given no pre-built job tools and no job catalog. Two tools: <code>run_python</code> executes code in a
+          persistent namespace on the cryoSPARC box (returns stdout, the last expression, and any traceback; a
+          connected <code>cs</code> client and non-leaking inspection helpers are pre-bound so the agent can
+          render and see the observations it needs for interactive decisions), and <code>finish</code> is called
+          once the pipeline reaches a final sharpened map. The tools the agent should use are made clear — the
+          cryoSPARC API and the public tutorial — but predefined domain functions are not provided; the agent
+          works out how to drive the tools itself.</p>
+        <p>An earlier constrained-tool surface — pre-built <code>create_job</code> / <code>run_job</code> /
+          <code>inspect_*</code> wrappers — is not part of the eval; it was a first-iteration scaffold,
+          superseded by the raw surface above. Across the core T20S tasks the action surface is held fixed; the
+          controlled variable is how much of the tutorial information the agent is given —
+          <b>handheld</b> (tutorial + distilled hints) → <b>tutorial</b> (the tutorial verbatim) →
+          <b>realistic</b> (a PI-style goal with the step-by-step recipe removed).</p>
+      </section>
+
+      <section class="group">
+        <div class="group-head" id="group-task-overview"><h2>Task overview</h2></div>
+        <p>Every task in the benchmark, with what it is and why it is included — a catalog only; per-run inputs,
+          outputs, and grader scores are in the rollout cards below and on the <a href="benchmark.html">benchmark</a>
+          page. <b>Core</b> tasks run on the T20S tutorial subset (EMPIAR-10025, 20 movies), where a deposited
+          map (EMD-6287) and a by-hand golden trajectory both exist, so a run is fully gradeable.
+          <b>Generalization-preview</b> tasks run other / larger structures with a public deposit but no golden
+          trajectory, so they are graded on the deposit-anchored and reference-free subscores only.</p>
+        <p style="font-size:13px;color:var(--muted)">Status: <span class="pill ok">built</span> a run or artifact
+          exists · <span class="pill partial">planned</span> designed, not yet run.</p>
+
+        <h3 style="margin:18px 0 2px">Core — T20S tutorial subset</h3>
+        <table>
+          <thead><tr><th>Task</th><th>What it is</th><th>Why it is included</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><code>by-hand</code> (golden)</td>
+              <td>A human builds and runs the movies→map pipeline by hand on the tutorial subset.</td>
+              <td>Golden path — defines the golden trajectory and keys; the human reference for the
+                tutorial-information condition.</td>
+              <td><span class="pill ok">built</span></td>
+            </tr>
+            <tr>
+              <td><code>T20S_handheld</code></td>
+              <td>Agent given the public tutorial plus extra guidance distilled from the by-hand run
+                (super-tutorial information).</td>
+              <td>Upper bound on agent performance / recipe-following; expected to land near the by-hand human.</td>
+              <td><span class="pill ok">built</span></td>
+            </tr>
+            <tr>
+              <td><code>T20S_tutorial</code></td>
+              <td>Agent given exactly the public tutorial, nothing more.</td>
+              <td>Agent vs human on identical information — the apples-to-apples comparison to the by-hand run.</td>
+              <td><span class="pill partial">planned</span></td>
+            </tr>
+            <tr>
+              <td><code>T20S_realistic</code></td>
+              <td>Agent given a PI-style goal, the raw data, and the cryoSPARC API, with the step-by-step recipe
+                removed; it discovers the job types and decides the whole workflow itself.</td>
+              <td>Tests scientific judgment; simulates what a cryo-EM user would actually hand an agent.</td>
+              <td><span class="pill partial">planned</span><br><span style="font-size:12px;color:var(--muted)">the
+                current realistic run still bundles the tutorial; the recipe-removed variant is wired, not yet
+                run</span></td>
+            </tr>
+            <tr>
+              <td><code>CryoWizard</code></td>
+              <td>Non-agentic automated pipeline (CryoWizard, ported to cryoSPARC 5) run on T20S.</td>
+              <td>Baseline against an automated non-agentic method rather than an agent; the hand-flipped map is
+                shown as primary.</td>
+              <td><span class="pill ok">built</span></td>
+            </tr>
+            <tr>
+              <td><code>T20S_floor</code></td>
+              <td>Minimal job tree with random decisions on the interactive jobs.</td>
+              <td>Normalization floor — a no-scientific-judgment lower bound (a real actor running the pipeline
+                badly) for contextualizing raw scores.</td>
+              <td><span class="pill partial">planned</span><br><span style="font-size:12px;color:var(--muted)">tooling
+                started</span></td>
+            </tr>
+            <tr>
+              <td><code>T20S_degraded</code></td>
+              <td>Synthetic corruptions of the answer map — wrong-hand mirror, heavy noise, half-density — fed to
+                the grader.</td>
+              <td>Grader negative control: confirms the outcome metric discriminates good maps from bad. Not a
+                model run — a bad-output control, not a bad-model baseline.</td>
+              <td><span class="pill ok">built</span><br><span style="font-size:12px;color:var(--muted)">grader QA,
+                not a rollout</span></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3 style="margin:22px 0 2px">Generalization preview — other structures</h3>
+        <p style="font-size:13px;color:var(--muted)">No golden trajectory; graded on deposit-anchored +
+          reference-free subscores only. Scoped in a separate session.</p>
+        <table>
+          <thead><tr><th>Task</th><th>What it is</th><th>Why it is included</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Full EMPIAR-10025</td>
+              <td>The full T20S dataset — same molecule as the tutorial subset, all movies.</td>
+              <td>Scaling on the one system that has a golden — the bridge to realistic-scale data.</td>
+              <td><span class="pill partial">planned</span></td>
+            </tr>
+            <tr>
+              <td>RELION tutorial dataset</td>
+              <td>A larger, asymmetric structure from the RELION tutorial.</td>
+              <td>A genuine difficulty jump — no symmetry to exploit.</td>
+              <td><span class="pill partial">planned</span></td>
+            </tr>
+            <tr>
+              <td>Scripps deposit (HIV / VRC01-class antibody)</td>
+              <td>A deposited structure from the Scripps pilot system.</td>
+              <td>The actual pilot system; its public deposit anchors outcome grading.</td>
+              <td><span class="pill partial">planned</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <p style="font-size:14px;color:var(--muted)">Per-run rollouts below. Use the <b>Show fields</b> toggles
+        (left) to pick any subset of the five display aspects across every rollout.</p>
       <div id="rollouts" class="show-actionsurface show-inputs show-outputs show-behavior show-performance"></div>
     </article>
   </main>

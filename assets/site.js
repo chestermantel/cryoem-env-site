@@ -2,11 +2,11 @@
 (function (global) {
   var PAGES = [
     { id: 'index',     href: 'index.html',     label: 'Overview' },
-    { id: 'rollouts',  href: 'rollouts.html',  label: 'Rollouts' },
+    { id: 'rollouts',  href: 'rollouts.html',  label: 'Tasks' },
     { id: 'grader',    href: 'grader.html',    label: 'Grader' },
     { id: 'benchmark', href: 'benchmark.html', label: 'Benchmark' },
-    { id: 'rfp',       href: 'rfp.html',       label: 'RFP spec' },
-    { id: 'roadmap',   href: 'roadmap.html',   label: 'Roadmap' }
+    { id: 'rfp',        href: 'rfp.html',        label: 'RFP spec' },
+    { id: 'next-phase', href: 'next-phase.html', label: 'Next phase' }
   ];
 
   function nav(active, prefix) {
