@@ -17,106 +17,68 @@
 
 How each cryoSPARC run is reduced to one score — the named subscores, exactly how each is computed, and how they combine.
 
-## Overview
-
-Single-particle cryo-EM turns hundreds of thousands of noisy movie frames of a frozen protein into a three-dimensional density map. Getting there is a long, judgment-heavy workflow: align and average the movies, estimate each micrograph's defocus, pick particles out of the noise, sort them into 2-D classes, throw out the junk, build an initial 3-D model, and refine it to high resolution. Most steps carry decisions an expert makes by eye and by experience, and a poor call early silently caps the quality of everything downstream. Our goal is to measure how well an AI agent runs that entire loop — not whether it can answer questions about cryo-EM, but whether it can drive a real reconstruction to an expert-quality result. We build a containerized environment in which the agent operates a live cryoSPARC pipeline end to end, and a grader that scores the run against deposited ground truth using computed metrics rather than human judgment.
-
-The proving ground is **T20S**, the 20S proteasome (EMPIAR-10025): the standard public cryoSPARC tutorial dataset, with a published map and atomic model (EMD-6287 / PDB 6BDF) to grade against. T20S lets us build and validate every piece — the agent's action space, the reconstruction rollouts, and each grader metric — against a known, public answer key. It is also deliberately easy: the particle is small, highly symmetric, and well-behaved; the tutorial hands the agent several decisions that are genuinely hard in real work; and the final resolution saturates, so most honest runs land in nearly the same place. T20S is a precursor to the dataset the pilot targets — research-grade data from the Ward lab at Scripps, where the reconstruction is materially harder, the right decisions are not given, and the same grading machinery has real room to separate good science from bad. The [Next phase](next-phase.html) page details that scale-up.
-
 ## The two reward families
 
 A run is scored on two families of reward, weighted equally:
 
-- **Outcome — is the map good, and is it correct?** One half judges the reconstruction on its own terms — resolution and how evenly it is resolved, with no answer key. The other half checks the map against the deposited structure. A mirror-image map can look excellent yet be biologically wrong, so the whole family is gated by a handedness check that caps it to zero when the hand is inverted.
-- **Procedure — were the decisions sound?** Independent of the final number: did the agent build a complete, correctly-ordered pipeline, keep a sensible set of 2-D classes, and pick particles well? This is where resolution-blind mistakes surface — a run can reach a good resolution off the back of poor decisions, and procedure is what tells those runs apart.
+- **Outcome** — two halves. **Map quality:** does the reconstruction score well on no-reference, in-domain map metrics — global resolution, local-resolution uniformity, FSC-curve shape, and anisotropy. **Reference consistency:** is the reconstruction consistent with the deposited map — map-to-deposit cross-correlation and map-to-deposit FSC. A mirror-image map can score well on map quality alone yet be the wrong structure, so the family is multiplied by a handedness gate that caps it to zero when the hand is inverted.
+- **Procedure** — scores the decisions behind the map, independent of the final resolution, from three subscores. **Trajectory:** did the agent build a complete, correctly-ordered pipeline, and how closely did it follow the expert recipe. **Select-2D:** how many 2-D classes it kept to seed template picking, and how well its keep/reject of classes tracks class quality. **Particle picks:** agreement of the agent's final particle coordinates with the expert reference. A run can reach good resolution off the back of poor decisions, and these are where that shows up.
 
 Each family is built from named subscores, every one a value in **[0, 1]** with a fixed direction (higher = better). The next two sections define them; the last shows the roll-up.
 
 ## Outcome subscores
 
-Outcome has two halves of equal weight. **Signal quality** scores the run's own reconstruction with no reference; **reference consistency** scores its agreement with the deposited map. The combined block is then multiplied by the handedness gate.
-
-<figure style="margin:20px 0">
-<svg id="d-struct" viewBox="0 0 760 286" role="img" aria-label="The outcome block structure" style="max-width:100%;height:auto;display:block">
-<style>
-#d-struct text{font-family:system-ui,-apple-system,sans-serif;fill:var(--ink)}
-#d-struct .mut{fill:var(--muted);font-size:11px}
-#d-struct .ttl{font-size:12.5px;font-weight:600}
-#d-struct .box{fill:var(--surface);stroke:var(--line-strong);stroke-width:1}
-#d-struct .soft{fill:var(--surface2);stroke:var(--line-strong);stroke-width:1}
-#d-struct .ln{stroke:var(--line-strong);stroke-width:1.3;fill:none}
-#d-struct .out{fill:var(--outcome)}#d-struct .acc{fill:var(--accent)}
-</style>
-<defs><marker id="mstruct" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" style="fill:var(--line-strong)"/></marker></defs>
-<rect class="box" x="20" y="118" width="152" height="54" rx="11"/><rect x="20" y="118" width="6" height="54" rx="3" style="fill:var(--outcome)"/>
-<text class="ttl out" x="42" y="142">Outcome</text><text class="mut" x="42" y="160">weight 0.50 · × gate</text>
-<line class="ln" x1="172" y1="136" x2="222" y2="72" marker-end="url(#mstruct)"/>
-<line class="ln" x1="172" y1="152" x2="222" y2="202" marker-end="url(#mstruct)"/>
-<rect class="soft" x="224" y="16" width="244" height="116" rx="10"/>
-<text class="ttl" x="236" y="36">Signal quality · 0.50</text><text class="mut" x="396" y="36" style="fill:var(--muted)">no reference</text>
-<text class="mut" x="236" y="58">global resolution · <tspan class="acc" font-weight="600">0.40</tspan></text>
-<text class="mut" x="236" y="76">FSC-curve shape · 0.20</text>
-<text class="mut" x="236" y="94">local-resolution spread · 0.20</text>
-<text class="mut" x="236" y="112">anisotropy (cFAR) · 0.20</text>
-<rect class="soft" x="224" y="148" width="244" height="126" rx="10"/>
-<text class="ttl" x="236" y="168">Reference consistency · 0.50</text>
-<text class="mut" x="236" y="190" style="fill:var(--outcome)">vs the deposited map — active</text>
-<text class="mut" x="248" y="208">map–map CC · 0.50</text><text class="mut" x="248" y="224">map–map FSC@0.5 · 0.50</text>
-<text class="mut" x="236" y="248" style="fill:var(--muted)">vs the deposited model — 0 weight</text>
-<text class="mut" x="248" y="264" style="fill:var(--muted)">side-chain register · CC · FSC (cross-check)</text>
-<rect x="490" y="92" width="250" height="56" rx="11" style="fill:var(--accent-soft);stroke:var(--accent)"/>
-<text class="ttl acc" x="506" y="116">divergence = signal − reference</text>
-<text class="mut" x="506" y="134">reported as a diagnostic — never scored</text>
-<line class="ln" x1="468" y1="74" x2="488" y2="106" marker-end="url(#mstruct)"/>
-<line class="ln" x1="468" y1="206" x2="488" y2="134" marker-end="url(#mstruct)"/>
-</svg>
-<figcaption style="color:var(--muted);font-size:13px;margin-top:6px">A mirror image has identical half-maps, so signal quality scores it high; the flip shows up only in reference consistency and the gate. The gap between the two halves is reported as divergence.</figcaption>
-</figure>
-
-### Signal quality — no reference
+### Map quality
 
 Four axes read from the run's own two half-maps and final volume: the overall resolution, plus three orthogonal views of how that resolution varies — across frequency, across space, and across direction. Each is normalized on a fixed scale between a **floor** (a minimal pipeline run with random interactive decisions on the same movies — no decision skill) and a **ceiling** (an expert's by-hand reconstruction of the same movies — 1.0). Both ends use the same 20-movie subset, so the axis isolates technique, not how much data was available.
 
-| Subscore | Wt | What it is · how it's computed | In the runs |
-|---|---|---|---|
-| **global resolution** | 0.40 | The map's overall resolution — gold-standard half-map FSC at the 0.143 threshold. Floor-to-ceiling normalized (lower Å = better). | 3.1–3.2 Å → ~1.0 |
-| **FSC-curve shape** | 0.20 | How much signal is present across *all* frequencies, not just at the cutoff — the area under the half-map FSC curve. | AUC 0.79–0.81 → 1.0 (≥ W1) |
-| **local-resolution spread** | 0.20 | How uniform resolution is across the map — the 5–95% spread of a local-resolution map (tighter = better). | spread 0.73–0.80 Å → 1.0 (tighter than W1's 0.85) |
-| **anisotropy** | 0.20 | How directionally even the resolution is — cFAR, a conical-FSC area ratio (1.0 = isotropic). T20S is near-isotropic, so this axis has little range here. | cFAR 0.93–0.94 → 0.95–1.0 |
+| Subscore | Wt | What it is · how it's computed |
+|---|---|---|
+| **global resolution** | 0.40 | The map's overall resolution. The gold-standard Fourier shell correlation (FSC) between the run's two independently-refined half-maps<sup>1</sup>, read at the 0.143 threshold<sup>2</sup> — recomputed from the half-maps under one fixed loose mask used for every map. Floor-to-ceiling normalized (lower Å = better). |
+| **FSC-curve shape** | 0.20 | Signal present across *all* spatial frequencies, not just at the cutoff. The mean of that half-map FSC curve over the resolved band — the area under it, in [0, 1] — rewarding a curve that stays high out to the resolution limit. |
+| **local-resolution spread** | 0.20 | How uniform resolution is across the map. A fixed-size window slid over the molecule yields a local half-map FSC resolution at each point<sup>3</sup>; the score is the 5–95th-percentile spread (Å) of those values (tighter = more uniform). |
+| **anisotropy (cFAR)** | 0.20 | How directionally even the resolution is. The conical FSC area ratio (cFAR): the half-map FSC integrated within ~100 cones spanning all directions, reduced to the 5th-/95th-percentile cone ratio<sup>4</sup> (1.0 = isotropic). T20S is near-isotropic, so this axis carries little range here. |
 
-**Validated, and saturating** (`runs/agent/grader/validation.md`). Across the deposit, the runs/W1, and the floor, every axis tracks known quality and separates good from bad by **4.5–21.5× the run-to-run noise** — these are effective quality measures. But the four honest runs land at signal **0.98–1.00** (all at the W1 expert ceiling) and the floor at **0.000**: on this easy, saturating target the runs are outcome-indistinguishable, and outcome is decoupled from decision quality (the run with the worst procedure has the best signal). **Agent performance cannot be discerned by outcome quality at this stage** — the ranking comes from procedure, or from a harder instance where decisions change the achievable map.
+<p style="color:var(--muted);font-size:12px;line-height:1.55;margin-top:2px"><strong>Computation references.</strong> <sup>1</sup> Gold-standard FSC from independent half-maps — Scheres &amp; Chen, <em>Nat. Methods</em> 2012. <sup>2</sup> FSC = 0.143 resolution criterion — Rosenthal &amp; Henderson, <em>J. Mol. Biol.</em> 2003. <sup>3</sup> Windowed local-resolution FSC — Cardone, Heymann &amp; Steven, <em>J. Struct. Biol.</em> 2013. <sup>4</sup> Directional (conical) FSC / 3DFSC — Tan et al., <em>Nat. Methods</em> 2017. (FSC-curve shape is a custom summary of the standard FSC curve, with no separate reference.)</p>
 
-### Reference consistency — vs the deposited map
+### Reference consistency
 
-Agreement with the deposited EMD-6287 map, two subscores of equal weight. The deposit is the *full* dataset at 2.8 Å; the runs use a 20-movie subset reaching ~3.1 Å. Scoring a subset run against the full-data figure would penalize it for a data limit it did not choose — so each metric is normalized to a **resolution-matched ceiling**: the deposit low-passed to the run's own resolution, i.e. the best achievable at that resolution.
+Agreement with the deposited EMD-6287 map. These two metrics ask whether the run reconstructed the *same 3-D shape* as the published structure — how closely the run map's density matches the deposit's, both point-for-point in real space (cross-correlation) and shell-by-shell in Fourier space (FSC).
+
+The deposited map is built from the full dataset — 196 movies, ~50,000 particles — and reaches 2.8 Å. The cryoSPARC tutorial, and so every run here, uses a 20-movie subset of that same dataset, which reconstructs to ~3.1 Å. A 20-movie map cannot reach the full-data resolution no matter how good the technique, so each metric is normalized against a **resolution-matched structure** rather than the raw 2.8 Å deposit: the deposit is low-pass filtered down to the run's own resolution — the closest a subset run could come — and the run is scored against that, computed under the same engine as the run.
 
 <figure style="margin:20px 0">
-<svg id="d-ceil" viewBox="0 0 760 168" role="img" aria-label="Resolution-matched ceiling normalization" style="max-width:100%;height:auto;display:block">
+<svg id="d-ceil" viewBox="0 0 760 226" role="img" aria-label="Reference-consistency comparison against a resolution-matched structure" style="max-width:100%;height:auto;display:block">
 <style>
 #d-ceil text{font-family:system-ui,-apple-system,sans-serif;fill:var(--ink)}
-#d-ceil .mut{fill:var(--muted);font-size:11.5px}#d-ceil .ttl{font-size:12.5px;font-weight:600}
+#d-ceil .mut{fill:var(--muted);font-size:11px}#d-ceil .ttl{font-size:12.5px;font-weight:600}
+#d-ceil .lbl{fill:var(--muted);font-size:10.5px}
 #d-ceil .box{fill:var(--surface);stroke:var(--line-strong);stroke-width:1}
 #d-ceil .ln{stroke:var(--line-strong);stroke-width:1.4;fill:none}#d-ceil .acc{fill:var(--accent)}
 </style>
 <defs><marker id="mceil" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" style="fill:var(--line-strong)"/></marker></defs>
-<rect class="box" x="20" y="34" width="184" height="56" rx="11"/>
-<text class="ttl" x="112" y="58" text-anchor="middle">Deposit EMD-6287</text><text class="mut" x="112" y="78" text-anchor="middle">full data · 2.8 Å · held out</text>
-<line class="ln" x1="204" y1="62" x2="286" y2="62" marker-end="url(#mceil)"/><text class="mut" x="245" y="48" text-anchor="middle">low-pass</text><text class="mut" x="245" y="84" text-anchor="middle">→ 3.1 Å</text>
-<rect class="box" x="288" y="34" width="172" height="56" rx="11"/><text class="ttl" x="374" y="58" text-anchor="middle">resolution-matched</text><text class="ttl" x="374" y="76" text-anchor="middle">ceiling</text>
-<line class="ln" x1="460" y1="62" x2="542" y2="62" marker-end="url(#mceil)"/>
-<rect x="544" y="34" width="196" height="56" rx="11" style="fill:var(--accent-soft);stroke:var(--accent)"/><text class="ttl acc" x="642" y="58" text-anchor="middle">run vs ceiling</text><text class="mut" x="642" y="78" text-anchor="middle">= normalized subscore</text>
-<text class="mut" x="20" y="124">Worked (one run): map–map CC 0.645 ÷ ceiling 0.939, re-baselined → <tspan class="acc" font-weight="600">0.37</tspan>.   map–map FSC: ceiling 3.03 Å ÷ run 3.53 Å → <tspan class="acc" font-weight="600">0.86</tspan>.</text>
-<text class="mut" x="20" y="148">The full-data deposit (2.8 Å) is a reference only — never a target for a 20-movie subset run.</text>
+<rect class="box" x="16" y="24" width="168" height="52" rx="11"/>
+<text class="ttl" x="100" y="48" text-anchor="middle">Deposit EMD-6287</text><text class="mut" x="100" y="65" text-anchor="middle">full data · 2.8 Å · held out</text>
+<line class="ln" x1="184" y1="50" x2="266" y2="50" marker-end="url(#mceil)"/><text class="lbl" x="225" y="44" text-anchor="middle">low-pass → run res</text>
+<rect class="box" x="270" y="24" width="190" height="52" rx="11"/><text class="ttl" x="365" y="48" text-anchor="middle">resolution-matched</text><text class="ttl" x="365" y="65" text-anchor="middle">structure</text>
+<rect class="box" x="16" y="150" width="168" height="52" rx="11"/><text class="ttl" x="100" y="181" text-anchor="middle">Agent</text>
+<line class="ln" x1="184" y1="176" x2="266" y2="176" marker-end="url(#mceil)"/>
+<rect class="box" x="270" y="150" width="190" height="52" rx="11"/><text class="ttl" x="365" y="174" text-anchor="middle">3-D reconstruction</text><text class="mut" x="365" y="191" text-anchor="middle">the run's map · ~3.1 Å</text>
+<line class="ln" x1="460" y1="56" x2="582" y2="114" marker-end="url(#mceil)"/>
+<line class="ln" x1="460" y1="170" x2="582" y2="138" marker-end="url(#mceil)"/>
+<text class="lbl" x="520" y="78" text-anchor="middle">cross-correlation</text>
+<text class="lbl" x="520" y="170" text-anchor="middle">FSC@0.5</text>
+<rect x="584" y="98" width="160" height="56" rx="11" style="fill:var(--accent-soft);stroke:var(--accent)"/><text class="ttl acc" x="664" y="121" text-anchor="middle">Similarity score</text><text class="mut" x="664" y="139" text-anchor="middle">= reference consistency</text>
 </svg>
-<figcaption style="color:var(--muted);font-size:13px;margin-top:6px">A run is divided by the best achievable <em>at its own resolution</em>, computed under the same engine as the run.</figcaption>
+<figcaption style="color:var(--muted);font-size:13px;margin-top:6px">The run's map and the deposit — low-passed to the run's resolution — are compared by cross-correlation and FSC; each metric is normalized to that resolution-matched structure, the best a 20-movie subset could match.</figcaption>
 </figure>
 
-| Subscore | Wt | What it is · how it's computed | In the runs |
-|---|---|---|---|
-| **map–map CC** | 0.50 | Real-space correlation of the run map with the deposit, after placing it in the deposit's frame under a fixed hand convention. Normalized to the resolution-matched ceiling. | raw 0.64 → ~0.37 |
-| **map–map FSC@0.5** | 0.50 | The resolution (Å) where the run-map ↔ deposit FSC crosses 0.5 — where agreement breaks down. Ceiling-normalized (lower Å = better). | 3.5 Å → ~0.85 |
+| Subscore | Wt | What it is · how it's computed |
+|---|---|---|
+| **map–map CC** | 0.50 | Real-space cross-correlation between the run map and the deposited map, after rigid-body placing the run map into the deposit's frame under a fixed hand convention. Normalized to the resolution-matched structure. |
+| **map–map FSC@0.5** | 0.50 | The resolution (Å) at which the Fourier shell correlation between the run map and the deposited map<sup>5</sup> falls through 0.5 — the frequency where the two maps stop agreeing. Normalized to the resolution-matched structure (lower Å = better). |
 
-A second branch compares the map to the deposited **atomic model** 6BDF — side-chain register, masked CC, and map–model FSC. We grade *map* quality, not model quality, so it carries **no headline weight**; it is computed and reported as a cross-check.
+<p style="color:var(--muted);font-size:12px;line-height:1.55;margin-top:2px"><strong>Computation reference.</strong> <sup>5</sup> Fourier shell correlation between two maps, 0.5 criterion — Harauz &amp; van Heel, <em>Optik</em> 1986; van Heel &amp; Schatz, <em>J. Struct. Biol.</em> 2005.</p>
 
 ### The handedness gate
 
@@ -141,20 +103,20 @@ Cryo-EM maps have an intrinsic hand; a mirror-image (enantiomer) map can have ex
 <line class="ln" x1="502" y1="35" x2="566" y2="84" marker-end="url(#mgate)"/><line class="ln" x1="502" y1="89" x2="566" y2="89" marker-end="url(#mgate)"/><line class="ln" x1="502" y1="143" x2="566" y2="94" marker-end="url(#mgate)"/>
 <rect x="568" y="68" width="174" height="44" rx="11" style="fill:none;stroke:var(--outcome)"/><text class="ttl" x="655" y="88" text-anchor="middle" style="fill:var(--outcome)">× outcome block</text><text class="mut" x="655" y="105" text-anchor="middle">a wrong hand caps it to 0</text>
 </svg>
-<figcaption style="color:var(--muted);font-size:13px;margin-top:6px">All four MVP runs are right-handed: map CC ~0.98 vs mirror ~0.71 → gate 1.0. A mirror map collapses here.</figcaption>
+<figcaption style="color:var(--muted);font-size:13px;margin-top:6px">A clear right hand — the map fitting the reference far better than its mirror — passes at 1.0; a mirror-image map collapses the outcome family to 0.</figcaption>
 </figure>
 
-We also report **divergence** = signal − reference as a diagnostic, never folded into the score. A large gap flags a handedness flip, over-fitting, or — only after verification — genuine outperformance.
+We also report **divergence** = map quality − reference consistency as a diagnostic, never folded into the score. A large gap flags a handedness flip, over-fitting, or — only after verification — genuine outperformance.
 
 ## Procedure subscores
 
 Three subscores capture decision quality, weighted **50 / 25 / 25**. Trajectory carries the most weight: the 2-D and picking steps are visual tasks a dedicated vision model would largely saturate, whereas building a sound long-horizon plan is the thing most worth measuring.
 
-| Subscore | Wt | What it is · how it's computed | In the runs |
-|---|---|---|---|
-| **trajectory** | 0.50 | *Completeness* (0.70): is the job graph the agent built and ran a complete, correctly-ordered pipeline? Every job maps to a logical capability (any picker → "pick", any refinement → "refine-3D"), so a different-but-valid pipeline passes; scored as a hard gate (a completed 3-D refinement reachable from import must exist) × (0.7 · capability coverage + 0.3 · ordering). *Reference similarity* (0.30): how closely the agent's set of jobs matched the tutorial recipe — the one place we compare against the literal reference tree. | completeness 1.0; similarity 0.63–1.0 |
-| **select-2D** | 0.25 | *Templates* (0.50): how many 2-D classes the agent kept to seed template picking — the tutorial keeps ~2; over-selecting (14, 29) is a high-signal error resolution misses; banded on distance from 2. *Refine* (0.50): how well the agent's keep/reject of classes for refinement tracks an independent class-quality model — *awaits a box-side compute, shown n/a*. | templates: 2 → 1.0; 14, 29 → 0.0 |
-| **particle picks** | 0.25 | F2 agreement between the agent's final particle coordinates and the golden coordinates on the same micrographs (recall-weighted, the cryo-EM convention). *Awaits a box-side compute, shown n/a.* | n/a |
+| Subscore | Wt | What it is · how it's computed |
+|---|---|---|
+| **trajectory** | 0.50 | *Completeness* (0.70): is the job graph the agent built and ran a complete, correctly-ordered pipeline? Every job maps to a logical capability (any picker → "pick", any refinement → "refine-3D"), so a different-but-valid pipeline passes; scored as a hard gate (a completed 3-D refinement reachable from import must exist) × (0.7 · capability coverage + 0.3 · ordering). *Reference similarity* (0.30): how closely the agent's set of jobs matched the tutorial recipe — the one place we compare against the literal reference tree. |
+| **select-2D** | 0.25 | *Templates* (0.50): how many 2-D classes the agent kept to seed template picking — the tutorial keeps ~2; over-selecting is a high-signal error resolution misses; banded on distance from 2. *Refine* (0.50): how well the agent's keep/reject of classes for refinement tracks an independent class-quality model — *awaits a box-side compute, shown n/a*. |
+| **particle picks** | 0.25 | F2 agreement between the agent's final particle coordinates and the golden coordinates on the same micrographs (recall-weighted, the cryo-EM convention). *Awaits a box-side compute, shown n/a.* |
 
 When a subscore isn't computed yet, it drops out and its siblings carry the weight — no fabricated credit.
 
@@ -183,21 +145,18 @@ The two real inputs the agent reads at these steps:
 <rect x="390" y="34" width="116" height="46" rx="8" style="fill:var(--warn-bg)"/><text class="dev" x="448" y="52" text-anchor="middle">≤ 6</text><text class="sc" x="448" y="73" text-anchor="middle" style="fill:var(--warn-ink)">0.30</text>
 <rect x="512" y="34" width="116" height="46" rx="8" style="fill:var(--gap-bg);opacity:0.7"/><text class="dev" x="570" y="52" text-anchor="middle">≤ 11</text><text class="sc" x="570" y="73" text-anchor="middle" style="fill:var(--gap-ink)">0.12</text>
 <rect x="634" y="34" width="102" height="46" rx="8" style="fill:var(--gap-bg)"/><text class="dev" x="685" y="52" text-anchor="middle">&gt; 11</text><text class="sc" x="685" y="73" text-anchor="middle" style="fill:var(--gap-ink)">0.0</text>
-<text class="mut" x="24" y="106" style="fill:var(--ok-ink)">n = 2 → 1.0  (the two easy runs)</text>
-<text class="mut" x="430" y="106" style="fill:var(--gap-ink)">n = 14, 29 → 0.0  (realistic, hard)</text>
-<text class="mut" x="24" y="132">Templates only; the refine pass scores class quality (not this ladder) and currently shows n/a.</text>
+<text class="mut" x="24" y="106">Target n ≈ 2 — one kept class per dominant view; the score falls off with |n − 2|.</text>
+<text class="mut" x="24" y="132">Templates only; the refine pass scores class quality, not this ladder.</text>
 </svg>
 <figcaption style="color:var(--muted);font-size:13px;margin-top:6px">Top weight in select-2D, steep ladder. Over-selecting 2-D templates is a high-signal error that resolution misses.</figcaption>
 </figure>
 
 ## Combining the subscores into one score
 
-Each subscore is a value in [0, 1]. Within a family, subscores combine into a weighted average; a subscore with no data drops out and its siblings absorb its weight, so a not-yet-computed metric never silently scores zero or full credit. Outcome's two halves (signal and reference) average 50/50 and are then multiplied by the handedness gate. The two families average 50/50 to give the run's total.
-
-Worked, on one end-to-end run (e2e_easy): signal 0.979 and reference 0.616 average to 0.798; the gate is 1.0, so outcome = 0.798. Procedure = 0.942. Total = 0.5 · 0.798 + 0.5 · 0.942 = **0.870**.
+Each subscore is a value in [0, 1]. Within a family, subscores combine into a weighted average; a subscore with no data drops out and its siblings absorb its weight, so a not-yet-computed metric never silently scores zero or full credit. Outcome's two halves (map quality and reference consistency) average 50/50 and are then multiplied by the handedness gate. The two families average 50/50 to give the run's total.
 
 <figure style="margin:20px 0">
-<svg id="d-flow" viewBox="0 0 760 218" role="img" aria-label="How a run becomes a single score" style="max-width:100%;height:auto;display:block">
+<svg id="d-flow" viewBox="0 0 760 196" role="img" aria-label="How a run's subscores combine into one score" style="max-width:100%;height:auto;display:block">
 <style>
 #d-flow text{font-family:system-ui,-apple-system,sans-serif;fill:var(--ink)}
 #d-flow .mut{fill:var(--muted);font-size:11px}
@@ -207,38 +166,35 @@ Worked, on one end-to-end run (e2e_easy): signal 0.979 and reference 0.616 avera
 #d-flow .out{fill:var(--outcome)}#d-flow .pro{fill:var(--procedure)}#d-flow .acc{fill:var(--accent)}
 </style>
 <defs><marker id="mflow" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" style="fill:var(--line-strong)"/></marker></defs>
-<rect class="box" x="20" y="24" width="332" height="92" rx="11"/><rect x="20" y="24" width="6" height="92" rx="3" style="fill:var(--outcome)"/>
-<text class="ttl out" x="40" y="48">Outcome</text><text class="mut" x="118" y="48">· weight 0.50 · × handedness gate</text>
-<text class="mut" x="40" y="70">signal 0.979 · 0.50  +  reference 0.616 · 0.50</text>
-<text class="mut" x="40" y="88">= 0.798, × gate 1.00</text>
-<text class="mut" x="40" y="106" style="fill:var(--muted)">divergence = signal − reference = 0.363 (diagnostic)</text>
-<rect x="278" y="54" width="56" height="26" rx="13" style="fill:none;stroke:var(--outcome)"/><text class="out" x="306" y="71" text-anchor="middle" font-weight="600">0.80</text>
-<rect class="box" x="20" y="128" width="332" height="64" rx="11"/><rect x="20" y="128" width="6" height="64" rx="3" style="fill:var(--procedure)"/>
-<text class="ttl pro" x="40" y="152">Procedure</text><text class="mut" x="128" y="152">· weight 0.50</text>
-<text class="mut" x="40" y="174">trajectory 0.50 · select-2D 0.25 · picks 0.25</text>
-<rect x="278" y="146" width="56" height="26" rx="13" style="fill:none;stroke:var(--procedure)"/><text class="pro" x="306" y="163" text-anchor="middle" font-weight="600">0.94</text>
-<line class="ln" x1="352" y1="70" x2="498" y2="100" marker-end="url(#mflow)"/>
-<line class="ln" x1="352" y1="160" x2="498" y2="120" marker-end="url(#mflow)"/>
-<rect class="box" x="502" y="82" width="158" height="76" rx="12"/>
-<text class="ttl" x="581" y="110" text-anchor="middle">combine by weight</text>
-<text class="mut" x="581" y="132" text-anchor="middle">0.50 outcome + 0.50 procedure</text>
-<line class="ln" x1="660" y1="120" x2="690" y2="120" marker-end="url(#mflow)"/>
-<text class="mut" x="725" y="106" text-anchor="middle">TOTAL</text>
-<rect x="690" y="112" width="70" height="34" rx="17" style="fill:var(--accent-soft);stroke:var(--accent)"/><text class="acc" x="725" y="134" text-anchor="middle" font-weight="600">0.87</text>
+<rect class="box" x="20" y="20" width="360" height="78" rx="11"/><rect x="20" y="20" width="6" height="78" rx="3" style="fill:var(--outcome)"/>
+<text class="ttl out" x="40" y="44">Outcome</text><text class="mut" x="118" y="44">· weight 0.50</text>
+<text class="mut" x="40" y="66">map quality · 0.50  +  reference consistency · 0.50</text>
+<text class="mut" x="40" y="86">then × handedness gate</text>
+<rect class="box" x="20" y="110" width="360" height="62" rx="11"/><rect x="20" y="110" width="6" height="62" rx="3" style="fill:var(--procedure)"/>
+<text class="ttl pro" x="40" y="134">Procedure</text><text class="mut" x="128" y="134">· weight 0.50</text>
+<text class="mut" x="40" y="156">trajectory · 0.50    select-2D · 0.25    picks · 0.25</text>
+<line class="ln" x1="380" y1="60" x2="500" y2="92" marker-end="url(#mflow)"/>
+<line class="ln" x1="380" y1="140" x2="500" y2="104" marker-end="url(#mflow)"/>
+<rect class="box" x="502" y="70" width="150" height="58" rx="12"/>
+<text class="ttl" x="577" y="95" text-anchor="middle">combine by weight</text>
+<text class="mut" x="577" y="115" text-anchor="middle">0.50 + 0.50</text>
+<line class="ln" x1="652" y1="99" x2="688" y2="99" marker-end="url(#mflow)"/>
+<text class="mut" x="722" y="85" text-anchor="middle">TOTAL</text>
+<rect x="690" y="90" width="66" height="30" rx="15" style="fill:var(--accent-soft);stroke:var(--accent)"/><text class="acc" x="723" y="110" text-anchor="middle" font-weight="600">[0,1]</text>
 </svg>
-<figcaption style="color:var(--muted);font-size:13px;margin-top:6px">One end-to-end run (e2e_easy): outcome 0.798 (signal 0.979 ⊕ reference 0.616, gate 1.00) · procedure 0.942 → 0.870.</figcaption>
+<figcaption style="color:var(--muted);font-size:13px;margin-top:6px">Each family reduces to a weighted average of its subscores; outcome is then multiplied by the handedness gate; the two families combine 50/50 into the run's total. A subscore with no data drops out and its siblings absorb its weight.</figcaption>
 </figure>
 
-Across the four MVP runs the totals span **0.68–0.88**. Outcome sits near 0.76 for all of them — on a dataset this easy every honest run reconstructs the correct structure, so the held-out reference and the gate are what separate a correct map from a wrong one (a mirror or a noise-injected map collapses here), while procedure carries the spread among the honest runs. Per-run results for every subscore are on the [benchmark](benchmark.html) page.
+Per-run results for every subscore are on the [benchmark](benchmark.html) page.
 
 ## Design principles
 
 The grader is built to the same bar the environment is meant to meet:
 
 - **Held-out ground truth.** The deposited map and model, and every agreement metric, are withheld from the agent; it sees only its own reconstruction's self-reported statistics.
-- **Hard to game.** Signal quality alone is high for any internally-consistent map — a mirror included — so it is always paired with held-out agreement and capped by the handedness gate. An over-tight "wishful" mask is caught twice: by disagreement with the held-out reference, and by a reported mask-over-fit gap.
+- **Hard to game.** Map quality alone is high for any internally-consistent map — a mirror included — so it is always paired with held-out agreement and capped by the handedness gate. An over-tight "wishful" mask is caught twice: by disagreement with the held-out reference, and by a reported mask-over-fit gap.
 - **Computed, not judged.** Every score is a rule-based computation against references we recompute ourselves under one engine — no learned reward model, no model-as-judge.
-- **Fair, and below ceiling.** Subset runs are normalized to what is achievable at their own resolution, never the full-dataset figure; totals sit below 1.0, and the headline is unsaturated.
+- **Fair to a subset.** Subset runs are normalized to what is achievable at their own resolution, never the full-dataset 2.8 Å figure — so a metric earns 1.0 by matching the resolution-matched structure, not by reaching a resolution the data cannot support.
 
 Weights and bands are **provisional** — flagged for calibration on a controlled quality ladder (reconstructions from 5 / 10 / 20 / 40 movies plus injected known-bad decisions), then frozen. The two procedure subscores awaiting a box-side compute are shown n/a rather than filled.
 </script>
@@ -251,7 +207,7 @@ Weights and bands are **provisional** — flagged for calibration on a controlle
       + '<span class="tag draft">working draft</span>'
       + '<span class="tag stage">T20S MVP · public data</span>'
       + '<span class="tag dot">weights provisional · calibration pending</span>'
-      + '<span class="tag dot">snapshot 2026-06-24</span></div>'
+      + '<span class="tag dot">snapshot 2026-06-25</span></div>'
   });
   Site.nav('grader');
 </script>

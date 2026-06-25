@@ -28,13 +28,13 @@ Each block is reported twice: **measured** (the raw quantity each subscore reads
 | **raw_realistic** | agent writes `cryosparc-tools` | realistic | 17 | 3.16 Å | [report](reports/raw-realistic-exec-v2.html) |
 | **e2e_hard** | constrained job tools | hard | 16 | 3.11 Å | [end_to_end/hard/v1](rollouts.html) |
 
-Three same-subset reference points anchor the signal scores: the **ceiling = W1** (by-hand expert, GSFSC ≈ 3.15 Å, the same 20-movie EMPIAR-10025 subset, D7 → signal 1.0); the **floor = a minimal pipeline with random interactive decisions** on the same subset (10 jobs, 4.35 Å → signal 0.0); and the full-data **deposit = EMD-6287 (map) + PDB 6BDF (model)**, a reported reference above the subset ceiling.
+Three same-subset reference points anchor the map-quality scores: the **ceiling = W1** (by-hand expert, GSFSC ≈ 3.15 Å, the same 20-movie EMPIAR-10025 subset, D7 → map quality 1.0); the **floor = a minimal pipeline with random interactive decisions** on the same subset (10 jobs, 4.35 Å → map quality 0.0); and the full-data **deposit = EMD-6287 (map) + PDB 6BDF (model)**, a reported reference above the subset ceiling.
 
 ## Totals
 
-Block weights: outcome 0.50, procedure 0.50. Outcome = (signal · 0.50 + reference · 0.50) × handedness gate. `divergence` = signal − reference (diagnostic, not weighted). Runs ordered by TOTAL; the random-decisions **floor** is included as the bottom anchor. Column order is held constant in every table below.
+Block weights: outcome 0.50, procedure 0.50. Outcome = (map quality · 0.50 + reference · 0.50) × handedness gate. `divergence` = map quality − reference (diagnostic, not weighted). Runs ordered by TOTAL; the random-decisions **floor** is included as the bottom anchor. Column order is held constant in every table below.
 
-| Run | TOTAL | outcome | ↳ signal | ↳ reference | divergence | procedure | gate |
+| Run | TOTAL | outcome | ↳ map quality | ↳ reference | divergence | procedure | gate |
 |---|---|---|---|---|---|---|---|
 | e2e_easy | **0.870** | 0.798 | 0.979 | 0.616 | 0.363 | 0.942 | 1.00 |
 | raw_easy | **0.864** | 0.803 | 0.998 | 0.608 | 0.390 | 0.924 | 1.00 |
@@ -42,9 +42,9 @@ Block weights: outcome 0.50, procedure 0.50. Outcome = (signal · 0.50 + referen
 | raw_realistic | **0.796** | 0.800 | 0.990 | 0.610 | 0.380 | 0.792 | 1.00 |
 | _floor (random)_ | **0.288** | 0.019 | 0.000 | 0.038 | −0.038 | 0.558 | 1.00 |
 
-Signal is uniform (~1.0) because it saturates at the W1 ceiling; the **procedure** block carries the ranking. (Procedure now includes `particle_picks` F2 — its compute is evolving.)
+Map quality is uniform (~1.0) because it saturates at the W1 ceiling; the **procedure** block carries the ranking. (Procedure now includes `particle_picks` F2 — its compute is evolving.)
 
-## Outcome · signal quality
+## Outcome · map quality
 
 Weight 0.50 within outcome. Computed on the run's own reconstruction (no reference), all four axes from the half-maps alone — no particles, no cryoSPARC, no Phenix (`grader_signal.py`): global resolution and FSC-curve AUC from the gold-standard half-map FSC; local resolution from windowed half-map FSC@0.143 over an Otsu + largest-connected-component molecule mask (25 Å Hann window); cFAR from the 3DFSC conical FSC (100 cones, 20° half-angle). One method scores the four runs, the by-hand **W1**, the **floor**, and the deposit **EMD-6287**. **Normalization is floor-to-ceiling** `(value − floor)/(ceiling − floor)`: **ceiling = W1** (same-subset expert → 1.0), **floor = the random-decisions run** (same subset → 0.0). The deposit (full particle set) is a reported reference — above the subset ceiling, not the normalizer.
 
@@ -68,9 +68,9 @@ global_resolution is the run-reported loose-mask GSFSC (`gsfsc_loosemask_0143_A`
 | fsc_curve | 0.20 | 1.000 | 1.000 | 1.000 | 1.000 | 0.000 |
 | local_resolution | 0.20 | 1.000 | 1.000 | 1.000 | 1.000 | 0.000 |
 | anisotropy | 0.20 | 0.952 | 1.000 | 1.000 | 0.965 | 0.000 |
-| **signal subtotal** | | **0.979** | **0.998** | **1.000** | **0.990** | **0.000** |
+| **map-quality subtotal** | | **0.979** | **0.998** | **1.000** | **0.990** | **0.000** |
 
-The honest runs sit at the W1 expert ceiling (signal 0.98–1.00); the floor is 0 by construction. The metrics separate good-from-bad by 4.5–21.5× the run-to-run noise (effective), but cannot rank the runs — agent performance is not discernible by outcome quality on this saturating target. Validation: `runs/agent/grader/validation.md`.
+The honest runs sit at the W1 expert ceiling (map quality 0.98–1.00); the floor is 0 by construction. The metrics separate good-from-bad by 4.5–21.5× the run-to-run noise (effective), but cannot rank the runs — agent performance is not discernible by outcome quality on this saturating target. Validation: `runs/agent/grader/validation.md`.
 
 ## Outcome · reference consistency
 
@@ -149,7 +149,7 @@ Surfaced from `run_meta`, not part of any subscore.
 
 ## Degraded suite (reference)
 
-Three deliberately-degraded versions of the golden map — wrong-hand mirror, added noise, half particle density — graded through the same outcome pipeline. Not rollouts; included as reference rows for the reference-consistency and gate axes (`validation.md`). Single combined maps (no half-maps), so the signal-quality axes are not computed for them. Honest-run band shown for comparison.
+Three deliberately-degraded versions of the golden map — wrong-hand mirror, added noise, half particle density — graded through the same outcome pipeline. Not rollouts; included as reference rows for the reference-consistency and gate axes (`validation.md`). Single combined maps (no half-maps), so the map-quality axes are not computed for them. Honest-run band shown for comparison.
 
 | Map | map_emdb_cc → norm | map_emdb_fsc Å → norm | reference | gate | EMRinger → norm | CC_mask → norm | map↔model FSC Å |
 |---|---|---|---|---|---|---|---|
@@ -168,7 +168,7 @@ Golden-vs-deposit ceiling these are normalized against: cc_map_emdb 0.946, map_e
     meta: '<div class="docmeta">'
       + '<span class="tag stage">grades.json / scorecard.md</span>'
       + '<span class="tag dot">4 graded runs + degraded suite</span>'
-      + '<span class="tag dot">snapshot 2026-06-24</span></div>'
+      + '<span class="tag dot">snapshot 2026-06-25</span></div>'
   });
   Site.nav('benchmark');
 </script>
