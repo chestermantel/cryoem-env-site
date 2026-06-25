@@ -106,38 +106,35 @@
           <summary><h3>Data</h3></summary>
           <p>Every core rollout runs on one dataset, the 20S proteasome (T20S), the standard specimen in the
             public <a href="https://guide.cryosparc.com/processing-data/get-started-with-cryosparc-introductory-tutorial">cryoSPARC
-            introductory tutorial</a>. The raw data is <a href="https://www.ebi.ac.uk/empiar/entry/10025/">EMPIAR-10025</a>,
-            and the rollouts use the tutorial's 20-movie subset of it. T20S is a roughly 700 kDa proteasome with
-            high (D7) symmetry, which makes it small, rigid, and comparatively easy to reconstruct. The tutorial
-            is cryoSPARC's step-by-step walkthrough from these movies to a ~3 &Aring; map; we ran it by hand to
-            produce the golden reference, and the same recipe is what the agent is given. The deposited answer
-            key is <a href="https://www.ebi.ac.uk/emdb/entry/EMD-6287">EMD-6287</a> for the map and
-            <a href="https://www.rcsb.org/structure/6BDF">PDB 6BDF</a> for the atomic model.</p>
-          <p>The benchmark is being extended to harder structures that have a public deposit but no by-hand
-            golden trajectory, graded on the reference-free and deposit-anchored subscores only. Each comes from
-            EMPIAR and is checked against its EMDB (and, where one exists, PDB) deposit: the full T20S dataset
-            (<a href="https://www.ebi.ac.uk/empiar/entry/10025/">EMPIAR-10025</a>)
-            <span class="pill partial">rollout incomplete</span>; &beta;-galactosidase, the RELION benchmark
-            (<a href="https://www.ebi.ac.uk/empiar/entry/10204/">EMPIAR-10204</a>, EMD-6840)
-            <span class="pill partial">rollout incomplete</span>; the CB1&ndash;Gi GPCR complex
-            (<a href="https://www.ebi.ac.uk/empiar/entry/10288/">EMPIAR-10288</a>, EMD-0339)
-            <span class="pill partial">rollout incomplete</span>; the MRGPRX2 GPCR
-            (<a href="https://www.ebi.ac.uk/empiar/entry/10853/">EMPIAR-10853</a>, EMD-24896)
-            <span class="pill partial">rollout incomplete</span>; an icosahedral encapsulin
-            (<a href="https://www.ebi.ac.uk/empiar/entry/10716/">EMPIAR-10716</a>, EMD-12853)
-            <span class="pill partial">rollout incomplete</span>; and the Scripps pilot system, an HIV Env BG505
-            trimer with a 44m Fab (<a href="https://www.ebi.ac.uk/empiar/entry/13456/">EMPIAR-13456</a>,
-            EMD-36815) <span class="pill partial">rollout incomplete</span>.</p>
+            introductory tutorial</a>. The raw data is EMPIAR-10025, and the rollouts use the tutorial's 20-movie
+            subset of it. T20S is a roughly 700 kDa proteasome with high (D7) symmetry, which makes it small,
+            rigid, and comparatively easy to reconstruct. The tutorial is cryoSPARC's step-by-step walkthrough
+            from these movies to a ~3 &Aring; map; we ran it by hand to produce the golden reference, and the same
+            recipe is what the agent is given. The deposited answer key is EMD-6287 for the map and PDB 6BDF for
+            the atomic model.</p>
+          <p>The benchmark is being extended to harder structures with a public deposit but no by-hand golden
+            trajectory, each chosen to span a difficulty the tutorial specimen avoids. The full T20S dataset adds
+            the rest of the movies to the one system that already has a golden trajectory, isolating the effect of
+            scale. &beta;-galactosidase, the standard RELION benchmark, is a larger, lower-symmetry particle on a
+            trusted reference, a controlled step up from T20S. The CB1&ndash;Gi and MRGPRX2 GPCR complexes are
+            small, flexible membrane proteins in detergent, where handedness, anisotropy, and a lower attainable
+            resolution become the hard parts. The encapsulin is a large icosahedral assembly that probes the
+            opposite extreme of very high symmetry. And the HIV Env BG505 trimer with a 44m Fab is the Scripps
+            pilot system itself: flexible, low in symmetry, and the structure where the right processing decisions
+            are genuinely uncertain rather than handed over by a recipe.</p>
         </details>
 
         <details class="csub" open>
           <summary><h3>Agent inputs</h3></summary>
-          <p>Each rollout hands the model three things: a system persona (a senior structural biologist working
-            autonomously), a task brief that states the goal and the acquisition facts the work needs (pixel
-            size, voltage, dose, gain reference, and the molecule's symmetry and size), and reference material
-            (the public cryoSPARC tutorial and the cryosparc-tools API notes). It is given no pre-built job
-            functions and no job catalog; it discovers the available job types from the live instance and decides
-            the workflow itself.</p>
+          <p>Each rollout hands the model three things:</p>
+          <ul>
+            <li>a <b>system persona</b>: a senior structural biologist working autonomously;</li>
+            <li>a <b>task brief</b> stating the goal and the acquisition facts the work needs (pixel size,
+              voltage, dose, gain reference, and the molecule's symmetry and size);</li>
+            <li><b>reference material</b>: the public cryoSPARC tutorial and the cryosparc-tools API notes.</li>
+          </ul>
+          <p>It is given no pre-built job functions and no job catalog; it discovers the available job types from
+            the live instance and decides the workflow itself.</p>
           <p>Difficulty is set by how much of the recipe the brief includes, with the data and the tools held
             fixed. <b>Handheld</b> adds guidance distilled from the by-hand run on top of the tutorial: the job
             catalog, parameter values, and explicit decision hints. <b>Tutorial</b> gives exactly the public
@@ -171,9 +168,6 @@
           <li><b>Realistic datasets.</b> Reconstructions of structures other than the tutorial specimen, larger
             and harder and lower in symmetry, graded on the reference-free and deposit-anchored subscores.</li>
         </ul>
-        <p style="font-size:13px;color:var(--muted)">Status: <span class="pill ok">built</span> a run or
-          artifact exists &middot; <span class="pill partial">planned / incomplete</span> designed, not yet
-          run.</p>
 
         <details class="csub" open>
           <summary><h3>T20S tutorial rollouts</h3></summary>
@@ -453,9 +447,7 @@ const ROLLOUTS = {
   t20s_full: {
     title: 'Full EMPIAR-10025 (T20S, all movies)',
     badge: { cls: 'partial', txt: 'rollout incomplete' },
-    stats: [['EMPIAR', '<a href="https://www.ebi.ac.uk/empiar/entry/10025/">10025</a>'],
-            ['EMDB', '<a href="https://www.ebi.ac.uk/emdb/entry/EMD-6287">EMD-6287</a>'],
-            ['PDB', '<a href="https://www.rcsb.org/structure/6BDF">6BDF</a>']],
+    stats: [['EMPIAR', '10025'], ['EMDB', 'EMD-6287'], ['PDB', '6BDF']],
     outputs: {
       kv: [['what', 'the full T20S dataset, same molecule as the tutorial subset with all movies; the bridge to realistic-scale data on the one system that has a golden']]
     },
@@ -465,9 +457,7 @@ const ROLLOUTS = {
   betagal: {
     title: 'β-galactosidase (RELION benchmark)',
     badge: { cls: 'partial', txt: 'rollout incomplete' },
-    stats: [['EMPIAR', '<a href="https://www.ebi.ac.uk/empiar/entry/10204/">10204</a>'],
-            ['EMDB', '<a href="https://www.ebi.ac.uk/emdb/entry/EMD-6840">EMD-6840</a>'],
-            ['PDB', '—']],
+    stats: [['EMPIAR', '10204'], ['EMDB', 'EMD-6840'], ['PDB', '—']],
     outputs: {
       kv: [['what', 'E. coli β-galactosidase (~465 kDa, D2), the RELION benchmark specimen. Larger and lower in symmetry than T20S; map-only deposit, so graded on map-to-map and reference-free subscores']]
     },
@@ -477,9 +467,7 @@ const ROLLOUTS = {
   cb1_gi: {
     title: 'CB1–Gi GPCR complex',
     badge: { cls: 'partial', txt: 'rollout incomplete' },
-    stats: [['EMPIAR', '<a href="https://www.ebi.ac.uk/empiar/entry/10288/">10288</a>'],
-            ['EMDB', '<a href="https://www.ebi.ac.uk/emdb/entry/EMD-0339">EMD-0339</a>'],
-            ['PDB', '<a href="https://www.rcsb.org/structure/6N4B">6N4B</a>']],
+    stats: [['EMPIAR', '10288'], ['EMDB', 'EMD-0339'], ['PDB', '6N4B']],
     outputs: {
       kv: [['what', 'a cannabinoid receptor (CB1) bound to a G protein, in a detergent micelle. Small and flexible; a test of handedness and of anisotropy from the flat micelle']]
     },
@@ -489,9 +477,7 @@ const ROLLOUTS = {
   mrgprx2: {
     title: 'MRGPRX2 (ligand-bound GPCR)',
     badge: { cls: 'partial', txt: 'rollout incomplete' },
-    stats: [['EMPIAR', '<a href="https://www.ebi.ac.uk/empiar/entry/10853/">10853</a>'],
-            ['EMDB', '<a href="https://www.ebi.ac.uk/emdb/entry/EMD-24896">EMD-24896</a>'],
-            ['PDB', '<a href="https://www.rcsb.org/structure/7S8L">7S8L</a>']],
+    stats: [['EMPIAR', '10853'], ['EMDB', 'EMD-24896'], ['PDB', '7S8L']],
     outputs: {
       kv: [['what', 'a ligand-bound GPCR. A harder, lower-resolution target where procedure should be weighted over resolution']]
     },
@@ -501,9 +487,7 @@ const ROLLOUTS = {
   encapsulin: {
     title: 'Encapsulin (icosahedral)',
     badge: { cls: 'partial', txt: 'rollout incomplete' },
-    stats: [['EMPIAR', '<a href="https://www.ebi.ac.uk/empiar/entry/10716/">10716</a>'],
-            ['EMDB', '<a href="https://www.ebi.ac.uk/emdb/entry/EMD-12853">EMD-12853</a>'],
-            ['PDB', '<a href="https://www.rcsb.org/structure/7ODW">7ODW</a>']],
+    stats: [['EMPIAR', '10716'], ['EMDB', 'EMD-12853'], ['PDB', '7ODW']],
     outputs: {
       kv: [['what', 'an encapsulated-ferritin nanocompartment with icosahedral (I) symmetry. The I shell is graded; the D5 cargo has no separate map']]
     },
@@ -513,9 +497,7 @@ const ROLLOUTS = {
   env_bg505: {
     title: 'HIV Env BG505 + 44m Fab (Scripps pilot)',
     badge: { cls: 'partial', txt: 'rollout incomplete' },
-    stats: [['EMPIAR', '<a href="https://www.ebi.ac.uk/empiar/entry/13456/">13456</a>'],
-            ['EMDB', '<a href="https://www.ebi.ac.uk/emdb/entry/EMD-36815">EMD-36815</a>'],
-            ['PDB', '—']],
+    stats: [['EMPIAR', '13456'], ['EMDB', 'EMD-36815'], ['PDB', '—']],
     outputs: {
       kv: [['what', 'the Scripps pilot system: an HIV-1 BG505 Env trimer with a 44m Fab. Flexible and low in symmetry; map-only at ~4.4 Å, where resolution should not be used to rank. C1 deposit vs C3 assembly makes symmetry the gradeable call']]
     },

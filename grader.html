@@ -17,7 +17,8 @@
 
 How each cryoSPARC run is graded: subscores and weighted sum. Per-run results for every subscore are on the [benchmark](benchmark.html) page. Design principles are in the [Env spec](rfp.html).
 
-## The two reward families
+<details class="gsec" open>
+<summary><h2>Outcome &amp; procedure based rewards</h2></summary>
 
 A run is scored on two families of reward, weighted equally:
 
@@ -26,12 +27,14 @@ A run is scored on two families of reward, weighted equally:
     - **Reference consistency:** is the reconstruction consistent with the deposited map — map-to-deposit cross-correlation and map-to-deposit FSC.
     - **Handedness gate:** a mirror-image map can score well on map quality alone yet be the wrong structure, so the whole family is multiplied by a gate that caps it to zero when the hand is inverted.
 - **Procedure:** how sound the agent's decisions were, independent of the final resolution; a run can reach a good map off poor decisions, and this is where that shows.
-    - **Trajectory:** did the agent build a complete, correctly-ordered pipeline, and how closely did it follow the expert recipe.
+    - **Trajectory:** did the agent build a complete, correctly-ordered pipeline (**tree completeness** — gated on actually reaching a finished 3-D map) and how closely did it follow the expert recipe (**tree similarity**).
     - **Interactive jobs:** the by-eye, iterative decisions the agent makes during reconstruction.
         - **Select-2D:** how many 2-D classes it kept to seed template picking, and how well its keep/reject of classes tracks class quality.
         - **Particle picks:** agreement of the agent's final particle coordinates with the expert reference.
 
 Each family is built from named subscores, every one a value in **[0, 1]** with a fixed direction (higher = better). The next two sections define them; the last shows the roll-up.
+
+</details>
 
 <details class="gsec" open>
 <summary><h2>Outcome subscores</h2></summary>
@@ -57,7 +60,7 @@ Four axes read from the run's own two half-maps and final volume: the overall re
 
 Agreement with the deposited EMD-6287 map. These two metrics ask whether the run reconstructed the *same 3-D shape* as the published structure — how closely the run map's density matches the deposit's, both point-for-point in real space (cross-correlation) and shell-by-shell in Fourier space (FSC).
 
-The deposited map is built from the full dataset — 196 movies, ~50,000 particles — and reaches 2.8 Å. The cryoSPARC tutorial, and so every run here, uses a 20-movie subset of that same dataset, which reconstructs to ~3.1 Å. A 20-movie map cannot reach the full-data resolution no matter how good the technique, so each metric is normalized against a **resolution-matched structure** rather than the raw 2.8 Å deposit: the deposit is low-pass filtered down to the run's own resolution — the closest a subset run could come — and the run is scored against that, computed under the same engine as the run.
+The deposited map is built from the full dataset — 196 movies, ~50,000 particles — and reaches 2.8 Å. The cryoSPARC tutorial, and so every run here, uses a 20-movie subset of that same dataset, which reconstructs to ~3.1 Å. A 20-movie map cannot reach the full-data resolution no matter how good the technique, so each metric is normalized against a **resolution-matched structure** rather than the raw 2.8 Å deposit: the deposit is low-pass filtered down to the run's own resolution — the closest a subset run could come — and the run is scored against that, computed with the same software and masking pipeline applied to both maps.
 
 | Subscore | Wt | What it is · how it's computed |
 |---|---|---|
@@ -102,27 +105,42 @@ Cryo-EM maps have an intrinsic hand; a mirror-image (enantiomer) map can have ex
 <details class="gsec" open>
 <summary><h2>Procedure subscores</h2></summary>
 
-The procedure subscores capture the correctness of the *process*, and can award partial credit for a sound process that reached a poor result. For the cryoSPARC workflow this splits into the quality of the overall **trajectory** and the quality of the agent's **execution of the interactive jobs**. The trajectory grade is itself split into the **completeness** of the trajectory and its **similarity to the golden path**; because several distinct trajectories can reach a good reconstruction through sound procedure, completeness is weighted above similarity to the reference.
+The procedure subscores capture the correctness of the *process*, and can award partial credit for a sound process that reached a poor result. For the cryoSPARC workflow this splits into the overall **trajectory** and the agent's **execution of the interactive jobs**, weighted equally (0.50 each). The trajectory grade is itself split into **tree completeness** and **tree similarity**; because several distinct trajectories can reach a good reconstruction through sound procedure, completeness is weighted above similarity.
 
-Interactive jobs require decision-making from the agent — often iterative, and from visual input. For T20S (and essentially every cryo-EM workflow) the interactive jobs are picking individual particles out of the micrographs and selecting 2-D class averages. Several ML implementations of these steps exist, usually built on vision models, so these subscores are weighted lower. A refined version would isolate the quality of the iterative decision-making from the quality of the visual reasoning; for now we simply measure overall performance on each interactive job.
+Interactive jobs require decision-making from the agent — often iterative, and from visual input. For T20S (and essentially every cryo-EM workflow) the interactive jobs are selecting 2-D class averages and picking individual particles out of the micrographs. Several ML implementations of these steps exist, usually built on vision models, so these subscores are weighted lower. A refined version would isolate the quality of the iterative decision-making from the quality of the visual reasoning; for now we simply measure overall performance on each interactive job.
+
+### Trajectory
+
+Grades the job graph the agent built and ran, from two scores summed `0.70 · tree completeness + 0.30 · tree similarity`.
 
 | Subscore | Wt | What it is · how it's computed |
 |---|---|---|
-| **trajectory** | 0.50 | *Completeness* (0.70): is the job graph the agent built and ran a complete, correctly-ordered pipeline? Every job maps to a logical capability (any picker → "pick", any refinement → "refine-3D"), so a different-but-valid pipeline passes; scored as a hard gate (a completed 3-D refinement reachable from import must exist) × (0.7 · capability coverage + 0.3 · ordering).<br>*Reference similarity* (0.30): how closely the agent's set of jobs matched the tutorial recipe — the one place we compare against the literal reference tree. |
-| **interactive jobs** | 0.50 | The agent's two by-eye, iterative decisions, weighted equally within the group.<br>*Select-2D* (0.50): how many 2-D classes it kept to seed template picking (target ~2), times the quality of the kept classes from a 2-D class-quality model (CryoSift<sup>6</sup>), plus how well its keep/reject for the refinement input tracks that model.<br>*Particle picks* (0.50): F2 agreement<sup>7</sup> between the agent's final particle coordinates and the golden coordinates on the same micrographs (recall-weighted, the cryo-EM convention). |
+| **tree completeness** | 0.70 | Is the job graph a complete, correctly-ordered pipeline that actually ran to a finished 3-D map? Every job maps to a logical capability (any picker → "pick", any refinement → "refine-3D"), so a different-but-valid pipeline passes. **Job-completion gate:** the score is **0** unless a *completed* 3-D refinement is reachable from the imported movies, and only completed jobs count toward coverage — otherwise `gate × (0.7 · capability coverage + 0.3 · ordering)`, where *ordering* is the fraction of required precedences that hold (e.g. picking before extraction). |
+| **tree similarity** | 0.30 | How closely the agent's set of jobs matched the tutorial recipe — multiset overlap (Jaccard) of job types against the tutorial's, the one place we compare against the literal reference tree. |
+
+### Interactive jobs
+
+The agent's two by-eye decisions, weighted equally: **select-2D** and **particle picks**. Select-2D is itself two separately-computed scores — *template* and *refine*, each 0.50 of select-2D — so within interactive jobs the three scores sum `0.25 · template + 0.25 · refine + 0.50 · particle picks`.
+
+| Subscore | Wt | What it is · how it's computed |
+|---|---|---|
+| **select-2D · template** | 0.25 | How many 2-D classes the agent kept to seed template picking (target ~2; banded on distance from 2), times the CryoSift<sup>6</sup> quality of the kept classes (CryoSift rates each 2-D class 1 = best … 5 = worst). |
+| **select-2D · refine** | 0.25 | How well the agent's keep/reject of classes for the refinement input tracks CryoSift's good (< 3.5) / bad call — F1 of precision (kept classes that are good) and recall (good classes that were kept). |
+| **particle picks** | 0.50 | F2 agreement<sup>7</sup> between the agent's final particle coordinates and the golden coordinates on the same micrographs (recall-weighted, the cryo-EM convention). |
 
 <p style="color:var(--muted);font-size:12px;line-height:1.55;margin-top:2px"><strong>Computation references.</strong> <sup>6</sup> CryoSift — a CNN that scores cryo-EM 2-D class-average quality — Schäfer et al., <em>Acta Cryst. F</em> 2025. <sup>7</sup> F-measure, recall-weighted (β = 2) — van Rijsbergen, <em>Information Retrieval</em> 1979.</p>
 
-Every procedure subscore is computed for the agent runs; a subscore with no data drops out and its siblings absorb its weight, so a not-yet-computed metric never earns fabricated credit. The per-subscore mechanics and worked examples are in **Technical details** at the foot of the page.
+Every one of these scores is computed for the agent runs; a subscore with no data drops out and its siblings absorb its weight, so a not-yet-computed metric never earns fabricated credit. Per-subscore mechanics and worked examples are in **Technical details** at the foot of the page.
 
 </details>
 
-## Combining the subscores into one score
+<details class="gsec" open>
+<summary><h2>Weighted Score</h2></summary>
 
-Each subscore is a value in [0, 1]. Within a family, subscores combine into a weighted average; a subscore with no data drops out and its siblings absorb its weight, so a not-yet-computed metric never silently scores zero or full credit. Outcome's two halves (map quality and reference consistency) average 50/50 and are then multiplied by the handedness gate. The two families average 50/50 to give the run's total.
+Each subscore is a value in [0, 1]. Within a family, subscores combine into a weighted average; a subscore with no data drops out and its siblings absorb its weight, so a not-yet-computed metric never silently scores zero or full credit. Outcome's two halves (map quality and reference consistency) average 50/50 and are then multiplied by the handedness gate; on the procedure side, trajectory's tree completeness carries a job-completion gate. The two families average 50/50 to give the run's total.
 
 <figure style="margin:22px 0">
-<svg id="d-tree" viewBox="0 0 850 388" role="img" aria-label="The full scoring tree: subscores combine by weight into outcome and procedure, then into the final score" style="max-width:100%;height:auto;display:block">
+<svg id="d-tree" viewBox="0 0 850 440" role="img" aria-label="The full scoring tree: raw scores combine by weight into the named subscores, then outcome and procedure, then the final score" style="max-width:100%;height:auto;display:block">
 <style>
 #d-tree text{font-family:system-ui,-apple-system,sans-serif;fill:var(--ink)}
 #d-tree .bl{font-size:11px;font-weight:600}
@@ -132,52 +150,60 @@ Each subscore is a value in [0, 1]. Within a family, subscores combine into a we
 #d-tree .ln{stroke:var(--line-strong);stroke-width:1.1;fill:none}
 </style>
 <defs><marker id="mtree" markerWidth="8" markerHeight="8" refX="6.5" refY="3" orient="auto"><path d="M0,0 L6.5,3 L0,6 z" style="fill:var(--line-strong)"/></marker></defs>
-<line class="ln" x1="170" y1="38" x2="230" y2="95" marker-end="url(#mtree)"/>
-<line class="ln" x1="170" y1="76" x2="230" y2="95" marker-end="url(#mtree)"/>
-<line class="ln" x1="170" y1="114" x2="230" y2="95" marker-end="url(#mtree)"/>
-<line class="ln" x1="170" y1="152" x2="230" y2="95" marker-end="url(#mtree)"/>
-<line class="ln" x1="170" y1="200" x2="230" y2="219" marker-end="url(#mtree)"/>
-<line class="ln" x1="170" y1="238" x2="230" y2="219" marker-end="url(#mtree)"/>
-<line class="ln" x1="170" y1="312" x2="230" y2="331" marker-end="url(#mtree)"/>
-<line class="ln" x1="170" y1="350" x2="230" y2="331" marker-end="url(#mtree)"/>
-<text class="w" x="200" y="62" text-anchor="middle">0.4</text>
-<text class="w" x="200" y="81" text-anchor="middle">0.2</text>
-<text class="w" x="200" y="101" text-anchor="middle">0.2</text>
-<text class="w" x="200" y="120" text-anchor="middle">0.2</text>
+<line class="ln" x1="170" y1="32" x2="230" y2="83" marker-end="url(#mtree)"/>
+<line class="ln" x1="170" y1="66" x2="230" y2="83" marker-end="url(#mtree)"/>
+<line class="ln" x1="170" y1="100" x2="230" y2="83" marker-end="url(#mtree)"/>
+<line class="ln" x1="170" y1="134" x2="230" y2="83" marker-end="url(#mtree)"/>
+<line class="ln" x1="170" y1="184" x2="230" y2="201" marker-end="url(#mtree)"/>
+<line class="ln" x1="170" y1="218" x2="230" y2="201" marker-end="url(#mtree)"/>
+<line class="ln" x1="170" y1="270" x2="230" y2="295" marker-end="url(#mtree)"/>
+<line class="ln" x1="170" y1="320" x2="230" y2="295" marker-end="url(#mtree)"/>
+<line class="ln" x1="170" y1="372" x2="230" y2="389" marker-end="url(#mtree)"/>
+<line class="ln" x1="170" y1="406" x2="230" y2="389" marker-end="url(#mtree)"/>
+<text class="w" x="200" y="53" text-anchor="middle">0.4</text>
+<text class="w" x="200" y="70" text-anchor="middle">0.2</text>
+<text class="w" x="200" y="87" text-anchor="middle">0.2</text>
+<text class="w" x="200" y="104" text-anchor="middle">0.2</text>
+<text class="w" x="200" y="188" text-anchor="middle">0.5</text>
 <text class="w" x="200" y="205" text-anchor="middle">0.5</text>
-<text class="w" x="200" y="224" text-anchor="middle">0.5</text>
-<text class="w" x="200" y="317" text-anchor="middle">0.5</text>
-<text class="w" x="200" y="336" text-anchor="middle">0.5</text>
-<line class="ln" x1="372" y1="95" x2="446" y2="157" marker-end="url(#mtree)"/>
-<line class="ln" x1="372" y1="219" x2="446" y2="157" marker-end="url(#mtree)"/>
-<line class="ln" x1="372" y1="265" x2="446" y2="298" marker-end="url(#mtree)"/>
-<line class="ln" x1="372" y1="331" x2="446" y2="298" marker-end="url(#mtree)"/>
-<text class="w" x="408" y="121" text-anchor="middle">0.5</text>
-<text class="w" x="408" y="185" text-anchor="middle">0.5</text>
-<text class="w" x="408" y="277" text-anchor="middle">0.5</text>
-<text class="w" x="408" y="311" text-anchor="middle">0.5</text>
-<line class="ln" x1="580" y1="157" x2="670" y2="228" marker-end="url(#mtree)"/>
-<line class="ln" x1="580" y1="298" x2="670" y2="228" marker-end="url(#mtree)"/>
+<text class="w" x="200" y="278" text-anchor="middle">0.7</text>
+<text class="w" x="200" y="303" text-anchor="middle">0.3</text>
+<text class="w" x="200" y="376" text-anchor="middle">0.5</text>
+<text class="w" x="200" y="393" text-anchor="middle">0.5</text>
+<line class="ln" x1="372" y1="83" x2="446" y2="142" marker-end="url(#mtree)"/>
+<line class="ln" x1="372" y1="201" x2="446" y2="142" marker-end="url(#mtree)"/>
+<line class="ln" x1="372" y1="295" x2="446" y2="342" marker-end="url(#mtree)"/>
+<line class="ln" x1="372" y1="389" x2="446" y2="342" marker-end="url(#mtree)"/>
+<text class="w" x="408" y="108" text-anchor="middle">0.5</text>
+<text class="w" x="408" y="168" text-anchor="middle">0.5</text>
+<text class="w" x="408" y="314" text-anchor="middle">0.5</text>
+<text class="w" x="408" y="362" text-anchor="middle">0.5</text>
+<line class="ln" x1="580" y1="142" x2="670" y2="242" marker-end="url(#mtree)"/>
+<line class="ln" x1="580" y1="342" x2="670" y2="242" marker-end="url(#mtree)"/>
 <text class="w" x="626" y="189" text-anchor="middle">0.5</text>
-<text class="w" x="626" y="258" text-anchor="middle">0.5</text>
-<rect class="box" x="20" y="24" width="150" height="28" rx="8"/><rect x="20" y="24" width="5" height="28" rx="2.5" style="fill:var(--outcome)"/><text class="bl" x="99" y="42" text-anchor="middle">Global resolution</text>
-<rect class="box" x="20" y="62" width="150" height="28" rx="8"/><rect x="20" y="62" width="5" height="28" rx="2.5" style="fill:var(--outcome)"/><text class="bl" x="99" y="80" text-anchor="middle">FSC-curve shape</text>
-<rect class="box" x="20" y="100" width="150" height="28" rx="8"/><rect x="20" y="100" width="5" height="28" rx="2.5" style="fill:var(--outcome)"/><text class="bl" x="99" y="118" text-anchor="middle">Local resolution</text>
-<rect class="box" x="20" y="138" width="150" height="28" rx="8"/><rect x="20" y="138" width="5" height="28" rx="2.5" style="fill:var(--outcome)"/><text class="bl" x="99" y="156" text-anchor="middle">Anisotropy (cFAR)</text>
-<rect class="box" x="20" y="186" width="150" height="28" rx="8"/><rect x="20" y="186" width="5" height="28" rx="2.5" style="fill:var(--outcome)"/><text class="bl" x="99" y="204" text-anchor="middle">Map–EMDB CC</text>
-<rect class="box" x="20" y="224" width="150" height="28" rx="8"/><rect x="20" y="224" width="5" height="28" rx="2.5" style="fill:var(--outcome)"/><text class="bl" x="99" y="242" text-anchor="middle">Map–EMDB FSC</text>
-<rect class="box" x="20" y="298" width="150" height="28" rx="8"/><rect x="20" y="298" width="5" height="28" rx="2.5" style="fill:var(--procedure)"/><text class="bl" x="99" y="316" text-anchor="middle">Select-2D</text>
-<rect class="box" x="20" y="336" width="150" height="28" rx="8"/><rect x="20" y="336" width="5" height="28" rx="2.5" style="fill:var(--procedure)"/><text class="bl" x="99" y="354" text-anchor="middle">Particle picks</text>
-<rect class="box" x="232" y="80" width="140" height="30" rx="8"/><rect x="232" y="80" width="5" height="30" rx="2.5" style="fill:var(--outcome)"/><text class="bl" x="304" y="99" text-anchor="middle">Map quality</text>
-<rect class="box" x="232" y="202" width="140" height="34" rx="8"/><rect x="232" y="202" width="5" height="34" rx="2.5" style="fill:var(--outcome)"/><text class="bl" x="305" y="215" text-anchor="middle">Reference</text><text class="bl" x="305" y="228" text-anchor="middle">consistency</text>
-<rect class="box" x="232" y="250" width="140" height="30" rx="8"/><rect x="232" y="250" width="5" height="30" rx="2.5" style="fill:var(--procedure)"/><text class="bl" x="304" y="269" text-anchor="middle">Trajectory</text>
-<rect class="box" x="232" y="316" width="140" height="30" rx="8"/><rect x="232" y="316" width="5" height="30" rx="2.5" style="fill:var(--procedure)"/><text class="bl" x="304" y="335" text-anchor="middle">Interactive jobs</text>
-<rect class="box" x="448" y="137" width="132" height="40" rx="8"/><rect x="448" y="137" width="5" height="40" rx="2.5" style="fill:var(--outcome)"/><text class="bl" x="517" y="155" text-anchor="middle">Outcome</text><text class="sub" x="517" y="169" text-anchor="middle">× handedness gate</text>
-<rect class="box" x="448" y="283" width="132" height="30" rx="8"/><rect x="448" y="283" width="5" height="30" rx="2.5" style="fill:var(--procedure)"/><text class="bl" x="517" y="302" text-anchor="middle">Procedure</text>
-<rect class="box" x="672" y="208" width="156" height="40" rx="9" style="fill:var(--accent-soft);stroke:var(--accent)"/><text class="bl" x="750" y="232" text-anchor="middle" style="fill:var(--accent)">Final score</text>
+<text class="w" x="626" y="287" text-anchor="middle">0.5</text>
+<rect class="box" x="20" y="18" width="150" height="28" rx="8"/><rect x="20" y="18" width="5" height="28" rx="2.5" style="fill:var(--outcome)"/><text class="bl" x="99" y="36" text-anchor="middle">Global resolution</text>
+<rect class="box" x="20" y="52" width="150" height="28" rx="8"/><rect x="20" y="52" width="5" height="28" rx="2.5" style="fill:var(--outcome)"/><text class="bl" x="99" y="70" text-anchor="middle">FSC-curve shape</text>
+<rect class="box" x="20" y="86" width="150" height="28" rx="8"/><rect x="20" y="86" width="5" height="28" rx="2.5" style="fill:var(--outcome)"/><text class="bl" x="99" y="104" text-anchor="middle">Local resolution</text>
+<rect class="box" x="20" y="120" width="150" height="28" rx="8"/><rect x="20" y="120" width="5" height="28" rx="2.5" style="fill:var(--outcome)"/><text class="bl" x="99" y="138" text-anchor="middle">Anisotropy (cFAR)</text>
+<rect class="box" x="20" y="170" width="150" height="28" rx="8"/><rect x="20" y="170" width="5" height="28" rx="2.5" style="fill:var(--outcome)"/><text class="bl" x="99" y="188" text-anchor="middle">Map–EMDB CC</text>
+<rect class="box" x="20" y="204" width="150" height="28" rx="8"/><rect x="20" y="204" width="5" height="28" rx="2.5" style="fill:var(--outcome)"/><text class="bl" x="99" y="222" text-anchor="middle">Map–EMDB FSC</text>
+<rect class="box" x="20" y="250" width="150" height="40" rx="8"/><rect x="20" y="250" width="5" height="40" rx="2.5" style="fill:var(--procedure)"/><text class="bl" x="99" y="266" text-anchor="middle">Tree completeness</text><text class="sub" x="99" y="280" text-anchor="middle">× completed gate</text>
+<rect class="box" x="20" y="306" width="150" height="28" rx="8"/><rect x="20" y="306" width="5" height="28" rx="2.5" style="fill:var(--procedure)"/><text class="bl" x="99" y="324" text-anchor="middle">Tree similarity</text>
+<rect class="box" x="20" y="358" width="150" height="28" rx="8"/><rect x="20" y="358" width="5" height="28" rx="2.5" style="fill:var(--procedure)"/><text class="bl" x="99" y="376" text-anchor="middle">Select-2D</text>
+<rect class="box" x="20" y="392" width="150" height="28" rx="8"/><rect x="20" y="392" width="5" height="28" rx="2.5" style="fill:var(--procedure)"/><text class="bl" x="99" y="410" text-anchor="middle">Particle picks</text>
+<rect class="box" x="232" y="68" width="140" height="30" rx="8"/><rect x="232" y="68" width="5" height="30" rx="2.5" style="fill:var(--outcome)"/><text class="bl" x="304" y="87" text-anchor="middle">Map quality</text>
+<rect class="box" x="232" y="184" width="140" height="34" rx="8"/><rect x="232" y="184" width="5" height="34" rx="2.5" style="fill:var(--outcome)"/><text class="bl" x="305" y="197" text-anchor="middle">Reference</text><text class="bl" x="305" y="210" text-anchor="middle">consistency</text>
+<rect class="box" x="232" y="280" width="140" height="30" rx="8"/><rect x="232" y="280" width="5" height="30" rx="2.5" style="fill:var(--procedure)"/><text class="bl" x="304" y="299" text-anchor="middle">Trajectory</text>
+<rect class="box" x="232" y="374" width="140" height="30" rx="8"/><rect x="232" y="374" width="5" height="30" rx="2.5" style="fill:var(--procedure)"/><text class="bl" x="304" y="393" text-anchor="middle">Interactive jobs</text>
+<rect class="box" x="448" y="122" width="132" height="40" rx="8"/><rect x="448" y="122" width="5" height="40" rx="2.5" style="fill:var(--outcome)"/><text class="bl" x="517" y="140" text-anchor="middle">Outcome</text><text class="sub" x="517" y="154" text-anchor="middle">× handedness gate</text>
+<rect class="box" x="448" y="327" width="132" height="30" rx="8"/><rect x="448" y="327" width="5" height="30" rx="2.5" style="fill:var(--procedure)"/><text class="bl" x="517" y="346" text-anchor="middle">Procedure</text>
+<rect class="box" x="672" y="222" width="156" height="40" rx="9" style="fill:var(--accent-soft);stroke:var(--accent)"/><text class="bl" x="750" y="246" text-anchor="middle" style="fill:var(--accent)">Final score</text>
 </svg>
-<figcaption style="color:var(--muted);font-size:13px;margin-top:6px">The full scoring tree. Map quality, reference consistency, and interactive jobs each combine their own subscores by weight; outcome = map quality + reference consistency (then × the handedness gate), procedure = trajectory + interactive jobs, and the two families combine 50/50 into the final score.</figcaption>
+<figcaption style="color:var(--muted);font-size:13px;margin-top:6px">The full scoring tree. Raw scores combine by weight into the named subscores, then into outcome and procedure, then 50/50 into the final score. Outcome is multiplied by the handedness gate; trajectory's tree completeness is gated by job completion. Select-2D is shown collapsed here — it is itself template + refine (0.50 each); see the Interactive jobs table.</figcaption>
 </figure>
+
+</details>
 
 <details class="gsec">
 <summary><h2>Technical details</h2></summary>
@@ -203,7 +229,7 @@ All four axes are read from the run's own two **half-maps** — the reconstructi
 <details class="gdet">
 <summary><h4>Reference consistency — vs the deposited map</h4></summary>
 
-The deposited map (EMD-6287) comes from the full dataset — 196 movies, ~50,000 particles — and reaches 2.8 Å, while each run uses a 20-movie subset that reconstructs to ~3.1 Å. A subset map cannot reach the full-data resolution no matter the technique, so the run is scored not against the raw 2.8 Å deposit but against a **resolution-matched structure**: the deposit low-pass filtered to the run's own resolution — the closest a subset run could come — computed under the same engine as the run.
+Because a 20-movie subset map cannot reach the full-data 2.8 Å of the deposit (EMD-6287), the run is scored not against the raw deposit but against a **resolution-matched structure** — the deposit low-pass filtered to the run's own ~3.1 Å, the closest a subset run could match — computed with the same software and masking pipeline applied to both maps.
 
 <figure style="margin:20px 0">
 <svg id="d-ceil" viewBox="0 0 760 226" role="img" aria-label="Reference-consistency comparison against a resolution-matched structure" style="max-width:100%;height:auto;display:block">
@@ -241,13 +267,13 @@ The deposited map (EMD-6287) comes from the full dataset — 196 movies, ~50,000
 ### Procedure subscores
 
 <details class="gdet">
-<summary><h4>Trajectory — completeness + reference similarity</h4></summary>
+<summary><h4>Trajectory — tree completeness + tree similarity</h4></summary>
 
-A cryo-EM reconstruction is a directed graph of processing jobs. **Completeness** asks whether the agent's graph is a *valid and sufficient* reconstruction, independent of matching any particular recipe. Every job is mapped to one of nine logical capabilities a single-particle reconstruction must cover — import, motion correction, CTF estimation, particle picking, extraction, 2-D classification, class curation, initial 3-D model, and 3-D refinement. The score is a hard gate (a *completed* 3-D refinement must be reachable from the imported movies — no credit for a graph that never yields a 3-D map) times `0.7·(capabilities covered / 9) + 0.3·(ordering constraints satisfied)`. Mapping to capabilities rather than exact job types lets a different-but-valid pipeline (say, a different picker) score full marks.
+A cryo-EM reconstruction is a directed graph of processing jobs. **Tree completeness** asks whether the agent's graph is a *valid and sufficient* reconstruction, independent of matching any particular recipe. Every job is mapped to one of nine logical capabilities a single-particle reconstruction must cover — import, motion correction, CTF (contrast-transfer-function) estimation, particle picking, extraction, 2-D classification, class curation, initial 3-D model, and 3-D refinement. It is governed by a **job-completion gate**: the score is 0 unless a *completed* 3-D refinement is reachable from the imported movies (no credit for a graph that never yields a 3-D map), and only completed jobs count toward coverage; otherwise it is `gate × [0.7·(capabilities covered / 9) + 0.3·(ordering constraints satisfied)]`, where ordering constraints are required precedences such as picking before extraction and extraction before 2-D classification. Mapping to capabilities rather than exact job types lets a different-but-valid pipeline (say, a different picker) score full marks.
 
-**Reference similarity** is the one place we compare to the literal tutorial recipe: the multiset overlap (Jaccard) of the agent's job types against the tutorial's, `1 − (extra + missing) / union`. A legitimately different pipeline scores below 1 here by design — completeness, weighted higher, is what protects it.
+**Tree similarity** is the one place we compare to the literal tutorial recipe: the multiset overlap (Jaccard) of the agent's job types against the tutorial's, `1 − (extra + missing) / union`. A legitimately different pipeline scores below 1 here by design — tree completeness, weighted higher, is what protects it.
 
-*Example.* A run that imports movies → corrects motion → estimates CTF → picks → extracts → classifies in 2-D → curates → builds an ab-initio model → refines covers all nine capabilities in a valid order → completeness **1.0**. If it skipped a couple of optional denoise/junk-removal jobs the tutorial used, those count as "missing" in the Jaccard overlap and pull reference similarity below 1.0, while completeness stays 1.0 (optional polish is never required).
+*Example.* A run that imports movies → corrects motion → estimates CTF → picks → extracts → classifies in 2-D → curates → builds an initial 3-D (ab-initio) model → refines covers all nine capabilities in a valid order → tree completeness **1.0**. If it skipped a couple of optional denoise/junk-removal jobs the tutorial used, those count as "missing" in the Jaccard overlap and pull tree similarity below 1.0, while tree completeness stays 1.0 (optional polish is never required).
 
 </details>
 
