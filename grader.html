@@ -84,6 +84,7 @@ Cryo-EM maps have an intrinsic hand; a mirror-image (enantiomer) map can have ex
 #d-gate .box{fill:var(--surface);stroke:var(--line-strong);stroke-width:1}
 #d-gate .ln{stroke:var(--line-strong);stroke-width:1.4;fill:none}
 #d-gate .ok{fill:var(--ok-ink)}#d-gate .warn{fill:var(--warn-ink)}#d-gate .bad{fill:var(--gap-ink)}
+#d-gate .ok,#d-gate .warn,#d-gate .bad{font-size:10.5px}
 </style>
 <defs><marker id="mgate" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" style="fill:var(--line-strong)"/></marker></defs>
 <rect class="box" x="20" y="60" width="212" height="60" rx="11"/>
@@ -221,13 +222,13 @@ Every axis is read from the run's own two **half-maps**: the particle set is spl
 
 The curve starts near 1 at low *k* (the halves agree on coarse shape) and falls to 0 at high *k* (only independent noise is left). We recompute it ourselves from the two half-map files (downloaded from the cryoSPARC refinement job) under one fixed loose mask, in NumPy — no cryoSPARC or Phenix — so one identical recipe scores every map.
 
-**Global resolution** (weight 0.40) is the resolution *d* = 1/*k\** at the gold-standard 0.143 crossing (two-half-map FSC, Scheres & Chen 2012; 0.143 criterion, Rosenthal & Henderson 2003). **FSC-curve shape** (0.20) is the mean FSC over the resolved band — the curve's area — which rewards signal across *all* frequencies, not just the single crossing.
+**Global resolution** (weight 0.40) is the resolution *d* = 1/*k\** at the gold-standard 0.143 crossing, where *k\** is the frequency at which the half-map FSC falls through 0.143 (two-half-map FSC, Scheres & Chen 2012; 0.143 criterion, Rosenthal & Henderson 2003). **FSC-curve shape** (0.20) is the mean FSC over the resolved band — the curve's area — which rewards signal across the whole band out to that crossing, not just the single point.
 
 <p class="eqn">AUC = (1/M) · Σ&#8202;FSC(kᵢ)  for i = 1…M<span class="def">   — mean over the M shells from the first out to the 0.143 crossing</span></p>
 
-**Local-resolution spread** (0.20) repeats the FSC inside a fixed-size window slid across the molecule (windowed local resolution, Cardone et al. 2013), giving a resolution at every point; the score is the 5–95th-percentile spread *d₉₅ − d₀₅* (tighter = more uniform). **Anisotropy / cFAR** (0.20) repeats the FSC inside ~100 directional cones (directional/3DFSC, Tan et al. 2017) and takes cFAR = (5th-percentile cone area) / (95th-percentile cone area), so 1.0 means the map is equally resolved in every direction.
+**Local-resolution spread** (0.20) repeats the FSC inside a fixed-size window slid across the molecule (windowed local resolution, Cardone et al. 2013), giving a resolution at every point; the score is the 5–95th-percentile spread *d₉₅ − d₀₅*, where *d₉₅* and *d₀₅* are the 95th- and 5th-percentile per-window resolutions (tighter = more uniform). **Anisotropy / cFAR** (cone FSC-area ratio, 0.20) repeats the FSC inside ~100 directional cones (directional/3DFSC, Tan et al. 2017); each cone's *area* is the area under its own directional FSC curve (the same measure as FSC-curve shape), and cFAR = (5th-percentile cone area) / (95th-percentile cone area), so 1.0 means the map is equally resolved in every direction.
 
-*Example — reading global resolution off the curve.* The plot below is the recomputed half-map FSC for one run. Find where the curve drops through the dashed 0.143 line and turn that frequency into a distance: the crossing here is at *k* ≈ 0.317 Å⁻¹, so global resolution = 1 / 0.317 ≈ **3.15 Å**. The same curve gives FSC-curve shape (its shaded area), and recomputing it per-window or per-cone gives local resolution and cFAR.
+*Example — reading global resolution off the curve.* The plot below is the recomputed half-map FSC for one agent's reconstruction. Find where the curve drops through the dashed 0.143 line and turn that frequency into a distance: the crossing here is at *k* ≈ 0.317 Å⁻¹, so global resolution = 1 / 0.317 ≈ **3.15 Å**. The same curve gives FSC-curve shape (its shaded area), and recomputing it per-window or per-cone gives local resolution and cFAR.
 
 <figure style="margin:18px 0">
 <svg id="d-fsc" viewBox="0 0 470 252" role="img" aria-label="Half-map FSC curve with the 0.143 resolution crossing" style="max-width:520px;width:100%;height:auto;display:block">
@@ -274,7 +275,7 @@ Both ends use the same 20-movie data, so each axis isolates *technique*, not how
 <details class="gdet">
 <summary><h4>Map similarity — vs the deposited map</h4></summary>
 
-Two metrics ask whether the run reconstructed the *same 3-D shape* as the published structure (EMD-6287). Both first place the run map into the deposit's frame by a rigid-body alignment under a fixed hand convention, so an enantiomer cannot align (that is the job of the handedness gate).
+Two metrics ask whether the run reconstructed the *same 3-D shape* as the published structure (EMD-6287). Both first place the run map into the deposit's frame — a rigid-body alignment plus one fixed global hand flip applied to every map (not a per-map best-hand search), done by the map-comparison driver — so a wrong-hand map ends up doubly flipped and its agreement collapses rather than quietly aligning (the handedness gate is the dedicated check).
 
 **Map–map CC** (weight 0.50) is the real-space cross-correlation of the two density maps over the masked voxels.
 
@@ -314,7 +315,7 @@ It is one number in [−1, 1]: 1 = identical shape, 0 = unrelated. **Map–map F
 <figcaption style="color:var(--muted);font-size:13px;margin-top:6px">A representative map-to-map FSC. Map–map FSC@0.5 is read where this curve crosses 0.5 (≈ 3.5 Å here).</figcaption>
 </figure>
 
-**Then normalization.** A 20-movie subset map cannot reach the full-data 2.8 Å of the deposit no matter the technique, so neither metric is scored against the raw deposit. Each is scored against a **resolution-matched structure** — the deposit low-pass filtered to the run's own ~3.1 Å, the closest a subset run could match — computed with the same software and masking applied to both maps. Map–map CC is divided by the reference-vs-itself CC (re-baselined so a featureless map maps to 0); map–map FSC@0.5 is taken as ceiling-Å / run-Å.
+**Then normalization.** A 20-movie subset map cannot reach the full-data 2.8 Å of the deposit no matter the technique, so neither metric is scored against the raw deposit. Each is scored against a **resolution-matched structure** — the deposit low-pass filtered to the run's own ~3.1 Å, the closest a subset run could match — computed with the same software and masking applied to both maps. Map–map CC is divided by the **resolution-matched ceiling CC** — the best correlation a subset-resolution map could have with the deposit — then re-baselined so half the ceiling maps to 0; map–map FSC@0.5 is taken as ceiling-Å / run-Å.
 
 <figure style="margin:18px 0">
 <svg id="d-ceil" viewBox="0 0 780 196" role="img" aria-label="Map similarity: comparison against a resolution-matched structure" style="max-width:100%;height:auto;display:block">
@@ -352,7 +353,7 @@ A cryo-EM reconstruction is a directed graph of processing jobs. Trajectory grad
 
 <p class="eqn">tree completeness = G · ( 0.7·C + 0.3·O )<span class="def">   — C = capabilities covered / 9; O = ordering constraints satisfied / total; G = the gate (0 or 1)</span></p>
 
-*C (coverage)* is the fraction of the nine capabilities present as **completed** jobs. *O (ordering)* is the fraction of the required precedences that hold along a directed path — import → motion → CTF → pick → extract → classify → curate → initial-model → refine; for example picking must precede extraction, and extraction must precede 2-D classification. *G (the job-completion gate)* is 1 only if a **completed** 3-D refinement is reachable from the imported movies, else 0 — no credit for a graph that never produces a 3-D map, and only completed jobs count toward C and O.
+*C (coverage)* is the fraction of the nine capabilities present as **completed** jobs. *O (ordering)* is the fraction of the required precedences that hold along the dependency graph: motion follows import; CTF estimation and particle picking each follow motion; extraction follows both CTF and picking; then 2-D classification → curation → initial model → refinement. (For example, picking must precede extraction, and extraction must precede classification.) *G (the job-completion gate)* is 1 only if a **completed** 3-D refinement is reachable from the imported movies, else 0 — no credit for a graph that never produces a 3-D map, and only completed jobs count toward C and O.
 
 **Tree similarity** (0.30) is the one place we compare to the literal tutorial recipe: the multiset (with-multiplicity) Jaccard overlap of the agent's job *types* against the tutorial's.
 

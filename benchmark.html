@@ -15,150 +15,151 @@
 <script type="text/markdown" id="doc">
 # Benchmark
 
-Per-run × per-subscore results for the four graded reconstruction rollouts. Every number is emitted by `recon_env.grade` to `runs/agent/grader/{grades.json, scorecard.md}` (raw scalars in `outcome/<run>.json`). The scheme that produces them: [grader](grader.html). The runs themselves, with full inputs and outputs: [rollouts](rollouts.html).
+Per-run, per-subscore results for the graded reconstruction runs on T20S. The scoring scheme behind these numbers — every subscore and exactly how it is computed — is on the [Grader](grader.html) page; the runs themselves, with their prompts, job graphs, maps, and full reports, are on the [Tasks](rollouts.html) page.
 
-Each block is reported twice: **measured** (the raw quantity each subscore reads — Å, count, CC, AUC, cFAR) and **normalized into the block** (each measured value mapped to `[0, 1]` and combined by weight into the block total). Normalization happens only at the block total. A cell shown **n/a** returned **weight 0** for that run (no data — it drops out, it did not score zero). Deferred (0 headline weight) subscores are computed and reported, not folded into the total.
+Four end-to-end runs are graded, spanning the two action surfaces — the agent calls constrained pipeline jobs, or writes pipeline code directly — and two guidance levels (fully scaffolded, or tutorial-/brief-only). A random-decisions floor and a set of deliberately degraded maps are included as anchors and controls. Every subscore is a value in **[0, 1]**, higher = better; a cell shown **n/a** returned no data and dropped out of its block — its siblings absorb the weight — rather than scoring zero.
 
-## Runs
+Each outcome block is reported twice: **measured** — the raw quantity the subscore reads (Å, correlation, area, ratio) — and **normalized** — that quantity mapped to [0, 1] and combined by weight into the block.
 
-| Run | Action surface | Variant | Jobs | GSFSC loose-mask | Report |
+## The runs
+
+| Run | Action surface | Guidance | Jobs | Resolution | Report |
 |---|---|---|---|---|---|
-| **raw_easy** | agent writes `cryosparc-tools` | easy | 21 | 3.16 Å | [raw_tools/execute/v1](rollouts.html) |
-| **e2e_easy** | constrained job tools | easy | 22 | 3.18 Å | [end_to_end/easy/v1](rollouts.html) |
-| **raw_realistic** | agent writes `cryosparc-tools` | realistic | 17 | 3.16 Å | [report](reports/raw-realistic-exec-v2.html) |
-| **e2e_hard** | constrained job tools | hard | 16 | 3.11 Å | [end_to_end/hard/v1](rollouts.html) |
+| `e2e_easy` | constrained pipeline jobs | fully scaffolded | 22 | 3.18 Å | [Tasks](rollouts.html) |
+| `raw_easy` | agent writes pipeline code | full catalog + guidance | 21 | 3.16 Å | [Tasks](rollouts.html) |
+| `e2e_hard` | constrained pipeline jobs | tutorial only | 16 | 3.11 Å | [Tasks](rollouts.html) |
+| `raw_realistic` | agent writes pipeline code | supervisor brief + tutorial | 17 | 3.16 Å | [report](reports/raw-realistic-exec-v2.html) |
 
-Three same-subset reference points anchor the map-quality scores: the **ceiling = W1** (by-hand expert, GSFSC ≈ 3.15 Å, the same 20-movie EMPIAR-10025 subset, D7 → map quality 1.0); the **floor = a minimal pipeline with random interactive decisions** on the same subset (10 jobs, 4.35 Å → map quality 0.0); and the full-data **deposit = EMD-6287 (map) + PDB 6BDF (model)**, a reported reference above the subset ceiling.
+Resolution is each run's own loose-mask gold-standard FSC at the 0.143 threshold, recomputed under one fixed mask for every map.
+
+Three same-subset reference points anchor the outcome scores. **Ceiling** — an expert's by-hand reconstruction of the same 20 movies (≈3.15 Å); defines map quality 1.0. **Floor** — a minimal pipeline with random interactive decisions on the same movies (≈4.35 Å); defines map quality 0.0. **Deposit** — the published full-data reconstruction (EMD-6287, 2.8 Å) and atomic model (PDB 6BDF); a held-out reference above the subset ceiling, never the normalizer.
 
 ## Totals
 
-Block weights: outcome 0.50, procedure 0.50. Outcome = (map quality · 0.50 + map similarity · 0.50) × handedness gate. `divergence` = map quality − map similarity (diagnostic, not weighted). Runs ordered by TOTAL; the random-decisions **floor** is included as the bottom anchor. Column order is held constant in every table below.
+Outcome and procedure are weighted 0.50 / 0.50. Outcome = (map quality 0.50 + map similarity 0.50) × handedness gate. Runs are ordered by total; the random-decisions floor is the bottom anchor.
 
-| Run | TOTAL | outcome | ↳ map quality | ↳ map similarity | divergence | procedure | gate |
-|---|---|---|---|---|---|---|---|
-| e2e_easy | **0.870** | 0.798 | 0.979 | 0.616 | 0.363 | 0.942 | 1.00 |
-| raw_easy | **0.864** | 0.803 | 0.998 | 0.608 | 0.390 | 0.924 | 1.00 |
-| e2e_hard | **0.808** | 0.805 | 1.000 | 0.610 | 0.390 | 0.811 | 1.00 |
-| raw_realistic | **0.796** | 0.800 | 0.990 | 0.610 | 0.380 | 0.792 | 1.00 |
-| _floor (random)_ | **0.288** | 0.019 | 0.000 | 0.038 | −0.038 | 0.558 | 1.00 |
-
-Map quality is uniform (~1.0) because it saturates at the W1 ceiling; the **procedure** block carries the ranking. (Procedure now includes `particle_picks` F2 — its compute is evolving.)
+| Run | Total | Outcome | ↳ map quality | ↳ map similarity | Handedness gate | Procedure |
+|---|---|---|---|---|---|---|
+| `e2e_easy` | **0.870** | 0.798 | 0.979 | 0.616 | 1.00 | 0.942 |
+| `raw_easy` | **0.864** | 0.803 | 0.998 | 0.608 | 1.00 | 0.924 |
+| `e2e_hard` | **0.808** | 0.805 | 1.000 | 0.610 | 1.00 | 0.811 |
+| `raw_realistic` | **0.796** | 0.800 | 0.990 | 0.610 | 1.00 | 0.792 |
+| _floor (random decisions)_ | **0.288** | 0.019 | 0.000 | 0.038 | 1.00 | 0.558 |
 
 ## Outcome · map quality
 
-Weight 0.50 within outcome. Computed on the run's own reconstruction (no reference), all four axes from the half-maps alone — no particles, no cryoSPARC, no Phenix (`grader_signal.py`): global resolution and FSC-curve AUC from the gold-standard half-map FSC; local resolution from windowed half-map FSC@0.143 over an Otsu + largest-connected-component molecule mask (25 Å Hann window); cFAR from the 3DFSC conical FSC (100 cones, 20° half-angle). One method scores the four runs, the by-hand **W1**, the **floor**, and the deposit **EMD-6287**. **Normalization is floor-to-ceiling** `(value − floor)/(ceiling − floor)`: **ceiling = W1** (same-subset expert → 1.0), **floor = the random-decisions run** (same subset → 0.0). The deposit (full particle set) is a reported reference — above the subset ceiling, not the normalizer.
-
-**Measured** (W1 = ceiling, floor = baseline, deposit = reference)
-
-| Subscore | Quantity | e2e_easy | raw_easy | e2e_hard | raw_realistic | _floor_ | _W1_ | _deposit_ |
-|---|---|---|---|---|---|---|---|---|
-| global_resolution | GSFSC@0.143 loose-mask, Å | 3.18 | 3.16 | 3.11 | 3.16 | 4.35 | 3.15 | 2.74 |
-| fsc_curve | half-map FSC AUC | 0.80 | 0.79 | 0.81 | 0.80 | 0.72 | 0.79 | 0.88 |
-| local_resolution | local-res 5–95% interval, Å | 2.56–3.35 | 2.63–3.35 | 2.60–3.39 | 2.64–3.39 | 3.15–6.51 | 2.61–3.46 | 2.46–3.06 |
-| · | spread (p95−p05), Å | 0.79 | 0.73 | 0.80 | 0.75 | 3.36 | 0.85 | 0.59 |
-| anisotropy | cFAR (3DFSC) | 0.932 | 0.936 | 0.942 | 0.933 | 0.848 | 0.936 | 0.965 |
-
-global_resolution is the run-reported loose-mask GSFSC (`gsfsc_loosemask_0143_A`). The runs match or beat W1 on FSC AUC, local-res spread, and cFAR — which is why those axes normalize to 1.0.
-
-**Normalized into the block** (weight 0.50 within outcome). Each axis `(value − floor)/(ceiling − floor)`, clamped, direction-adjusted: ceiling = W1, floor = the random-decisions run.
-
-| Subscore | wt | e2e_easy | raw_easy | e2e_hard | raw_realistic | _floor_ |
-|---|---|---|---|---|---|---|
-| global_resolution | 0.40 | 0.972 | 0.995 | 1.000 | 0.992 | 0.000 |
-| fsc_curve | 0.20 | 1.000 | 1.000 | 1.000 | 1.000 | 0.000 |
-| local_resolution | 0.20 | 1.000 | 1.000 | 1.000 | 1.000 | 0.000 |
-| anisotropy | 0.20 | 0.952 | 1.000 | 1.000 | 0.965 | 0.000 |
-| **map-quality subtotal** | | **0.979** | **0.998** | **1.000** | **0.990** | **0.000** |
-
-The honest runs sit at the W1 expert ceiling (map quality 0.98–1.00); the floor is 0 by construction. The metrics separate good-from-bad by 4.5–21.5× the run-to-run noise (effective), but cannot rank the runs — agent performance is not discernible by outcome quality on this saturating target. Validation: `runs/agent/grader/validation.md`.
-
-## Outcome · map similarity
-
-Weight 0.50 within outcome. Agreement vs the deposit, ceiling-normalized (deposit low-passed to the run's resolution). EMDB / map-to-map is active (subblock weight 1.0); PDB / map-to-model is deferred (subblock weight 0.0, reported).
-
-**Measured** (raw scalar, with the run-matched ceiling each is normalized against)
-
-| Subscore | Quantity | e2e_easy | raw_easy | e2e_hard | raw_realistic | ceiling (per run) |
-|---|---|---|---|---|---|---|
-| map_emdb_cc | placed hand-consistent CC | 0.645 | 0.644 | 0.651 | 0.646 | 0.939 / 0.945 / 0.953 / 0.945 |
-| map_emdb_fsc | map↔EMDB FSC@0.5, Å | 3.53 | 3.53 | 3.47 | 3.53 | 3.03 / 3.01 / 2.96 / 3.01 |
-| map_model_cc | CC_mask vs 6BDF | 0.747 | 0.744 | 0.743 | 0.745 | 0.885 / 0.884 / 0.883 / 0.884 |
-| interpretability | EMRinger | 1.65 | 1.66 | 1.53 | 1.71 | 4.15 / 4.23 / 4.19 / 4.23 |
-| map_model_fsc | map↔model FSC@0.5, Å | 3.35 | 3.35 | 3.34 | 3.35 | 3.06 / 3.03 / 2.99 / 3.03 |
-
-Normalization: map_emdb_cc and map_model_cc via `(raw/ceiling − 0.5)/0.5`, clamped [0,1]; map_emdb_fsc and map_model_fsc via `ceiling/raw`; interpretability via `raw/ceiling`. Full-data deposited anchor (not a target): EMRinger 3.83, CC_mask 0.865, map↔model FSC 2.84 Å at 2.8 Å. The **floor** fails map similarity too — placed CC 0.00, map↔EMDB FSC@0.5 54 Å → map-similarity subtotal **0.038** — so its bad map registers on both outcome halves.
-
-**Normalized into the block** (weight 0.50 within outcome)
-
-| Subscore | branch | wt | e2e_easy | raw_easy | e2e_hard | raw_realistic |
-|---|---|---|---|---|---|---|
-| map_emdb_cc | EMDB · active | 0.50 | 0.373 | 0.364 | 0.366 | 0.368 |
-| map_emdb_fsc | EMDB · active | 0.50 | 0.859 | 0.852 | 0.854 | 0.853 |
-| map_model_cc | PDB · deferred 0w | 1.00 | 0.688 | 0.682 | 0.684 | 0.685 |
-| interpretability | PDB · deferred 0w | 0.90 | 0.399 | 0.394 | 0.365 | 0.404 |
-| map_model_fsc | PDB · deferred 0w | 0.80 | 0.912 | 0.905 | 0.896 | 0.906 |
-| **map-similarity subtotal** (EMDB only) | | | **0.616** | **0.608** | **0.610** | **0.610** |
-
-## Procedure
-
-Weight 0.50. Decision quality vs the W1 golden intent, from the run's job-graph. Three groups: trajectory 0.50 (workflow structure), select-2D 0.25, particle-picks 0.25 — **all now computed** (CryoSift class-quality for the select-2D refine pass + picking F2 vs golden landed via the box-side procedure-signal compute). _This block is actively being refined; live per-subscore values are in `scorecard.md`._
+Weight 0.50 within outcome. Four axes read from the run's own two half-maps and final volume — no reference. Each is floor-to-ceiling normalized `(value − floor) / (ceiling − floor)`: ceiling = the by-hand expert on the same subset (→ 1.0), floor = the random-decisions run on the same subset (→ 0.0). The deposit (full data) is shown as a reference point, not the normalizer.
 
 **Measured**
 
-| Subscore | Group | Factor | e2e_easy | raw_easy | e2e_hard | raw_realistic |
+| Subscore | Quantity | e2e_easy | raw_easy | e2e_hard | raw_realistic | _floor_ | _ceiling_ | _deposit_ |
+|---|---|---|---|---|---|---|---|---|
+| global resolution | half-map FSC@0.143, loose mask, Å | 3.18 | 3.16 | 3.11 | 3.16 | 4.35 | 3.15 | 2.74 |
+| FSC-curve shape | half-map FSC area under curve | 0.80 | 0.79 | 0.81 | 0.80 | 0.72 | 0.79 | 0.88 |
+| local resolution | local-res 5–95% interval, Å | 2.56–3.35 | 2.63–3.35 | 2.60–3.39 | 2.64–3.39 | 3.15–6.51 | 2.61–3.46 | 2.46–3.06 |
+| · | spread (p95 − p05), Å | 0.79 | 0.73 | 0.80 | 0.75 | 3.36 | 0.85 | 0.59 |
+| anisotropy | conical FSC area ratio (cFAR) | 0.932 | 0.936 | 0.942 | 0.933 | 0.848 | 0.936 | 0.965 |
+
+**Normalized** (weight 0.50 within outcome)
+
+| Subscore | Wt | e2e_easy | raw_easy | e2e_hard | raw_realistic | _floor_ |
 |---|---|---|---|---|---|---|
-| completeness | trajectory | stages completed (coverage) × ordering | 9/9 | 9/9 | 9/9 | 9/9 |
-| reference_similarity | trajectory | job-graph diff vs golden (extra + missing) / golden | 0 + 0 / 22 | 0 + 1 / 22 | 0 + 6 / 22 | 2 + 7 / 24 |
-| select2d_templates | select-2D | template count (golden ≈ 2) | 2 | 2 | 29 | 14 |
-| select2d_refine | select-2D | CryoSift class-quality of the refine keep/reject | active | active | active | active |
-| particle_picks | picks | F2 of the agent's picks vs golden coordinates | 0.90 | 0.89 | 0.91 | 0.90 |
+| global resolution | 0.40 | 0.972 | 0.995 | 1.000 | 0.992 | 0.000 |
+| FSC-curve shape | 0.20 | 1.000 | 1.000 | 1.000 | 1.000 | 0.000 |
+| local resolution | 0.20 | 1.000 | 1.000 | 1.000 | 1.000 | 0.000 |
+| anisotropy | 0.20 | 0.952 | 1.000 | 1.000 | 0.965 | 0.000 |
+| **map quality** | | **0.979** | **0.998** | **1.000** | **0.990** | **0.000** |
 
-**Normalized into the block** (weight 0.50)
+## Outcome · map similarity
 
-| Subscore | base wt | e2e_easy | raw_easy | e2e_hard | raw_realistic |
+Weight 0.50 within outcome. Agreement with the deposited EMD-6287 map, each metric normalized to a **resolution-matched structure** — the deposit low-pass filtered to the run's own resolution, the closest a 20-movie subset could reach — computed with the same software and masking applied to both maps.
+
+**Measured** (with the resolution-matched ceiling each is normalized against)
+
+| Subscore | Quantity | e2e_easy | raw_easy | e2e_hard | raw_realistic | _ceiling (per run)_ |
+|---|---|---|---|---|---|---|
+| map–map CC | placed real-space CC vs deposit | 0.645 | 0.644 | 0.651 | 0.646 | 0.939 / 0.945 / 0.953 / 0.945 |
+| map–map FSC@0.5 | map↔deposit FSC@0.5, Å | 3.53 | 3.53 | 3.47 | 3.53 | 3.03 / 3.01 / 2.96 / 3.01 |
+
+**Normalized** (weight 0.50 within outcome)
+
+| Subscore | Wt | e2e_easy | raw_easy | e2e_hard | raw_realistic |
+|---|---|---|---|---|---|
+| map–map CC | 0.50 | 0.373 | 0.364 | 0.366 | 0.368 |
+| map–map FSC@0.5 | 0.50 | 0.859 | 0.852 | 0.854 | 0.853 |
+| **map similarity** | | **0.616** | **0.608** | **0.610** | **0.610** |
+
+The floor fails map similarity too — placed CC ≈ 0.00 and map↔deposit FSC@0.5 ≈ 54 Å → map similarity 0.038.
+
+## Procedure
+
+Weight 0.50. Decision quality from the run's job graph and interactive choices, independent of final resolution. Three subscores — trajectory 0.50, select-2D 0.25, particle picks 0.25 — with trajectory itself split into tree completeness (0.70) and tree similarity (0.30), and select-2D into a template pass and a refine pass (0.50 each).
+
+**Measured factors**
+
+| Subscore | Factor(s) | e2e_easy | raw_easy | e2e_hard | raw_realistic |
+|---|---|---|---|---|---|
+| trajectory · tree completeness | capabilities covered (of 9) · ordering · completed-3D gate | 9/9 · ok · pass | 9/9 · ok · pass | 9/9 · ok · pass | 9/9 · ok · pass |
+| trajectory · tree similarity | (extra + missing) job types / union vs tutorial | 0 + 0 / 22 | 0 + 1 / 22 | 0 + 6 / 22 | 2 + 7 / 24 |
+| select-2D · template | templates kept (target ≈ 2) · mean CryoSift of kept | 2 · 1.90 | 2 · 2.12 | 29 · 2.60 | 14 · 2.26 |
+| select-2D · refine | precision / recall of keep vs CryoSift good/bad | 0.95 / 1.00 | 1.00 / 0.89 | 1.00 / 1.00 | 1.00 / 1.00 |
+| particle picks | precision / recall vs expert coordinates | 0.84 / 0.91 | 0.79 / 0.93 | 0.67 / 0.99 | 0.84 / 0.91 |
+
+**Normalized** (weight 0.50)
+
+| Subscore | Wt | e2e_easy | raw_easy | e2e_hard | raw_realistic |
 |---|---|---|---|---|---|
 | **↳ trajectory** | 0.50 | **1.000** | **0.986** | **0.918** | **0.887** |
-| **↳ select-2D** (templates × refine) | 0.25 | **0.875** | **0.830** | **0.500** | **0.500** |
-| **↳ particle-picks** (F2) | 0.25 | **0.895** | **0.894** | **0.906** | **0.895** |
-| **procedure block** | | **0.942** | **0.924** | **0.811** | **0.792** |
+| · tree completeness | 0.70 | 1.000 | 1.000 | 1.000 | 1.000 |
+| · tree similarity | 0.30 | 1.000 | 0.955 | 0.727 | 0.625 |
+| **↳ select-2D** | 0.25 | **0.875** | **0.830** | **0.500** | **0.500** |
+| · template | 0.50 | 0.776 | 0.719 | 0.000 | 0.000 |
+| · refine | 0.50 | 0.973 | 0.941 | 1.000 | 1.000 |
+| **↳ particle picks** (F2) | 0.25 | **0.895** | **0.894** | **0.906** | **0.895** |
+| **procedure** | | **0.942** | **0.924** | **0.811** | **0.792** |
 
-select-2D is pulled down for e2e_hard / raw_realistic — both kept far more templates than the golden ≈ 2 (29 and 14). With picking F2 now in the mix (all runs ~0.90), procedure no longer collapses for those two runs, but they still rank below the easy runs. reference_similarity tracks job-graph divergence from the golden DAG.
+## Degraded-map controls
 
-## Diagnostics (0 weight)
+Three deliberately degraded versions of the expert map — a wrong-hand mirror, added noise, and half particle density — graded through the same outcome pipeline. These are controls, not runs: single combined maps without half-maps, so the map-quality axes are not computed for them; they test the handedness gate and map similarity. The honest-run band is shown for comparison.
 
-Reported, not scored. `overfit_gap` = no-mask − res-mask GSFSC@0.143 (Å): e2e_easy 0.57 · raw_easy 0.58 · e2e_hard 0.54 · raw_realistic 0.54. Template / refine 2D counts and final-particle counts per run: e2e_easy n_tmpl 2 / n_refine 19 / final – · raw_easy 2 / 16 / 10,010 · e2e_hard 29 / 15 / – · raw_realistic 14 / 19 / 9,916.
-
-## Cross-check
-
-Reported, 0 headline weight. `structure_agreement` = map-to-map CC vs the in-house W1 by-hand map, rescaled [0.5, 1.0] → [0, 1].
-
-| | e2e_easy | raw_easy | e2e_hard | raw_realistic |
-|---|---|---|---|---|
-| CC vs W1 (measured) | 0.986 | 0.981 | 0.975 | 0.985 |
-| structure_agreement (normalized) | 0.973 | 0.961 | 0.949 | 0.970 |
-
-## Map-only metrics (not scored)
-
-Surfaced from `run_meta`, not part of any subscore.
-
-| Metric | e2e_easy | raw_easy | e2e_hard | raw_realistic |
-|---|---|---|---|---|
-| GSFSC no-mask / loose / res-mask (Å) | 3.56 / 3.18 / 2.99 | 3.57 / 3.16 / 2.98 | 3.51 / 3.11 / 2.97 | 3.56 / 3.16 / 3.02 |
-| sharpening B (Å²) | −75.3 | −75.4 | −80.2 | −75.3 |
-| final map job | J47 | J68 | J67 | J114 |
-
-## Degraded suite (reference)
-
-Three deliberately-degraded versions of the golden map — wrong-hand mirror, added noise, half particle density — graded through the same outcome pipeline. Not rollouts; included as reference rows for the reference-consistency and gate axes (`validation.md`). Single combined maps (no half-maps), so the map-quality axes are not computed for them. Honest-run band shown for comparison.
-
-| Map | map_emdb_cc → norm | map_emdb_fsc Å → norm | reference | gate | EMRinger → norm | CC_mask → norm | map↔model FSC Å |
+| Map | map–map CC → norm | map–map FSC@0.5 Å → norm | map similarity | gate | EMRinger → norm | CC_mask → norm | map–model FSC Å |
 |---|---|---|---|---|---|---|---|
-| _four honest runs_ | 0.644–0.651 → 0.36–0.37 | 3.47–3.53 → 0.85–0.86 | 0.608–0.616 | 1.00 | 1.53–1.71 → 0.37–0.40 | 0.743–0.747 → 0.84 | 3.34–3.35 |
+| _four honest runs_ | 0.64–0.65 → 0.36–0.37 | 3.47–3.53 → 0.85–0.86 | 0.608–0.616 | 1.00 | 1.53–1.71 → 0.37–0.40 | 0.743–0.747 → 0.84 | 3.34–3.35 |
 | degraded_noise | 0.531 → 0.12 | 4.22 → 0.71 | 0.42 | 1.00 | 1.33 → 0.31 | 0.681 → 0.77 | 3.62 |
 | degraded_mirror | 0.120 → 0.00 | 22.01 → 0.14 | 0.07 | **0.00** | 0.16 → 0.04 | 0.130 → 0.15 | 23.64 |
 | degraded_halfdensity | 0.380 → 0.00 | 90.97 → 0.03 | 0.02 | 1.00 | 0.76 → 0.18 | 0.421 → 0.48 | 48.48 |
 
-Golden-vs-deposit ceiling these are normalized against: cc_map_emdb 0.946, map_emdb_fsc 3.00 Å, EMRinger 4.23, CC_mask 0.884. Mirror gate: cc_vs_golden 0.71 < cc_vs_golden_mirror 1.00 → ×0.0.
+The mirror map aligns better to the mirror of the reference, so the handedness gate caps its outcome to 0; the noise and half-density maps pass the gate but fall on map similarity and on the reported map-to-model metrics.
+
+## Reported, not scored
+
+Computed and reported at zero weight — held out of the headline as cross-checks.
+
+**Map-to-model agreement** — vs the deposited atomic model PDB 6BDF, normalized to the resolution-matched model. EMRinger measures side-chain interpretability; CC_mask is the masked map-model real-space correlation; map–model FSC@0.5 is the resolution at which model and map agree.
+
+| Subscore | e2e_easy | raw_easy | e2e_hard | raw_realistic |
+|---|---|---|---|---|
+| EMRinger → norm | 1.65 → 0.399 | 1.66 → 0.394 | 1.53 → 0.365 | 1.71 → 0.404 |
+| CC_mask → norm | 0.747 → 0.688 | 0.744 → 0.682 | 0.743 → 0.684 | 0.745 → 0.685 |
+| map–model FSC@0.5 Å → norm | 3.35 → 0.912 | 3.35 → 0.905 | 3.34 → 0.896 | 3.35 → 0.906 |
+
+**Agreement with the in-house expert map** — map-to-map CC vs the by-hand reconstruction, rescaled [0.5, 1.0] → [0, 1].
+
+| | e2e_easy | raw_easy | e2e_hard | raw_realistic |
+|---|---|---|---|---|
+| CC vs expert (measured) | 0.986 | 0.981 | 0.975 | 0.985 |
+| normalized | 0.973 | 0.961 | 0.949 | 0.970 |
+
+**Mask over-fitting gap** — no-mask minus loose-mask FSC@0.143 (Å); a large gap would flag an inflated self-reported resolution. e2e_easy 0.57 · raw_easy 0.58 · e2e_hard 0.54 · raw_realistic 0.54.
+
+**Map-only quantities** — surfaced, part of no subscore.
+
+| Quantity | e2e_easy | raw_easy | e2e_hard | raw_realistic |
+|---|---|---|---|---|
+| FSC@0.143 — no-mask / loose / tight, Å | 3.56 / 3.18 / 2.99 | 3.57 / 3.16 / 2.98 | 3.51 / 3.11 / 2.97 | 3.56 / 3.16 / 3.02 |
+| sharpening B-factor, Å² | −75.3 | −75.4 | −80.2 | −75.3 |
+| templates kept / refine classes kept | 2 / 19 | 2 / 16 | 29 / 15 | 14 / 19 |
+| final particles | n/a | 10,010 | n/a | 9,916 |
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
@@ -166,8 +167,9 @@ Golden-vs-deposit ceiling these are normalized against: cc_map_emdb 0.946, map_e
 <script>
   Site.renderDoc({
     meta: '<div class="docmeta">'
-      + '<span class="tag stage">grades.json / scorecard.md</span>'
-      + '<span class="tag dot">4 graded runs + degraded suite</span>'
+      + '<span class="tag stage">T20S MVP · public data</span>'
+      + '<span class="tag dot">4 graded runs + degraded controls</span>'
+      + '<span class="tag dot">weights provisional · calibration pending</span>'
       + '<span class="tag dot">snapshot 2026-06-25</span></div>'
   });
   Site.nav('benchmark');
