@@ -5,7 +5,7 @@
     { id: 'rollouts',  href: 'rollouts.html',  label: 'Tasks' },
     { id: 'grader',    href: 'grader.html',    label: 'Grader' },
     { id: 'benchmark', href: 'benchmark.html', label: 'Benchmark' },
-    { id: 'rfp',        href: 'rfp.html',        label: 'RFP spec' },
+    { id: 'rfp',        href: 'rfp.html',        label: 'Env spec' },
     { id: 'next-phase', href: 'next-phase.html', label: 'Next phase' }
   ];
 

@@ -199,6 +199,18 @@ details.surface .surface-body p{margin:10px 0;}
 .report .trunc{display:inline-block; margin-top:4px; color:var(--faint); font-size:12px; font-style:italic;}
 .side a.toclink.sub{padding-left:18px; font-size:12.5px; color:var(--faint);}
 
+/* collapsible sections in the rendered doc (grader, etc.) */
+#doc-out details{margin:16px 0;}
+#doc-out details>summary{cursor:pointer; list-style:none; user-select:none; display:flex; align-items:center; gap:9px; padding:2px 0;}
+#doc-out details>summary::-webkit-details-marker{display:none;}
+#doc-out details>summary::before{content:"\25B8"; color:var(--faint); font-size:.72em; flex:0 0 auto;}
+#doc-out details[open]>summary::before{content:"\25BE";}
+#doc-out details>summary>h2,#doc-out details>summary>h3,#doc-out details>summary>h4{margin:0; padding:0; border:0;}
+#doc-out details.gsub{margin:18px 0; border-left:2px solid var(--line); padding-left:18px;}
+#doc-out details.gdet{margin:12px 0; border:1px solid var(--line); border-radius:10px; background:var(--surface); padding:4px 18px 10px;}
+#doc-out details.gdet>summary{padding:9px 0;}
+#doc-out details.gdet>summary>h4{font-size:14px; font-weight:600;}
+
 @media (max-width:880px){
   .wrap{grid-template-columns:1fr;}
   .side{position:static; height:auto; border-right:none; border-bottom:1px solid var(--line);}

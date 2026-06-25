@@ -15,7 +15,9 @@
 <script type="text/markdown" id="doc">
 # Grading the reconstruction task
 
-How each cryoSPARC run is reduced to one score — the named subscores, exactly how each is computed, and how they combine.
+How each cryoSPARC run is graded: subscores and weighted sum
+
+Per-run results for every subscore are on the [benchmark](benchmark.html) page. Design principles are in the [Env spec](rfp.html).
 
 ## The two reward families
 
@@ -26,9 +28,11 @@ A run is scored on two families of reward, weighted equally:
 
 Each family is built from named subscores, every one a value in **[0, 1]** with a fixed direction (higher = better). The next two sections define them; the last shows the roll-up.
 
-## Outcome subscores
+<details class="gsec" open>
+<summary><h2>Outcome subscores</h2></summary>
 
-### Map quality
+<details class="gsub" open>
+<summary><h3>Map quality</h3></summary>
 
 Four axes read from the run's own two half-maps and final volume: the overall resolution, plus three orthogonal views of how that resolution varies — across frequency, across space, and across direction. Each is normalized on a fixed scale between a **floor** (a minimal pipeline run with random interactive decisions on the same movies — no decision skill) and a **ceiling** (an expert's by-hand reconstruction of the same movies — 1.0). Both ends use the same 20-movie subset, so the axis isolates technique, not how much data was available.
 
@@ -41,7 +45,10 @@ Four axes read from the run's own two half-maps and final volume: the overall re
 
 <p style="color:var(--muted);font-size:12px;line-height:1.55;margin-top:2px"><strong>Computation references.</strong> <sup>1</sup> Gold-standard FSC from independent half-maps — Scheres &amp; Chen, <em>Nat. Methods</em> 2012. <sup>2</sup> FSC = 0.143 resolution criterion — Rosenthal &amp; Henderson, <em>J. Mol. Biol.</em> 2003. <sup>3</sup> Windowed local-resolution FSC — Cardone, Heymann &amp; Steven, <em>J. Struct. Biol.</em> 2013. <sup>4</sup> Directional (conical) FSC / 3DFSC — Tan et al., <em>Nat. Methods</em> 2017. (FSC-curve shape is a custom summary of the standard FSC curve, with no separate reference.)</p>
 
-### Reference consistency
+</details>
+
+<details class="gsub" open>
+<summary><h3>Reference consistency</h3></summary>
 
 Agreement with the deposited EMD-6287 map. These two metrics ask whether the run reconstructed the *same 3-D shape* as the published structure — how closely the run map's density matches the deposit's, both point-for-point in real space (cross-correlation) and shell-by-shell in Fourier space (FSC).
 
@@ -80,7 +87,10 @@ The deposited map is built from the full dataset — 196 movies, ~50,000 particl
 
 <p style="color:var(--muted);font-size:12px;line-height:1.55;margin-top:2px"><strong>Computation reference.</strong> <sup>5</sup> Fourier shell correlation between two maps, 0.5 criterion — Harauz &amp; van Heel, <em>Optik</em> 1986; van Heel &amp; Schatz, <em>J. Struct. Biol.</em> 2005.</p>
 
-### The handedness gate
+</details>
+
+<details class="gsub" open>
+<summary><h3>The handedness gate</h3></summary>
 
 Cryo-EM maps have an intrinsic hand; a mirror-image (enantiomer) map can have excellent resolution and internal consistency yet be the wrong structure. The gate aligns both the run map and its mirror to the reference: if the mirror fits clearly better, the outcome family is multiplied by **0**; an ambiguous case is capped at 0.6; a clear right hand passes at 1.0.
 
@@ -106,33 +116,59 @@ Cryo-EM maps have an intrinsic hand; a mirror-image (enantiomer) map can have ex
 <figcaption style="color:var(--muted);font-size:13px;margin-top:6px">A clear right hand — the map fitting the reference far better than its mirror — passes at 1.0; a mirror-image map collapses the outcome family to 0.</figcaption>
 </figure>
 
-We also report **divergence** = map quality − reference consistency as a diagnostic, never folded into the score. A large gap flags a handedness flip, over-fitting, or — only after verification — genuine outperformance.
+</details>
 
-## Procedure subscores
+</details>
 
-Three subscores capture decision quality, weighted **50 / 25 / 25**. Trajectory carries the most weight: the 2-D and picking steps are visual tasks a dedicated vision model would largely saturate, whereas building a sound long-horizon plan is the thing most worth measuring.
+<details class="gsec" open>
+<summary><h2>Procedure subscores</h2></summary>
+
+The procedure subscores capture the correctness of the *process*, and can award partial credit for a sound process that reached a poor result. For the cryoSPARC workflow this splits into the quality of the overall **trajectory** and the quality of the agent's **execution of the interactive jobs**. The trajectory grade is itself split into the **completeness** of the trajectory and its **similarity to the golden path**; because several distinct trajectories can reach a good reconstruction through sound procedure, completeness is weighted above similarity to the reference.
+
+Interactive jobs require decision-making from the agent — often iterative, and from visual input. For T20S (and essentially every cryo-EM workflow) the interactive jobs are picking individual particles out of the micrographs and selecting 2-D class averages. Several ML implementations of these steps exist, usually built on vision models, so these subscores are weighted lower. A refined version would isolate the quality of the iterative decision-making from the quality of the visual reasoning; for now we simply measure overall performance on each interactive job.
 
 | Subscore | Wt | What it is · how it's computed |
 |---|---|---|
-| **trajectory** | 0.50 | *Completeness* (0.70): is the job graph the agent built and ran a complete, correctly-ordered pipeline? Every job maps to a logical capability (any picker → "pick", any refinement → "refine-3D"), so a different-but-valid pipeline passes; scored as a hard gate (a completed 3-D refinement reachable from import must exist) × (0.7 · capability coverage + 0.3 · ordering). *Reference similarity* (0.30): how closely the agent's set of jobs matched the tutorial recipe — the one place we compare against the literal reference tree. |
-| **select-2D** | 0.25 | *Templates* (0.50): how many 2-D classes the agent kept to seed template picking — the tutorial keeps ~2; over-selecting is a high-signal error resolution misses; banded on distance from 2. *Refine* (0.50): how well the agent's keep/reject of classes for refinement tracks an independent class-quality model — *awaits a box-side compute, shown n/a*. |
-| **particle picks** | 0.25 | F2 agreement between the agent's final particle coordinates and the golden coordinates on the same micrographs (recall-weighted, the cryo-EM convention). *Awaits a box-side compute, shown n/a.* |
+| **trajectory** | 0.50 | *Completeness* (0.70): is the job graph the agent built and ran a complete, correctly-ordered pipeline? Every job maps to a logical capability (any picker → "pick", any refinement → "refine-3D"), so a different-but-valid pipeline passes; scored as a hard gate (a completed 3-D refinement reachable from import must exist) × (0.7 · capability coverage + 0.3 · ordering).<br>*Reference similarity* (0.30): how closely the agent's set of jobs matched the tutorial recipe — the one place we compare against the literal reference tree. |
+| **select-2D** | 0.25 | *Templates* (0.50): how many 2-D classes the agent kept to seed template picking (the tutorial keeps ~2; banded on distance from 2), times the quality of those kept classes scored by a 2-D class-quality model (CryoSift<sup>6</sup>).<br>*Refine* (0.50): how well the agent's keep/reject of classes for the refinement input tracks that same model — F1 of the agent's split against the model's good/bad call. |
+| **particle picks** | 0.25 | F2 agreement<sup>7</sup> between the agent's final particle coordinates and the golden coordinates on the same micrographs (recall-weighted, the cryo-EM convention). |
 
-When a subscore isn't computed yet, it drops out and its siblings carry the weight — no fabricated credit.
+<p style="color:var(--muted);font-size:12px;line-height:1.55;margin-top:2px"><strong>Computation references.</strong> <sup>6</sup> CryoSift — a CNN that scores cryo-EM 2-D class-average quality — Schäfer et al., <em>Acta Cryst. F</em> 2025. <sup>7</sup> F-measure, recall-weighted (β = 2) — van Rijsbergen, <em>Information Retrieval</em> 1979.</p>
 
-The two real inputs the agent reads at these steps:
+All three procedure subscores are computed for the agent runs; a subscore with no data drops out and its siblings absorb its weight, so a not-yet-computed metric never earns fabricated credit.
 
-<figure style="margin:18px 0">
+### Subscore details
+
+How each procedural subscore is computed, with a worked example. Expand a subscore for the mechanics and the agent's actual inputs.
+
+<details class="gdet">
+<summary><h4>Trajectory — completeness + reference similarity</h4></summary>
+
+A cryo-EM reconstruction is a directed graph of processing jobs. **Completeness** asks whether the agent's graph is a *valid and sufficient* reconstruction, independent of matching any particular recipe. Every job is mapped to one of nine logical capabilities a single-particle reconstruction must cover — import, motion correction, CTF estimation, particle picking, extraction, 2-D classification, class curation, initial 3-D model, and 3-D refinement. The score is a hard gate (a *completed* 3-D refinement must be reachable from the imported movies — no credit for a graph that never yields a 3-D map) times `0.7·(capabilities covered / 9) + 0.3·(ordering constraints satisfied)`. Mapping to capabilities rather than exact job types lets a different-but-valid pipeline (say, a different picker) score full marks.
+
+**Reference similarity** is the one place we compare to the literal tutorial recipe: the multiset overlap (Jaccard) of the agent's job types against the tutorial's, `1 − (extra + missing) / union`. A legitimately different pipeline scores below 1 here by design — completeness, weighted higher, is what protects it.
+
+*Example.* A run that imports movies → corrects motion → estimates CTF → picks → extracts → classifies in 2-D → curates → builds an ab-initio model → refines covers all nine capabilities in a valid order → completeness **1.0**. If it skipped a couple of optional denoise/junk-removal jobs the tutorial used, those count as "missing" in the Jaccard overlap and pull reference similarity below 1.0, while completeness stays 1.0 (optional polish is never required).
+
+</details>
+
+<details class="gdet">
+<summary><h4>Select-2D — count, class quality, and selection alignment</h4></summary>
+
+After particles are grouped into **2-D class averages** — denoised composite images of the particle seen from one orientation — the agent decides which classes to keep, twice: a tight set (~2 of ~50) to seed an automated template-based particle picker, and a broader set to pass into 3-D refinement. Keeping junk classes injects noise; discarding good ones throws away signal.
+
+**Templates** = a count band (target ≈ 2; the score falls off with |n − 2|) times the quality of the kept classes. Quality comes from **CryoSift**, a published CNN that rates each 2-D class from 1 (best) to 5 (worst); the quality factor is `(5 − mean CryoSift of kept) / 4`, so a right-count but junk selection is still down-weighted.
+
+**Refine** = how well the agent's keep/reject split for the refinement input tracks CryoSift's good (< 3.5) / bad call, scored as F1 — the harmonic mean of precision (kept classes that are good) and recall (good classes that were kept).
+
+<figure style="margin:16px 0">
 <img src="reports/raw-realistic-exec-v2/montage_J106_3.png" alt="2D class averages montage" style="max-width:100%;border:1px solid var(--line);border-radius:8px;display:block">
-<figcaption style="color:var(--muted);font-size:13px;margin-top:6px">2-D class averages from one run, each labelled with its particle count and estimated resolution. Select-2D scores how many of these the agent keeps to seed template picking (the tutorial keeps ~2).</figcaption>
+<figcaption style="color:var(--muted);font-size:13px;margin-top:6px">2-D class averages the agent chooses among — each labelled with its particle count and estimated resolution.</figcaption>
 </figure>
+
+*Example.* From class averages like these, keeping the two sharpest, highest-population classes → count score **1.0**; if their mean CryoSift score is 1.9, the quality factor is (5 − 1.9)/4 = **0.78**, so templates = 1.0 × 0.78 = 0.78. A broader refine selection that keeps the CryoSift-good classes and drops the blurred ones scores F1 ≈ **0.95**. Over-selecting — keeping a dozen or more template classes instead of ~2 — drives the count score toward 0 on the ladder below.
 
 <figure style="margin:18px 0">
-<img src="reports/raw-realistic-exec-v2/picks_hist_J108_4.png" alt="Pick cross-correlation by power distribution" style="max-width:100%;border:1px solid var(--line);border-radius:8px;display:block">
-<figcaption style="color:var(--muted);font-size:13px;margin-top:6px">The pick-quality distribution (cross-correlation score vs local power) the agent inspects when choosing which particle picks to keep.</figcaption>
-</figure>
-
-<figure style="margin:20px 0">
 <svg id="d-band" viewBox="0 0 760 150" role="img" aria-label="The Select-2D template count band ladder" style="max-width:100%;height:auto;display:block">
 <style>
 #d-band text{font-family:system-ui,-apple-system,sans-serif;fill:var(--ink)}
@@ -148,55 +184,89 @@ The two real inputs the agent reads at these steps:
 <text class="mut" x="24" y="106">Target n ≈ 2 — one kept class per dominant view; the score falls off with |n − 2|.</text>
 <text class="mut" x="24" y="132">Templates only; the refine pass scores class quality, not this ladder.</text>
 </svg>
-<figcaption style="color:var(--muted);font-size:13px;margin-top:6px">Top weight in select-2D, steep ladder. Over-selecting 2-D templates is a high-signal error that resolution misses.</figcaption>
+<figcaption style="color:var(--muted);font-size:13px;margin-top:6px">The template count ladder: top weight within select-2D, steep — over-selecting 2-D templates is a high-signal error that resolution misses.</figcaption>
 </figure>
+
+</details>
+
+<details class="gdet">
+<summary><h4>Particle picks — F2 against expert coordinates</h4></summary>
+
+**Picking** is locating individual particle images within each noisy micrograph — the raw input to everything downstream. Because every run picks from the *same* 20 micrographs, the agent's final coordinates are compared directly to expert ("golden") coordinates.
+
+The score is **F2** — the recall-weighted F-measure `5PR / (4P + R)` — of the agent's coordinates against the golden set, counting a pick as matched when it falls within a small radius of a golden particle. Recall is weighted above precision (β = 2) because a missed real particle is the costlier error here: downstream curation removes most false positives, but a particle never picked is gone. F2 saturates near the top, so it separates a bad cut (too tight, losing real particles; or too loose, admitting ice and carbon) from a reasonable one without splitting hairs among good ones.
+
+<figure style="margin:16px 0">
+<img src="reports/raw-realistic-exec-v2/picks_hist_J108_4.png" alt="Pick cross-correlation by power distribution" style="max-width:100%;border:1px solid var(--line);border-radius:8px;display:block">
+<figcaption style="color:var(--muted);font-size:13px;margin-top:6px">The pick-quality distribution (cross-correlation score vs local power) the agent thresholds to separate true particles from ice and junk.</figcaption>
+</figure>
+
+*Example.* The agent sets a threshold on this plot to separate true particles from ice and junk. A cut that recovers most golden particles with few false positives — say precision 0.84, recall 0.91 — gives F2 = 5(0.84)(0.91) / (4·0.84 + 0.91) ≈ **0.90**.
+
+</details>
+
+</details>
 
 ## Combining the subscores into one score
 
 Each subscore is a value in [0, 1]. Within a family, subscores combine into a weighted average; a subscore with no data drops out and its siblings absorb its weight, so a not-yet-computed metric never silently scores zero or full credit. Outcome's two halves (map quality and reference consistency) average 50/50 and are then multiplied by the handedness gate. The two families average 50/50 to give the run's total.
 
-<figure style="margin:20px 0">
-<svg id="d-flow" viewBox="0 0 760 196" role="img" aria-label="How a run's subscores combine into one score" style="max-width:100%;height:auto;display:block">
+<figure style="margin:22px 0">
+<svg id="d-tree" viewBox="0 0 850 430" role="img" aria-label="The full scoring tree: nine subscores combine by weight into outcome and procedure, then into the final score" style="max-width:100%;height:auto;display:block">
 <style>
-#d-flow text{font-family:system-ui,-apple-system,sans-serif;fill:var(--ink)}
-#d-flow .mut{fill:var(--muted);font-size:11px}
-#d-flow .ttl{font-size:13px;font-weight:600}
-#d-flow .box{fill:var(--surface);stroke:var(--line-strong);stroke-width:1}
-#d-flow .ln{stroke:var(--line-strong);stroke-width:1.4;fill:none}
-#d-flow .out{fill:var(--outcome)}#d-flow .pro{fill:var(--procedure)}#d-flow .acc{fill:var(--accent)}
+#d-tree text{font-family:system-ui,-apple-system,sans-serif;fill:var(--ink)}
+#d-tree .bl{font-size:11px;font-weight:600}
+#d-tree .sub{font-size:9px;fill:var(--muted)}
+#d-tree .w{fill:var(--muted);font-size:10px}
+#d-tree .box{fill:var(--surface);stroke:var(--line-strong);stroke-width:1}
+#d-tree .ln{stroke:var(--line-strong);stroke-width:1.1;fill:none}
 </style>
-<defs><marker id="mflow" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" style="fill:var(--line-strong)"/></marker></defs>
-<rect class="box" x="20" y="20" width="360" height="78" rx="11"/><rect x="20" y="20" width="6" height="78" rx="3" style="fill:var(--outcome)"/>
-<text class="ttl out" x="40" y="44">Outcome</text><text class="mut" x="118" y="44">· weight 0.50</text>
-<text class="mut" x="40" y="66">map quality · 0.50  +  reference consistency · 0.50</text>
-<text class="mut" x="40" y="86">then × handedness gate</text>
-<rect class="box" x="20" y="110" width="360" height="62" rx="11"/><rect x="20" y="110" width="6" height="62" rx="3" style="fill:var(--procedure)"/>
-<text class="ttl pro" x="40" y="134">Procedure</text><text class="mut" x="128" y="134">· weight 0.50</text>
-<text class="mut" x="40" y="156">trajectory · 0.50    select-2D · 0.25    picks · 0.25</text>
-<line class="ln" x1="380" y1="60" x2="500" y2="92" marker-end="url(#mflow)"/>
-<line class="ln" x1="380" y1="140" x2="500" y2="104" marker-end="url(#mflow)"/>
-<rect class="box" x="502" y="70" width="150" height="58" rx="12"/>
-<text class="ttl" x="577" y="95" text-anchor="middle">combine by weight</text>
-<text class="mut" x="577" y="115" text-anchor="middle">0.50 + 0.50</text>
-<line class="ln" x1="652" y1="99" x2="688" y2="99" marker-end="url(#mflow)"/>
-<text class="mut" x="722" y="85" text-anchor="middle">TOTAL</text>
-<rect x="690" y="90" width="66" height="30" rx="15" style="fill:var(--accent-soft);stroke:var(--accent)"/><text class="acc" x="723" y="110" text-anchor="middle" font-weight="600">[0,1]</text>
+<defs><marker id="mtree" markerWidth="8" markerHeight="8" refX="6.5" refY="3" orient="auto"><path d="M0,0 L6.5,3 L0,6 z" style="fill:var(--line-strong)"/></marker></defs>
+<line class="ln" x1="170" y1="42" x2="230" y2="108" marker-end="url(#mtree)"/>
+<line class="ln" x1="170" y1="86" x2="230" y2="108" marker-end="url(#mtree)"/>
+<line class="ln" x1="170" y1="130" x2="230" y2="108" marker-end="url(#mtree)"/>
+<line class="ln" x1="170" y1="174" x2="230" y2="108" marker-end="url(#mtree)"/>
+<line class="ln" x1="170" y1="218" x2="230" y2="240" marker-end="url(#mtree)"/>
+<line class="ln" x1="170" y1="262" x2="230" y2="240" marker-end="url(#mtree)"/>
+<line class="ln" x1="170" y1="306" x2="230" y2="350" marker-end="url(#mtree)"/>
+<line class="ln" x1="170" y1="350" x2="230" y2="350" marker-end="url(#mtree)"/>
+<line class="ln" x1="170" y1="394" x2="230" y2="350" marker-end="url(#mtree)"/>
+<text class="w" x="200" y="70" text-anchor="middle">0.4</text>
+<text class="w" x="200" y="92" text-anchor="middle">0.2</text>
+<text class="w" x="200" y="114" text-anchor="middle">0.2</text>
+<text class="w" x="200" y="136" text-anchor="middle">0.2</text>
+<text class="w" x="200" y="223" text-anchor="middle">0.5</text>
+<text class="w" x="200" y="247" text-anchor="middle">0.5</text>
+<text class="w" x="200" y="322" text-anchor="middle">0.5</text>
+<text class="w" x="200" y="343" text-anchor="middle">0.25</text>
+<text class="w" x="200" y="368" text-anchor="middle">0.25</text>
+<line class="ln" x1="372" y1="108" x2="446" y2="172" marker-end="url(#mtree)"/>
+<line class="ln" x1="372" y1="240" x2="446" y2="176" marker-end="url(#mtree)"/>
+<line class="ln" x1="372" y1="350" x2="446" y2="350" marker-end="url(#mtree)"/>
+<text class="w" x="405" y="136" text-anchor="middle">0.5</text>
+<text class="w" x="405" y="205" text-anchor="middle">0.5</text>
+<line class="ln" x1="580" y1="174" x2="670" y2="258" marker-end="url(#mtree)"/>
+<line class="ln" x1="580" y1="350" x2="670" y2="266" marker-end="url(#mtree)"/>
+<text class="w" x="624" y="210" text-anchor="middle">0.5</text>
+<text class="w" x="624" y="300" text-anchor="middle">0.5</text>
+<rect class="box" x="20" y="28" width="150" height="28" rx="8"/><rect x="20" y="28" width="5" height="28" rx="2.5" style="fill:var(--outcome)"/><text class="bl" x="99" y="46" text-anchor="middle">Global resolution</text>
+<rect class="box" x="20" y="72" width="150" height="28" rx="8"/><rect x="20" y="72" width="5" height="28" rx="2.5" style="fill:var(--outcome)"/><text class="bl" x="99" y="90" text-anchor="middle">FSC-curve shape</text>
+<rect class="box" x="20" y="116" width="150" height="28" rx="8"/><rect x="20" y="116" width="5" height="28" rx="2.5" style="fill:var(--outcome)"/><text class="bl" x="99" y="134" text-anchor="middle">Local resolution</text>
+<rect class="box" x="20" y="160" width="150" height="28" rx="8"/><rect x="20" y="160" width="5" height="28" rx="2.5" style="fill:var(--outcome)"/><text class="bl" x="99" y="178" text-anchor="middle">Anisotropy (cFAR)</text>
+<rect class="box" x="20" y="204" width="150" height="28" rx="8"/><rect x="20" y="204" width="5" height="28" rx="2.5" style="fill:var(--outcome)"/><text class="bl" x="99" y="222" text-anchor="middle">Map–EMDB CC</text>
+<rect class="box" x="20" y="248" width="150" height="28" rx="8"/><rect x="20" y="248" width="5" height="28" rx="2.5" style="fill:var(--outcome)"/><text class="bl" x="99" y="266" text-anchor="middle">Map–EMDB FSC</text>
+<rect class="box" x="20" y="292" width="150" height="28" rx="8"/><rect x="20" y="292" width="5" height="28" rx="2.5" style="fill:var(--procedure)"/><text class="bl" x="99" y="310" text-anchor="middle">Trajectory</text>
+<rect class="box" x="20" y="336" width="150" height="28" rx="8"/><rect x="20" y="336" width="5" height="28" rx="2.5" style="fill:var(--procedure)"/><text class="bl" x="99" y="354" text-anchor="middle">Select-2D</text>
+<rect class="box" x="20" y="380" width="150" height="28" rx="8"/><rect x="20" y="380" width="5" height="28" rx="2.5" style="fill:var(--procedure)"/><text class="bl" x="99" y="398" text-anchor="middle">Particle picks</text>
+<rect class="box" x="232" y="92" width="140" height="32" rx="8"/><rect x="232" y="92" width="5" height="32" rx="2.5" style="fill:var(--outcome)"/><text class="bl" x="304" y="112" text-anchor="middle">Map quality</text>
+<rect class="box" x="232" y="223" width="140" height="34" rx="8"/><rect x="232" y="223" width="5" height="34" rx="2.5" style="fill:var(--outcome)"/><text class="bl" x="305" y="237" text-anchor="middle">Reference</text><text class="bl" x="305" y="250" text-anchor="middle">consistency</text>
+<rect class="box" x="232" y="334" width="140" height="32" rx="8"/><rect x="232" y="334" width="5" height="32" rx="2.5" style="fill:var(--procedure)"/><text class="bl" x="304" y="354" text-anchor="middle">Procedure</text>
+<rect class="box" x="448" y="154" width="132" height="40" rx="8"/><rect x="448" y="154" width="5" height="40" rx="2.5" style="fill:var(--outcome)"/><text class="bl" x="517" y="172" text-anchor="middle">Outcome</text><text class="sub" x="517" y="186" text-anchor="middle">× handedness gate</text>
+<rect class="box" x="448" y="334" width="132" height="32" rx="8"/><rect x="448" y="334" width="5" height="32" rx="2.5" style="fill:var(--procedure)"/><text class="bl" x="517" y="354" text-anchor="middle">Procedure</text>
+<rect class="box" x="672" y="242" width="156" height="40" rx="9" style="fill:var(--accent-soft);stroke:var(--accent)"/><text class="bl" x="750" y="266" text-anchor="middle" style="fill:var(--accent)">Final score</text>
 </svg>
-<figcaption style="color:var(--muted);font-size:13px;margin-top:6px">Each family reduces to a weighted average of its subscores; outcome is then multiplied by the handedness gate; the two families combine 50/50 into the run's total. A subscore with no data drops out and its siblings absorb its weight.</figcaption>
+<figcaption style="color:var(--muted);font-size:13px;margin-top:6px">The full scoring tree. Nine subscores combine by weight into map quality, reference consistency, and procedure; map quality and reference consistency (then × the handedness gate) make outcome; outcome and procedure combine 50/50 into the final score.</figcaption>
 </figure>
-
-Per-run results for every subscore are on the [benchmark](benchmark.html) page.
-
-## Design principles
-
-The grader is built to the same bar the environment is meant to meet:
-
-- **Held-out ground truth.** The deposited map and model, and every agreement metric, are withheld from the agent; it sees only its own reconstruction's self-reported statistics.
-- **Hard to game.** Map quality alone is high for any internally-consistent map — a mirror included — so it is always paired with held-out agreement and capped by the handedness gate. An over-tight "wishful" mask is caught twice: by disagreement with the held-out reference, and by a reported mask-over-fit gap.
-- **Computed, not judged.** Every score is a rule-based computation against references we recompute ourselves under one engine — no learned reward model, no model-as-judge.
-- **Fair to a subset.** Subset runs are normalized to what is achievable at their own resolution, never the full-dataset 2.8 Å figure — so a metric earns 1.0 by matching the resolution-matched structure, not by reaching a resolution the data cannot support.
-
-Weights and bands are **provisional** — flagged for calibration on a controlled quality ladder (reconstructions from 5 / 10 / 20 / 40 movies plus injected known-bad decisions), then frozen. The two procedure subscores awaiting a box-side compute are shown n/a rather than filled.
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
