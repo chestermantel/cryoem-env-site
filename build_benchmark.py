@@ -43,12 +43,20 @@ def f3(x):  return "—" if x is None else f"{float(x):.3f}"
 
 
 def _g(d, *path, default=None):
-    """Nested get: _g(R, 'a', 'b') -> R['a']['b'] or default."""
+    """Nested get across dicts and lists: _g(R, 'a', 'b', 0) -> R['a']['b'][0] or default.
+    (Subscores are stored as [value, weight] lists, so the final step often indexes a list.)"""
     cur = d
     for k in path:
-        if not isinstance(cur, dict) or k not in cur:
+        if isinstance(cur, dict):
+            if k not in cur:
+                return default
+            cur = cur[k]
+        elif isinstance(cur, (list, tuple)):
+            if not isinstance(k, int) or not (-len(cur) <= k < len(cur)):
+                return default
+            cur = cur[k]
+        else:
             return default
-        cur = cur[k]
     return cur
 
 
