@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "v2tmp",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-I", "-c", "import http.server,socketserver,functools; d='/tmp/naev2'; H=functools.partial(http.server.SimpleHTTPRequestHandler,directory=d); socketserver.TCPServer(('127.0.0.1',8732),H).serve_forever()"],
+      "port": 8732
+    }
+  ]
+}

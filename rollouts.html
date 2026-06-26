@@ -9,13 +9,6 @@
 <body>
 <div class="wrap">
   <aside class="side">
-    <div class="toggles">
-      <div class="lbl">Show fields</div>
-      <label class="toggle on"><input type="checkbox" data-field="inputs" checked> Inputs</label>
-      <label class="toggle on"><input type="checkbox" data-field="outputs" checked> Outputs</label>
-      <label class="toggle on"><input type="checkbox" data-field="behavior" checked> Model behavior</label>
-      <label class="toggle on"><input type="checkbox" data-field="performance" checked> Grade</label>
-    </div>
     <div class="jump">
       <div class="lbl">Sections</div>
       <div id="jump">
@@ -288,9 +281,8 @@
       <details class="group" id="group-catalogue" open>
         <summary class="group-head"><h2>Rollout catalogue</h2></summary>
         <p>A summary card for every rollout in the tables above: its inputs, outputs, model behavior, and grade
-          status, with a link to the full per-run report where one has been published. Use the
-          <b>Show fields</b> toggles (left) to pick which aspects to show across all cards. Grades that are not
-          yet computed are flagged; per-subscore scores for the graded runs are on the
+          status, with a link to the full per-run report where one has been published. Grades that are not yet
+          computed are flagged; per-subscore scores for the graded runs are on the
           <a href="benchmark.html">benchmark</a> page.</p>
         <div id="rollouts" class="show-inputs show-outputs show-behavior show-performance">
           <details class="csub" open>
@@ -552,15 +544,6 @@ function renderInto(containerId, ids) {
 }
 renderInto('cat-tutorial', TUTORIAL);
 renderInto('cat-realistic', REALISTIC);
-
-document.querySelectorAll('.toggle input[data-field]').forEach(cb => {
-  cb.addEventListener('change', () => {
-    const f = cb.dataset.field;
-    const root = document.getElementById('rollouts');
-    root.classList.toggle('show-' + f, cb.checked);
-    cb.closest('.toggle').classList.toggle('on', cb.checked);
-  });
-});
 </script>
 <script src="assets/site.js"></script>
 <script>window.Site && Site.nav('rollouts');</script>
