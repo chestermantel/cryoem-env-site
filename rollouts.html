@@ -299,7 +299,7 @@
   </main>
 </div>
 
-<script>
+<script id="rollout-data-script">
 /* ============================================================================
    ROLLOUT DATA — editable. Derived facts (resolution, job counts, token/turn
    metadata, prompts) are read from the run artifacts + README/scorecard; the
@@ -547,5 +547,105 @@ renderInto('cat-realistic', REALISTIC);
 </script>
 <script src="assets/site.js"></script>
 <script>window.Site && Site.nav('rollouts');</script>
+
+<!-- In-browser text editing — this page only, opt in by adding ?edit to the URL.
+     Edits are kept in your browser (localStorage) and can be exported with "Download
+     HTML". Nothing is written to the server, so the shared/published page is unaffected. -->
+<style id="edit-style">
+  #editbar{display:none; position:fixed; right:16px; bottom:16px; z-index:60; gap:7px; align-items:center;
+    background:var(--surface); border:1px solid var(--line-strong); border-radius:11px; padding:7px 9px;
+    box-shadow:0 6px 22px rgba(0,0,0,.18); font:13px/1.2 -apple-system,BlinkMacSystemFont,system-ui,sans-serif;}
+  #editbar button{font:inherit; cursor:pointer; border:1px solid var(--line-strong); background:var(--surface2);
+    color:var(--ink); border-radius:7px; padding:6px 10px;}
+  #editbar button:hover{border-color:var(--accent);}
+  #editbar button.primary{background:var(--accent); color:#fff; border-color:var(--accent);}
+  #editbar .st{color:var(--muted); padding:0 3px; white-space:nowrap;}
+  #editbar .st b{color:var(--accent);}
+  body.editing article :is(h1,h2,h3,h4,p,li,td,th,dt,dd,blockquote)[contenteditable]{
+    outline:1px dashed color-mix(in srgb,var(--accent) 50%,transparent); outline-offset:3px; border-radius:3px;}
+  body.editing article :is(h1,h2,h3,h4,p,li,td,th,dt,dd,blockquote)[contenteditable]:focus{
+    outline:1.5px solid var(--accent); background:var(--accent-soft);}
+</style>
+<div id="editbar">
+  <span class="st" id="edit-st"></span>
+  <button id="edit-toggle">Edit text</button>
+  <button id="edit-download" hidden>Download HTML</button>
+  <button id="edit-discard" hidden>Discard edits</button>
+</div>
+<script id="edit-script">
+(function () {
+  var on = /(?:^|[?&])edit(?:=[^&]*)?(?:&|$)/.test(location.search) || location.hash === '#edit';
+  var bar = document.getElementById('editbar');
+  if (!on) { if (bar) bar.remove(); return; }
+  bar.style.display = 'flex';
+
+  var KEY = 'tasks-edits-v1';
+  var article = document.querySelector('article');
+  var SEL = 'h1,h2,h3,h4,p,li,td,th,dt,dd,blockquote';
+  var st = document.getElementById('edit-st');
+  var bToggle = document.getElementById('edit-toggle');
+  var bDl = document.getElementById('edit-download');
+  var bDiscard = document.getElementById('edit-discard');
+  var editing = false, timer = null;
+
+  // restore any locally-saved edits over the freshly-rendered page
+  try { var saved = localStorage.getItem(KEY); if (saved) article.innerHTML = saved; } catch (e) {}
+  status();
+
+  function hasSaved() { try { return !!localStorage.getItem(KEY); } catch (e) { return false; } }
+  function status() {
+    bDiscard.hidden = !hasSaved();
+    st.innerHTML = editing ? '<b>editing</b> — click any text'
+      : (hasSaved() ? 'showing local edits' : 'view');
+  }
+  function setEditable(flag) {
+    article.querySelectorAll(SEL).forEach(function (el) {
+      if (flag) el.setAttribute('contenteditable', 'true'); else el.removeAttribute('contenteditable');
+    });
+  }
+  function save() {
+    var c = article.cloneNode(true);
+    c.querySelectorAll('[contenteditable]').forEach(function (n) { n.removeAttribute('contenteditable'); });
+    try { localStorage.setItem(KEY, c.innerHTML); } catch (e) {}
+    status();
+  }
+
+  bToggle.addEventListener('click', function () {
+    editing = !editing;
+    document.body.classList.toggle('editing', editing);
+    setEditable(editing);
+    bToggle.textContent = editing ? 'Done' : 'Edit text';
+    bToggle.classList.toggle('primary', editing);
+    bDl.hidden = !editing;
+    if (!editing) save();
+    status();
+  });
+  // while editing, don't let a click on a section header or link toggle/navigate
+  article.addEventListener('click', function (e) {
+    if (editing && e.target.closest('summary,a')) e.preventDefault();
+  }, true);
+  article.addEventListener('input', function () {
+    if (editing) { clearTimeout(timer); timer = setTimeout(save, 400); }
+  });
+
+  bDiscard.addEventListener('click', function () {
+    if (!confirm('Discard your local text edits and reload the published version?')) return;
+    try { localStorage.removeItem(KEY); } catch (e) {}
+    location.reload();
+  });
+  bDl.addEventListener('click', function () {
+    var doc = document.documentElement.cloneNode(true);
+    doc.querySelectorAll('header.topnav,#editbar,#edit-style,#edit-script,#rollout-data-script')
+      .forEach(function (n) { n.remove(); });
+    doc.querySelectorAll('[contenteditable]').forEach(function (n) { n.removeAttribute('contenteditable'); });
+    var b = doc.querySelector('body'); if (b) b.classList.remove('editing');
+    var blob = new Blob(['<!doctype html>\n' + doc.outerHTML], { type: 'text/html' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a'); a.href = url; a.download = 'rollouts.html';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+  });
+})();
+</script>
 </body>
 </html>

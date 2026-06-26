@@ -230,6 +230,24 @@ article details.csub>summary>h3{margin:0;}
 #doc-out .eqn{margin:14px 0; padding:10px 14px; background:var(--code-bg); border:1px solid var(--line); border-radius:8px; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:13px; line-height:1.55; overflow-x:auto; white-space:nowrap;}
 #doc-out .eqn .def{color:var(--muted);}
 
+/* master tables (benchmark): horizontal scroll with a frozen first (run-name) column */
+#doc-out .mtable-wrap{overflow-x:auto; margin:16px 0; border:1px solid var(--line-strong); border-radius:9px;}
+#doc-out table.mtable{display:table; width:max-content; min-width:100%; margin:0; border:0; font-size:12.5px;}
+#doc-out table.mtable th,#doc-out table.mtable td{border:1px solid var(--line); padding:5px 9px; text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; vertical-align:middle;}
+#doc-out table.mtable thead th{text-align:center; background:var(--surface2); font-size:11.5px; line-height:1.25; font-weight:600;}
+#doc-out table.mtable tr:nth-child(even) td{background:color-mix(in srgb, var(--surface) 55%, transparent);}
+#doc-out table.mtable td.agg,#doc-out table.mtable th.agg{font-weight:600;}
+#doc-out table.mtable td.agg{background:color-mix(in srgb, var(--accent-soft) 55%, transparent);}
+#doc-out table.mtable .grp-out{color:var(--outcome);}
+#doc-out table.mtable .grp-proc{color:var(--procedure);}
+#doc-out table.mtable td.ungraded,#doc-out table.mtable .ungraded{color:var(--gap-ink); font-weight:500;}
+#doc-out table.mtable th:first-child,#doc-out table.mtable td:first-child{
+  position:sticky; left:0; z-index:2; text-align:left; white-space:normal;
+  min-width:158px; max-width:210px; background:var(--surface2); border-right:2px solid var(--line-strong);
+}
+#doc-out table.mtable thead th:first-child{z-index:3;}
+#doc-out table.mtable .rn-sub{display:block; font-size:10.5px; color:var(--muted); font-weight:400; line-height:1.3; margin-top:2px;}
+
 @media (max-width:880px){
   .wrap{grid-template-columns:1fr;}
   .side{position:static; height:auto; border-right:none; border-bottom:1px solid var(--line);}

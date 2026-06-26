@@ -1,0 +1,36 @@
+{
+  "_comment": "Roster for site/build_benchmark.py. The NUMBERS come from the grade artifacts; this file only controls display. 'ingest' = grade cards merged (newest wins) into the cumulative 'store'. 'demo' = the curated public table (the tasks on rollouts.html); each entry is scored (has 'run' = a graded run id), 'status':'ungraded' (blank row, flagged in the name cell), or 'note' (a reference/anchor row). Every graded run also appears in 'Complete list' automatically; 'complete_labels'/'complete_order' set its sub-label and position, and 'complete_extra' adds outcome-only / reference rows that have no full grade.",
+  "store": "runs/agent/grader/site_grades.json",
+  "ingest": [
+    "runs/agent/grader/scorecard.json",
+    "runs/agent/grader/grades.json"
+  ],
+  "demo": [
+    { "name": "Handheld", "sub": "agent · handheld guidance", "run": "raw_easy" },
+    { "name": "Tutorial", "sub": "agent · not yet run", "status": "ungraded" },
+    { "name": "Realistic", "sub": "agent · PI brief", "run": "raw_realistic" },
+    { "name": "CryoWizard baseline", "sub": "non-agentic · provisional, outcome-only", "status": "ungraded" },
+    { "name": "Golden path", "sub": "by-hand expert · reference", "note": "Reference, not scored. Defines the map-quality ceiling (1.0) at ≈3.15 Å." },
+    { "name": "Performance floor", "sub": "random decisions · reference", "note": "Reference, not scored. Defines the map-quality floor (0.0) at ≈4.35 Å; map similarity 0.038." },
+    { "name": "Full T20S", "sub": "other structure · rollout incomplete", "status": "ungraded" },
+    { "name": "β-galactosidase", "sub": "other structure · rollout incomplete", "status": "ungraded" },
+    { "name": "CB1–Gi GPCR", "sub": "other structure · rollout incomplete", "status": "ungraded" },
+    { "name": "MRGPRX2 GPCR", "sub": "other structure · rollout incomplete", "status": "ungraded" },
+    { "name": "Encapsulin", "sub": "other structure · rollout incomplete", "status": "ungraded" },
+    { "name": "HIV Env BG505 + 44m Fab", "sub": "Scripps pilot · rollout incomplete", "status": "ungraded" }
+  ],
+  "complete_order": ["raw_easy", "raw_realistic", "e2e_easy", "e2e_hard", "t20s_no_reference_53"],
+  "complete_labels": {
+    "raw_easy": "agent · handheld (= Handheld demo)",
+    "raw_realistic": "agent · PI brief (= Realistic demo)",
+    "e2e_easy": "constrained tools · predefined surface (off public site)",
+    "e2e_hard": "constrained tools · predefined surface (off public site)",
+    "t20s_no_reference_53": "agent · procedure partial"
+  },
+  "complete_extra": [
+    { "name": "t20s_realistic_53", "sub": "agent · outcome-only", "status": "ungraded" },
+    { "name": "cryowizard_baseline", "sub": "non-agentic · outcome-only, wrong-handed", "status": "ungraded" },
+    { "name": "cryowizard_baseline_handflip", "sub": "non-agentic · outcome-only", "status": "ungraded" },
+    { "name": "floor_min", "sub": "random decisions · reference", "note": "Reference, not scored. Defines the map-quality floor (0.0) at ≈4.35 Å; map similarity 0.038." }
+  ]
+}
