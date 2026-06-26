@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="assets/site.css">
 </head>
 <body>
+<button class="toc-toggle" id="tocToggle" aria-label="Toggle table of contents">Hide contents</button>
 <div class="wrap">
   <aside class="side"><div class="brand">Contents</div><div id="toc"></div></aside>
   <main><article id="doc-out"></article></main>
@@ -30,12 +31,14 @@ The outcome scores use three reference points on the same 20-movie subset: a by-
 <summary><h3>Demo runs</h3></summary>
 
 <!-- GEN:demo:start -->
+<div class="mtable-cap">T20S (tutorial subset)</div>
 <div class="mtable-wrap">
 <table class="mtable">
 <thead><tr>
 <th>Run</th>
 <th class="agg">Total</th>
 <th class="agg grp-out">Outcome</th>
+<th class="agg grp-proc">Procedure</th>
 <th class="agg grp-out">Map quality</th>
 <th class="grp-out">Global res Å</th>
 <th class="grp-out">FSC AUC</th>
@@ -45,7 +48,6 @@ The outcome scores use three reference points on the same 20-movie subset: a by-
 <th class="grp-out">map–map CC</th>
 <th class="grp-out">map–map FSC Å</th>
 <th class="grp-out">Hand gate</th>
-<th class="agg grp-proc">Procedure</th>
 <th class="agg grp-proc">Trajectory</th>
 <th class="grp-proc">Tree compl.</th>
 <th class="grp-proc">Tree simil.</th>
@@ -55,18 +57,47 @@ The outcome scores use three reference points on the same 20-movie subset: a by-
 <th class="grp-proc">picks F2</th>
 </tr></thead>
 <tbody>
-<tr><td>Handheld<span class="rn-sub">agent · handheld guidance</span></td><td class="agg">0.864</td><td class="agg">0.803</td><td class="agg">0.998</td><td>3.16 (0.995)</td><td>0.79 (1.000)</td><td>0.73 (1.000)</td><td>0.936 (1.000)</td><td class="agg">0.608</td><td>0.644 (0.364)</td><td>3.53 (0.852)</td><td>1.00</td><td class="agg">0.924</td><td class="agg">0.986</td><td>9/9 (1.000)</td><td>0+1/22 (0.955)</td><td class="agg">0.830</td><td>2·2.12 (0.719)</td><td>1.00/0.89 (0.941)</td><td>0.79/0.93 (0.894)</td></tr>
-<tr><td class="ungraded">Tutorial<span class="rn-sub">agent · not yet run</span></td><td colspan="19"></td></tr>
-<tr><td>Realistic<span class="rn-sub">agent · PI brief</span></td><td class="agg">0.796</td><td class="agg">0.800</td><td class="agg">0.990</td><td>3.16 (0.992)</td><td>0.80 (1.000)</td><td>0.75 (1.000)</td><td>0.933 (0.965)</td><td class="agg">0.610</td><td>0.646 (0.368)</td><td>3.53 (0.853)</td><td>1.00</td><td class="agg">0.792</td><td class="agg">0.887</td><td>9/9 (1.000)</td><td>2+7/24 (0.625)</td><td class="agg">0.500</td><td>14·2.26 (0.000)</td><td>1.00/1.00 (1.000)</td><td>0.84/0.91 (0.895)</td></tr>
-<tr><td class="ungraded">CryoWizard baseline<span class="rn-sub">non-agentic · provisional, outcome-only</span></td><td colspan="19"></td></tr>
-<tr><td>Golden path<span class="rn-sub">by-hand expert · reference</span></td><td colspan="19" style="text-align:left;color:var(--muted)">Reference, not scored. Defines the map-quality ceiling (1.0) at ≈3.15 Å.</td></tr>
-<tr><td>Performance floor<span class="rn-sub">random decisions · reference</span></td><td colspan="19" style="text-align:left;color:var(--muted)">Reference, not scored. Defines the map-quality floor (0.0) at ≈4.35 Å; map similarity 0.038.</td></tr>
-<tr><td class="ungraded">Full T20S<span class="rn-sub">other structure · rollout incomplete</span></td><td colspan="19"></td></tr>
-<tr><td class="ungraded">β-galactosidase<span class="rn-sub">other structure · rollout incomplete</span></td><td colspan="19"></td></tr>
-<tr><td class="ungraded">CB1–Gi GPCR<span class="rn-sub">other structure · rollout incomplete</span></td><td colspan="19"></td></tr>
-<tr><td class="ungraded">MRGPRX2 GPCR<span class="rn-sub">other structure · rollout incomplete</span></td><td colspan="19"></td></tr>
-<tr><td class="ungraded">Encapsulin<span class="rn-sub">other structure · rollout incomplete</span></td><td colspan="19"></td></tr>
-<tr><td class="ungraded">HIV Env BG505 + 44m Fab<span class="rn-sub">Scripps pilot · rollout incomplete</span></td><td colspan="19"></td></tr>
+<tr><td><a href="rollouts.html">Handheld</a><span class="rn-sub">agent · guided</span></td><td class="agg">0.864</td><td class="agg">0.803</td><td class="agg">0.924</td><td class="agg">0.998</td><td>3.16 (0.995)</td><td>0.79 (1.000)</td><td>0.73 (1.000)</td><td>0.936 (1.000)</td><td class="agg">0.608</td><td>0.644 (0.364)</td><td>3.53 (0.852)</td><td>1.00</td><td class="agg">0.986</td><td>9/9 (1.000)</td><td>0+1/22 (0.955)</td><td class="agg">0.830</td><td>2·2.12 (0.719)</td><td>1.00/0.89 (0.941)</td><td>0.79/0.93 (0.894)</td></tr>
+<tr><td>Tutorial <span class="pill partial">incomplete</span><span class="rn-sub">agent</span></td><td colspan="19"></td></tr>
+<tr><td><a href="reports/raw-realistic-exec-v2.html">Realistic</a><span class="rn-sub">agent · PI brief</span></td><td class="agg">0.796</td><td class="agg">0.800</td><td class="agg">0.792</td><td class="agg">0.990</td><td>3.16 (0.992)</td><td>0.80 (1.000)</td><td>0.75 (1.000)</td><td>0.933 (0.965)</td><td class="agg">0.610</td><td>0.646 (0.368)</td><td>3.53 (0.853)</td><td>1.00</td><td class="agg">0.887</td><td>9/9 (1.000)</td><td>2+7/24 (0.625)</td><td class="agg">0.500</td><td>14·2.26 (0.000)</td><td>1.00/1.00 (1.000)</td><td>0.84/0.91 (0.895)</td></tr>
+<tr><td>CryoWizard <span class="pill gap">ungraded</span><span class="rn-sub">non-agentic</span></td><td colspan="19"></td></tr>
+<tr><td>Golden<span class="rn-sub">by-hand expert</span></td><td colspan="19" style="text-align:left;color:var(--muted)">Reference, not scored. Map-quality ceiling (1.0) at ≈3.15 Å.</td></tr>
+<tr><td>Floor<span class="rn-sub">random decisions</span></td><td colspan="19" style="text-align:left;color:var(--muted)">Reference, not scored. Map-quality floor (0.0) at ≈4.35 Å; map similarity 0.038.</td></tr>
+</tbody>
+</table>
+</div>
+<div class="mtable-cap">Other datasets</div>
+<div class="mtable-wrap">
+<table class="mtable">
+<thead><tr>
+<th>Run</th>
+<th class="agg">Total</th>
+<th class="agg grp-out">Outcome</th>
+<th class="agg grp-proc">Procedure</th>
+<th class="agg grp-out">Map quality</th>
+<th class="grp-out">Global res Å</th>
+<th class="grp-out">FSC AUC</th>
+<th class="grp-out">Local Δ Å</th>
+<th class="grp-out">cFAR</th>
+<th class="agg grp-out">Map similarity</th>
+<th class="grp-out">map–map CC</th>
+<th class="grp-out">map–map FSC Å</th>
+<th class="grp-out">Hand gate</th>
+<th class="agg grp-proc">Trajectory</th>
+<th class="grp-proc">Tree compl.</th>
+<th class="grp-proc">Tree simil.</th>
+<th class="agg grp-proc">Select-2D</th>
+<th class="grp-proc">template</th>
+<th class="grp-proc">refine</th>
+<th class="grp-proc">picks F2</th>
+</tr></thead>
+<tbody>
+<tr><td>Full T20S <span class="pill partial">incomplete</span><span class="rn-sub">all movies</span></td><td colspan="19"></td></tr>
+<tr><td>β-gal <span class="pill partial">incomplete</span><span class="rn-sub">RELION benchmark</span></td><td colspan="19"></td></tr>
+<tr><td>CB1–Gi <span class="pill partial">incomplete</span><span class="rn-sub">GPCR complex</span></td><td colspan="19"></td></tr>
+<tr><td>MRGPRX2 <span class="pill partial">incomplete</span><span class="rn-sub">GPCR</span></td><td colspan="19"></td></tr>
+<tr><td>Encapsulin <span class="pill partial">incomplete</span><span class="rn-sub">icosahedral</span></td><td colspan="19"></td></tr>
+<tr><td>HIV Env <span class="pill partial">incomplete</span><span class="rn-sub">Scripps pilot</span></td><td colspan="19"></td></tr>
 </tbody>
 </table>
 </div>
@@ -86,6 +117,7 @@ Every run computed so far, for internal review. Includes runs that will not appe
 <th>Run</th>
 <th class="agg">Total</th>
 <th class="agg grp-out">Outcome</th>
+<th class="agg grp-proc">Procedure</th>
 <th class="agg grp-out">Map quality</th>
 <th class="grp-out">Global res Å</th>
 <th class="grp-out">FSC AUC</th>
@@ -95,7 +127,6 @@ Every run computed so far, for internal review. Includes runs that will not appe
 <th class="grp-out">map–map CC</th>
 <th class="grp-out">map–map FSC Å</th>
 <th class="grp-out">Hand gate</th>
-<th class="agg grp-proc">Procedure</th>
 <th class="agg grp-proc">Trajectory</th>
 <th class="grp-proc">Tree compl.</th>
 <th class="grp-proc">Tree simil.</th>
@@ -105,15 +136,15 @@ Every run computed so far, for internal review. Includes runs that will not appe
 <th class="grp-proc">picks F2</th>
 </tr></thead>
 <tbody>
-<tr><td>raw_easy<span class="rn-sub">agent · handheld (= Handheld demo)</span></td><td class="agg">0.864</td><td class="agg">0.803</td><td class="agg">0.998</td><td>3.16 (0.995)</td><td>0.79 (1.000)</td><td>0.73 (1.000)</td><td>0.936 (1.000)</td><td class="agg">0.608</td><td>0.644 (0.364)</td><td>3.53 (0.852)</td><td>1.00</td><td class="agg">0.924</td><td class="agg">0.986</td><td>9/9 (1.000)</td><td>0+1/22 (0.955)</td><td class="agg">0.830</td><td>2·2.12 (0.719)</td><td>1.00/0.89 (0.941)</td><td>0.79/0.93 (0.894)</td></tr>
-<tr><td>raw_realistic<span class="rn-sub">agent · PI brief (= Realistic demo)</span></td><td class="agg">0.796</td><td class="agg">0.800</td><td class="agg">0.990</td><td>3.16 (0.992)</td><td>0.80 (1.000)</td><td>0.75 (1.000)</td><td>0.933 (0.965)</td><td class="agg">0.610</td><td>0.646 (0.368)</td><td>3.53 (0.853)</td><td>1.00</td><td class="agg">0.792</td><td class="agg">0.887</td><td>9/9 (1.000)</td><td>2+7/24 (0.625)</td><td class="agg">0.500</td><td>14·2.26 (0.000)</td><td>1.00/1.00 (1.000)</td><td>0.84/0.91 (0.895)</td></tr>
-<tr><td>e2e_easy<span class="rn-sub">constrained tools · predefined surface (off public site)</span></td><td class="agg">0.870</td><td class="agg">0.798</td><td class="agg">0.979</td><td>3.18 (0.972)</td><td>0.80 (1.000)</td><td>0.79 (1.000)</td><td>0.932 (0.952)</td><td class="agg">0.616</td><td>0.645 (0.373)</td><td>3.53 (0.859)</td><td>1.00</td><td class="agg">0.942</td><td class="agg">1.000</td><td>9/9 (1.000)</td><td>0+0/22 (1.000)</td><td class="agg">0.875</td><td>2·1.90 (0.776)</td><td>0.95/1.00 (0.973)</td><td>0.84/0.91 (0.895)</td></tr>
-<tr><td>e2e_hard<span class="rn-sub">constrained tools · predefined surface (off public site)</span></td><td class="agg">0.808</td><td class="agg">0.805</td><td class="agg">1.000</td><td>3.11 (1.000)</td><td>0.81 (1.000)</td><td>0.80 (1.000)</td><td>0.942 (1.000)</td><td class="agg">0.610</td><td>0.651 (0.366)</td><td>3.47 (0.854)</td><td>1.00</td><td class="agg">0.811</td><td class="agg">0.918</td><td>9/9 (1.000)</td><td>0+6/22 (0.727)</td><td class="agg">0.500</td><td>29·2.60 (0.000)</td><td>1.00/1.00 (1.000)</td><td>0.67/0.99 (0.906)</td></tr>
-<tr><td>t20s_no_reference_53<span class="rn-sub">agent · procedure partial</span></td><td class="agg">0.549</td><td class="agg">0.571</td><td class="agg">0.942</td><td>3.05 (1.000)</td><td>0.85 (1.000)</td><td>1.57 (0.713)</td><td>0.936 (0.998)</td><td class="agg">0.200</td><td>0.231 (0.000)</td><td>7.27 (0.399)</td><td>1.00</td><td class="agg">0.528</td><td class="agg">0.792</td><td>9/9 (1.000)</td><td>4+14/26 (0.308)</td><td class="agg">0.000</td><td>25·— (0.000)</td><td class="ungraded">n/a</td><td class="ungraded">n/a</td></tr>
-<tr><td class="ungraded">t20s_realistic_53<span class="rn-sub">agent · outcome-only</span></td><td colspan="19"></td></tr>
-<tr><td class="ungraded">cryowizard_baseline<span class="rn-sub">non-agentic · outcome-only, wrong-handed</span></td><td colspan="19"></td></tr>
-<tr><td class="ungraded">cryowizard_baseline_handflip<span class="rn-sub">non-agentic · outcome-only</span></td><td colspan="19"></td></tr>
-<tr><td>floor_min<span class="rn-sub">random decisions · reference</span></td><td colspan="19" style="text-align:left;color:var(--muted)">Reference, not scored. Defines the map-quality floor (0.0) at ≈4.35 Å; map similarity 0.038.</td></tr>
+<tr><td><a href="rollouts.html">raw_easy</a><span class="rn-sub">= Handheld</span></td><td class="agg">0.864</td><td class="agg">0.803</td><td class="agg">0.924</td><td class="agg">0.998</td><td>3.16 (0.995)</td><td>0.79 (1.000)</td><td>0.73 (1.000)</td><td>0.936 (1.000)</td><td class="agg">0.608</td><td>0.644 (0.364)</td><td>3.53 (0.852)</td><td>1.00</td><td class="agg">0.986</td><td>9/9 (1.000)</td><td>0+1/22 (0.955)</td><td class="agg">0.830</td><td>2·2.12 (0.719)</td><td>1.00/0.89 (0.941)</td><td>0.79/0.93 (0.894)</td></tr>
+<tr><td><a href="reports/raw-realistic-exec-v2.html">raw_realistic</a><span class="rn-sub">= Realistic</span></td><td class="agg">0.796</td><td class="agg">0.800</td><td class="agg">0.792</td><td class="agg">0.990</td><td>3.16 (0.992)</td><td>0.80 (1.000)</td><td>0.75 (1.000)</td><td>0.933 (0.965)</td><td class="agg">0.610</td><td>0.646 (0.368)</td><td>3.53 (0.853)</td><td>1.00</td><td class="agg">0.887</td><td>9/9 (1.000)</td><td>2+7/24 (0.625)</td><td class="agg">0.500</td><td>14·2.26 (0.000)</td><td>1.00/1.00 (1.000)</td><td>0.84/0.91 (0.895)</td></tr>
+<tr><td><a href="rollouts.html">e2e_easy</a><span class="rn-sub">constrained tools · off public site</span></td><td class="agg">0.870</td><td class="agg">0.798</td><td class="agg">0.942</td><td class="agg">0.979</td><td>3.18 (0.972)</td><td>0.80 (1.000)</td><td>0.79 (1.000)</td><td>0.932 (0.952)</td><td class="agg">0.616</td><td>0.645 (0.373)</td><td>3.53 (0.859)</td><td>1.00</td><td class="agg">1.000</td><td>9/9 (1.000)</td><td>0+0/22 (1.000)</td><td class="agg">0.875</td><td>2·1.90 (0.776)</td><td>0.95/1.00 (0.973)</td><td>0.84/0.91 (0.895)</td></tr>
+<tr><td><a href="rollouts.html">e2e_hard</a><span class="rn-sub">constrained tools · off public site</span></td><td class="agg">0.808</td><td class="agg">0.805</td><td class="agg">0.811</td><td class="agg">1.000</td><td>3.11 (1.000)</td><td>0.81 (1.000)</td><td>0.80 (1.000)</td><td>0.942 (1.000)</td><td class="agg">0.610</td><td>0.651 (0.366)</td><td>3.47 (0.854)</td><td>1.00</td><td class="agg">0.918</td><td>9/9 (1.000)</td><td>0+6/22 (0.727)</td><td class="agg">0.500</td><td>29·2.60 (0.000)</td><td>1.00/1.00 (1.000)</td><td>0.67/0.99 (0.906)</td></tr>
+<tr><td><a href="rollouts.html">t20s_no_reference_53</a><span class="rn-sub">procedure partial</span></td><td class="agg">0.549</td><td class="agg">0.571</td><td class="agg">0.528</td><td class="agg">0.942</td><td>3.05 (1.000)</td><td>0.85 (1.000)</td><td>1.57 (0.713)</td><td>0.936 (0.998)</td><td class="agg">0.200</td><td>0.231 (0.000)</td><td>7.27 (0.399)</td><td>1.00</td><td class="agg">0.792</td><td>9/9 (1.000)</td><td>4+14/26 (0.308)</td><td class="agg">0.000</td><td>25·— (0.000)</td><td class="na">n/a</td><td class="na">n/a</td></tr>
+<tr><td>t20s_realistic_53 <span class="pill gap">ungraded</span><span class="rn-sub">outcome-only</span></td><td colspan="19"></td></tr>
+<tr><td>cryowizard <span class="pill gap">ungraded</span><span class="rn-sub">outcome-only, wrong-handed</span></td><td colspan="19"></td></tr>
+<tr><td>cryowizard_flip <span class="pill gap">ungraded</span><span class="rn-sub">outcome-only</span></td><td colspan="19"></td></tr>
+<tr><td>floor_min<span class="rn-sub">random decisions</span></td><td colspan="19" style="text-align:left;color:var(--muted)">Reference, not scored. Map-quality floor (0.0) at ≈4.35 Å; map similarity 0.038.</td></tr>
 </tbody>
 </table>
 </div>
@@ -265,6 +296,14 @@ Computed and reported at zero weight, held out of the headline as cross-checks.
       + '<span class="tag dot">snapshot 2026-06-25</span></div>'
   });
   Site.nav('benchmark');
+  (function () {
+    var w = document.querySelector('.wrap'), b = document.getElementById('tocToggle');
+    if (!w || !b) return;
+    b.addEventListener('click', function () {
+      var hidden = w.classList.toggle('notoc');
+      b.textContent = hidden ? 'Show contents' : 'Hide contents';
+    });
+  })();
 </script>
 </body>
 </html>
