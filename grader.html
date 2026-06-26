@@ -99,6 +99,8 @@ Cryo-EM maps have an intrinsic hand; a mirror-image (enantiomer) map can have ex
 <figcaption style="color:var(--muted);font-size:13px;margin-top:6px">A clear right hand — the map fitting the reference far better than its mirror — passes at 1.0; a mirror-image map collapses the outcome family to 0.</figcaption>
 </figure>
 
+**Tools — requires Phenix.** Computed by the same vendored-Phenix map-comparison module as map similarity (NumPy/SciPy correlation and alignment, with Phenix's `iotbx` reading the maps), here comparing the run map to the in-house expert map and its mirror.
+
 </details>
 
 </details>
@@ -209,7 +211,7 @@ Each subscore is a value in [0, 1]. Within a family, subscores combine into a we
 <details class="gsec">
 <summary><h2>Technical details</h2></summary>
 
-How each subscore is computed, with a worked example and the agent's actual inputs. Expand a subscore for the mechanics.
+How each subscore is computed, with a worked example, the agent's actual inputs, and the **software it requires**. Most axes are plain NumPy/SciPy on the maps; **map similarity and the handedness gate require Phenix** (to read the deposited maps and run the alignment), and **select-2D requires the CryoSift neural network**. Expand a subscore for the mechanics.
 
 ### Outcome subscores
 
@@ -269,6 +271,8 @@ The curve starts near 1 at low *k* (the halves agree on coarse shape) and falls 
 <p class="eqn">norm = clamp₍₀,₁₎( (floor − value) / (floor − ceiling) )<span class="def">   — for the Å axes (lower = better); the higher-is-better axes use (value − floor)/(ceiling − floor)</span></p>
 
 Both ends use the same 20-movie data, so each axis isolates *technique*, not how much data was available.
+
+**Tools.** Python with **NumPy / SciPy** on the two half-map files — the FSC, its area, the windowed local resolution, and the conical cFAR are all computed in-house, with no specialist structural-biology package. Map I/O and half-map retrieval use cryoSPARC's **`cryosparc-tools`**. Phenix and learned models are *not* needed here.
 
 </details>
 
@@ -340,6 +344,8 @@ It is one number in [−1, 1]: 1 = identical shape, 0 = unrelated. **Map–map F
 <figcaption style="color:var(--muted);font-size:13px;margin-top:6px">The run map and the deposit — low-passed to the run's resolution — are compared by cross-correlation and FSC; each metric is normalized to that resolution-matched structure, the best a 20-movie subset could match.</figcaption>
 </figure>
 
+**Tools — requires Phenix.** This block runs inside the vendored **Phenix** (`phenix.python`). The scored numbers themselves are NumPy/SciPy (the real-space CC, the FFT map–map FSC, and the rigid-body placement via SciPy's Powell minimiser on a low-pass envelope plus a fixed hand flip) — but **Phenix is genuinely required to *read* the deposited maps**: it uses Phenix's `iotbx`/`cctbx` map readers for the CCP4/MRC volumes, and Phenix is the runtime that carries NumPy/SciPy for the alignment. So the heavy dependency here is for map I/O and the alignment environment, not the metric math. (A separate, 0-weight map-to-*model* cross-check — not in the headline — additionally runs the `phenix.emringer`, `phenix.map_model_cc`, and `phenix.mtriage` programs against PDB 6BDF.)
+
 </details>
 
 ### Procedure subscores
@@ -362,6 +368,8 @@ A cryo-EM reconstruction is a directed graph of processing jobs. Trajectory grad
 A legitimately different pipeline scores below 1 here by design — tree completeness, weighted higher, is what protects it.
 
 *Example — what the agent built.* An agent whose graph imports movies → corrects motion → estimates CTF → picks → extracts → classifies in 2-D → curates → builds an initial 3-D (ab-initio) model → refines covers all nine capabilities in a valid order and reaches a completed refinement, so C = 1, O = 1, G = 1 → tree completeness **1.0**. If it also skipped the tutorial's two optional denoise/junk-removal jobs, those count as *missing* and pull tree similarity below 1, while tree completeness stays 1.0 (optional polish is never required).
+
+**Tools.** Pure Python — graph and multiset operations on the job DAG (job types, completion flags, dependency edges) harvested from cryoSPARC via **`cryosparc-tools`**. No NumPy, no Phenix, no learned model.
 
 </details>
 
@@ -389,6 +397,8 @@ After particles are extracted, cryoSPARC groups them into **2-D class averages**
 
 **Then normalization.** Both passes already return values in [0, 1], so they need no floor/ceiling rescaling; they average 50/50 into select-2D, which is in turn one half of interactive jobs.
 
+**Tools — requires CryoSift.** The class-quality factor and the refine-pass labels both come from **CryoSift**, the open-source Magellon class-quality CNN (PyTorch, run on CPU; Schäfer et al. 2025) — so select-2D is the one subscore that depends on a learned model. **`cryosparc-tools`** reads which classes the agent kept and locates the class-average files CryoSift scores; the count band and F1 are plain Python/NumPy. No Phenix.
+
 </details>
 
 <details class="gdet">
@@ -408,6 +418,8 @@ Recall is weighted above precision (β = 2) because a missed real particle is th
 <img src="reports/raw-realistic-exec-v2/overlay_J108_4_mic1.png" alt="Agent particle picks overlaid on a micrograph" style="max-width:100%;border:1px solid var(--line);border-radius:8px;display:block">
 <figcaption style="color:var(--muted);font-size:13px;margin-top:6px">One agent's final picks (yellow) on a 30 Å low-pass micrograph; F2 compares these coordinates to the golden picks on the same micrograph.</figcaption>
 </figure>
+
+**Tools.** **NumPy** (the nearest-neighbour matching) plus **`cryosparc-tools`** to load the agent's and the expert's pick coordinates. No Phenix, no learned model.
 
 </details>
 
