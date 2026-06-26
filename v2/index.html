@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>cryo-EM reconstruction benchmark — New Atlantic</title>
+<title>cryo-EM env — internal site</title>
 <meta name="description" content="An execution-graded evaluation environment for single-particle cryo-EM reconstruction: raw movies → 3D density map, scored subscore by subscore against deposited ground truth.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,9 +16,10 @@
     <article>
 
       <section class="hero">
-        <p class="kicker">Scientific evaluation environment</p>
-        <h1>An execution-graded benchmark for cryo-EM reconstruction</h1>
-        <p class="lead">A live environment in which an AI agent drives a complete single-particle cryo-EM pipeline — raw electron-microscope movies in, a 3-D density map out — and a grader that scores the run subscore by subscore against deposited ground truth and an expert workflow. Presented as a benchmark, in three parts: what the model does, how it is graded, and the results.</p>
+        <h1>cryo-EM reconstruction environment</h1>
+        <p class="lead">The Scripps cryo-EM RL/eval environment as a benchmark, in three parts: what the
+          model does (action space + inputs/outputs), how it's graded (the scoring scheme), and the results
+          (per-run × per-subscore). Task: raw movies → 3D density map, T20S / EMPIAR-10025.</p>
         <div class="docmeta">
           <span class="tag stage">tutorial MVP · T20S</span>
           <span class="tag dot">public data only</span>
