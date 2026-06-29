@@ -16,7 +16,7 @@
         { "name": "Handheld", "sub": "agent · guided", "run": "raw_easy" },
         { "name": "Tutorial", "sub": "agent", "status": "incomplete" },
         { "name": "Realistic", "sub": "agent · PI brief", "run": "raw_realistic" },
-        { "name": "CryoWizard", "sub": "non-agentic", "status": "ungraded" },
+        { "name": "CryoWizard", "sub": "non-agentic · wrong-handed", "run": "cryowizard_baseline" },
         { "name": "Golden", "sub": "by-hand expert", "note": "Reference, not scored. Map-quality ceiling (1.0) at ≈3.15 Å." },
         { "name": "Floor", "sub": "random decisions", "note": "Reference, not scored. Map-quality floor (0.0) at ≈4.35 Å; map similarity 0.038." }
       ]
@@ -33,18 +33,16 @@
       ]
     }
   ],
-  "complete_order": ["raw_easy", "raw_realistic", "e2e_easy", "e2e_hard", "t20s_no_reference_53"],
+  "complete_order": ["raw_easy", "raw_realistic", "e2e_easy", "e2e_hard", "cryowizard_baseline", "cryowizard_baseline_handflip"],
   "complete_labels": {
     "raw_easy": "= Handheld",
     "raw_realistic": "= Realistic",
     "e2e_easy": "constrained tools · off public site",
     "e2e_hard": "constrained tools · off public site",
-    "t20s_no_reference_53": "procedure partial"
+    "cryowizard_baseline": "= CryoWizard · wrong-handed (gated to 0)",
+    "cryowizard_baseline_handflip": "CryoWizard · hand-corrected"
   },
   "complete_extra": [
-    { "name": "t20s_realistic_53", "sub": "outcome-only", "status": "ungraded" },
-    { "name": "cryowizard", "sub": "outcome-only, wrong-handed", "status": "ungraded" },
-    { "name": "cryowizard_flip", "sub": "outcome-only", "status": "ungraded" },
     { "name": "floor_min", "sub": "random decisions", "note": "Reference, not scored. Map-quality floor (0.0) at ≈4.35 Å; map similarity 0.038." }
   ]
 }
